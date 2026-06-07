@@ -27,12 +27,31 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 
 # Dominios con alta señal de convocatorias reales (se priorizan al deduplicar)
 HIGH_SIGNAL_DOMAINS = (
-    "iadb.org", "caf.com", "worldbank.org", "undp.org", "un.org",
-    "europa.eu", "ec.europa.eu", "giz.de", "usaid.gov", "aecid.es",
-    "reliefweb.int", "devex.com", "ungm.org", "grants.gov", "thegef.org",
-    "greenclimate.fund", "ifad.org", "fao.org", "unicef.org", "paho.org",
+    # Multilaterales y bancos de desarrollo
+    "iadb.org", "caf.com", "worldbank.org", "ifad.org", "thegef.org",
+    "greenclimate.fund", "adb.org", "bcie.org", "fonplata.org",
+    # Sistema ONU
+    "undp.org", "un.org", "unicef.org", "paho.org", "fao.org", "unesco.org",
+    "unfpa.org", "unwomen.org", "unhcr.org", "wfp.org", "ilo.org", "unep.org",
+    # Unión Europea
+    "europa.eu", "ec.europa.eu", "eeas.europa.eu",
+    # Cooperación bilateral
+    "giz.de", "usaid.gov", "aecid.es", "afd.fr", "jica.go.jp", "ukaid.gov.uk",
+    "kfw-entwicklungsbank.de", "sida.se", "norad.no", "dfat.gov.au",
+    "international.gc.ca", "global-affairs.canada.ca",
+    # Fundaciones grandes
+    "fordfoundation.org", "gatesfoundation.org", "rockefellerfoundation.org",
+    "macfound.org", "open-society-foundations.org", "wellcome.org",
+    "wkkf.org", "hewlett.org", "fundacionavina.org", "tinkerfoundation.org",
+    # Plataformas/agregadores de convocatorias
+    "reliefweb.int", "devex.com", "ungm.org", "grants.gov", "fundsforngos.org",
+    "philanthropynewsdigest.org", "candid.org", "fundforpeace.org",
+    "opportunitiesforafricans.com", "globalgiving.org",
+    # Ecuador (gobierno + agencias)
     "gob.ec", "senescyt.gob.ec", "ambiente.gob.ec", "agenciaregulacion",
-    "fundacionavina.org", "fordfoundation.org", "gatesfoundation.org",
+    "ministeriodegobierno.gob.ec", "iniap.gob.ec",
+    # LinkedIn (posts y artículos públicos suelen tener convocatorias anunciadas)
+    "linkedin.com/pulse", "linkedin.com/posts", "linkedin.com/company",
 )
 
 
@@ -259,24 +278,41 @@ ALL_TOOLS = [DEEP_SEARCH_TOOL, WEB_SEARCH_TOOL, FETCH_PAGE_TOOL]
 
 # ── Pre-built deep query packs for opportunity hunting ─────────────────────
 def opportunity_queries(topic: str) -> list:
-    """Genera un paquete amplio de queries para una búsqueda profunda por tema."""
+    """Genera un paquete amplio de queries para una búsqueda profunda por tema.
+    Incluye: portales oficiales, LinkedIn, agregadores y motores locales.
+    """
     t = topic.strip()
+    year = "2026 2027"  # ventana móvil de los próximos años
     base = [
-        f"convocatoria financiamiento no reembolsable Ecuador {t} 2025 2026",
-        f"fondos concursables {t} Ecuador organizaciones sociedad civil 2025 2026",
-        f"grants non-refundable funding Ecuador {t} 2025 2026 open call",
-        f"call for proposals {t} Ecuador Latin America 2025 2026",
-        f"BID BID-LAB FOMIN convocatoria {t} Ecuador",
-        f"CAF cooperación técnica {t} Ecuador 2025 2026",
-        f"PNUD UNDP UNICEF {t} Ecuador convocatoria sociedad civil",
-        f"Unión Europea EU cooperación {t} Ecuador grant 2025 2026",
-        f"GIZ USAID AECID AFD cooperación {t} Ecuador convocatoria",
-        f"appel à propositions {t} Équateur financement 2025 2026",
-        f"GEF GCF Fondo Verde Clima {t} Ecuador" if any(
-            k in t.lower() for k in ("ambient", "clima", "agua", "biodivers", "bosque")
-        ) else f"fundaciones internacionales {t} Ecuador grant 2025",
+        # Portales generales + Ecuador
+        f"convocatoria financiamiento no reembolsable Ecuador {t} {year}",
+        f"fondos concursables {t} Ecuador organizaciones sociedad civil {year}",
+        f"grants non-refundable funding Ecuador {t} {year} open call",
+        f"call for proposals {t} Ecuador Latin America {year}",
         f"requisitos bases convocatoria {t} Ecuador formato presupuesto elegibilidad",
+        # Multilaterales
+        f"BID BID-LAB FOMIN convocatoria {t} Ecuador {year}",
+        f"CAF cooperación técnica {t} Ecuador {year}",
+        f"World Bank GEF Green Climate Fund {t} Ecuador {year}",
+        # ONU
+        f"PNUD UNDP UNICEF FAO {t} Ecuador convocatoria sociedad civil {year}",
+        # UE + bilaterales
+        f"Unión Europea EU cooperación {t} Ecuador grant {year}",
+        f"GIZ USAID AECID AFD JICA cooperación {t} Ecuador convocatoria {year}",
+        f"appel à propositions {t} Équateur financement {year}",
+        # Agregadores donde aparecen convocatorias frescas
+        f"site:reliefweb.int call for proposals {t} Ecuador",
+        f"site:devex.com {t} Ecuador funding opportunity",
+        f"site:fundsforngos.org {t} {year}",
+        f"site:grants.gov {t}",
+        # LinkedIn — los program officers suelen anunciar primero ahí
+        f"site:linkedin.com/posts {t} grant call proposals Ecuador",
+        f"site:linkedin.com/pulse {t} funding Ecuador {year}",
+        f"site:linkedin.com/posts convocatoria {t} {year}",
     ]
+    # Temáticas: añade clima/ambiente sólo cuando aplica
+    if any(k in t.lower() for k in ("ambient", "clima", "agua", "biodivers", "bosque", "carbono")):
+        base.append(f"GEF GCF Fondo Verde Clima {t} Ecuador {year}")
     # Dedup conservando orden
     seen, out = set(), []
     for q in base:
@@ -284,6 +320,18 @@ def opportunity_queries(topic: str) -> list:
             seen.add(q)
             out.append(q)
     return out
+
+
+def linkedin_queries(topic: str) -> list:
+    """Pack específico de queries para LinkedIn. Útil cuando el agente quiere
+    cazar anuncios recientes de program officers o páginas de fundaciones."""
+    t = topic.strip()
+    return [
+        f"site:linkedin.com/posts {t} grant call proposals",
+        f"site:linkedin.com/posts convocatoria {t}",
+        f"site:linkedin.com/pulse {t} Ecuador funding",
+        f"site:linkedin.com/company {t} foundation grant",
+    ]
 
 
 # Compatibilidad retro

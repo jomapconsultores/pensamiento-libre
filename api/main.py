@@ -59,7 +59,7 @@ def _require_api_key(x_api_key: Optional[str]):
 # ── Schemas ───────────────────────────────────────────────────────────────
 class CreateProposalRequest(BaseModel):
     user_input: str = Field(..., min_length=10, description="Idea, tema o propuesta a procesar.")
-    mode: str = Field("text", pattern="^(search|text|file)$")
+    mode: str = Field("text", pattern="^(search|text|file|url)$")
     doc_type_key: Optional[str] = Field("auto", description="'auto' o una clave de DOC_TYPES.")
     template_text: str = ""
     support_docs: list[tuple[str, str]] = Field(default_factory=list)
@@ -76,9 +76,18 @@ class SessionSummary(BaseModel):
     approved: bool
     current_cycle: int
     doc_type_key: str
+    input_mode: Optional[str] = None
+    user_input: Optional[str] = None
     title: Optional[str] = None
     funder: Optional[str] = None
+    funder_url: Optional[str] = None
+    deadline: Optional[str] = None
     overall_score: Optional[float] = None
+    viability_score: Optional[float] = None
+    winning_probability: Optional[float] = None
+    go_no_go: Optional[str] = None
+    evidence_sources: list = []
+    feasibility_breakdown: dict = {}
     created_at: Optional[str] = None
     completed_at: Optional[str] = None
     error_message: Optional[str] = None
@@ -135,7 +144,7 @@ def _project_session_from_db(row: dict) -> ProjectSession:
 def _row_to_summary(row: dict) -> SessionSummary:
     brief = row.get("brief") or {}
     analysis = row.get("analysis") or {}
-    funder = (analysis.get("funder") or {}).get("name") if analysis else None
+    funder_dict = analysis.get("funder") or {}
     last_review = (row.get("reviews") or [])[-1] if row.get("reviews") else None
     score = float(last_review["overall_score"]) if last_review else None
     return SessionSummary(
@@ -144,9 +153,18 @@ def _row_to_summary(row: dict) -> SessionSummary:
         approved=row.get("approved", False),
         current_cycle=row.get("current_cycle", 0),
         doc_type_key=row["doc_type_key"],
+        input_mode=row.get("input_mode"),
+        user_input=row.get("user_input"),
         title=brief.get("title") or analysis.get("project_title"),
-        funder=funder,
+        funder=funder_dict.get("name"),
+        funder_url=funder_dict.get("url"),
+        deadline=funder_dict.get("deadline"),
         overall_score=score,
+        viability_score=analysis.get("viability_score"),
+        winning_probability=analysis.get("winning_probability"),
+        go_no_go=analysis.get("go_no_go"),
+        evidence_sources=analysis.get("evidence_sources") or [],
+        feasibility_breakdown=analysis.get("feasibility_breakdown") or {},
         created_at=str(row.get("created_at")) if row.get("created_at") else None,
         completed_at=str(row.get("completed_at")) if row.get("completed_at") else None,
         error_message=row.get("error_message"),

@@ -88,6 +88,22 @@ Factores negativos (restan): competencia alta (−15), monto fuera de rango (−
 local (−10), sin capacidad técnica demostrable (−15), plazo muy corto para preparar (−10),
 mala reputación del proponente (−20), país de riesgo para el financiador (−5)
 
+REGLAS DE RIGOR (NO NEGOCIABLES — el revisor las verifica):
+1. CADA dato concreto (financiador, deadline, monto, página oficial, criterio de elegibilidad,
+   formato exigido) debe estar respaldado por una URL real encontrada con deep_search/fetch_page.
+   Si no encontraste la fuente, marca el campo como "no verificado" — NO inventes.
+2. Distingue claramente entre:
+   - "verificado": leído textualmente en la fuente oficial del financiador.
+   - "inferido": derivado de fuentes secundarias o conocimiento general.
+   - "no verificado": dato que necesitarías leer pero no pudiste acceder.
+3. Si la deadline no se encuentra publicada en una página oficial, NUNCA inventes una fecha.
+   Pon "deadline": "A verificar en {url_oficial}" y reduce winning_probability en consecuencia.
+4. Antes de declarar GO debes haber: (a) leído al menos UNA página oficial del financiador con
+   fetch_page; (b) verificado que Ecuador es país elegible; (c) confirmado que la convocatoria
+   está activa o que el programa tiene ciclo anual.
+5. Si la búsqueda no devuelve fuentes verificables → "go_no_go": "CONDITIONAL" o "NO-GO" con
+   explicación clara.
+
 INSTRUCCIÓN CRÍTICA:
 Debes responder ÚNICAMENTE con un JSON válido siguiendo exactamente el esquema indicado en la
 solicitud del usuario. Sin texto adicional antes o después del JSON.
@@ -162,7 +178,23 @@ Al finalizar, responde con el siguiente JSON (sin texto extra):
   "key_requirements": ["<requisito crítico 1>", "<requisito 2>"],
   "differentiators": ["<diferenciador 1>", "<diferenciador 2>"],
   "recommendations": "<instrucciones detalladas para el redactor>",
-  "raw_analysis": "<análisis completo en prosa, mínimo 300 palabras, justificando todos los puntajes>"
+  "raw_analysis": "<análisis completo en prosa, mínimo 300 palabras, justificando todos los puntajes>",
+  "evidence_sources": [
+    {{
+      "claim": "<dato concreto: ej. 'deadline 30 Sep 2026'>",
+      "source_url": "<URL exacta donde se leyó>",
+      "source_title": "<título de la página>",
+      "source_quote": "<fragmento textual breve (≤200 chars) que respalda el claim>",
+      "verification": "verificado|inferido|no_verificado"
+    }}
+  ],
+  "feasibility_breakdown": {{
+    "funder_match":          {{"score": <0-100>, "reason": "<por qué el tema encaja con el financiador>"}},
+    "geographic_eligibility":{{"score": <0-100>, "reason": "<Ecuador elegible? probarlo>"}},
+    "deadline_feasibility":  {{"score": <0-100>, "reason": "<tiempo suficiente para preparar?>"}},
+    "institutional_fit":     {{"score": <0-100>, "reason": "<perfil del proponente exigido>"}},
+    "budget_fit":            {{"score": <0-100>, "reason": "<ask cabe en el rango del financiador>"}}
+  }}
 }}
 """
 
@@ -229,8 +261,65 @@ Responde ÚNICAMENTE con el siguiente JSON (sin texto extra):
   "key_requirements": ["<requisito 1>", "<requisito 2>"],
   "differentiators": ["<diferenciador 1>", "<diferenciador 2>"],
   "recommendations": "<instrucciones detalladas para el redactor, mínimo 200 palabras>",
-  "raw_analysis": "<análisis completo en prosa, mínimo 400 palabras>"
+  "raw_analysis": "<análisis completo en prosa, mínimo 400 palabras>",
+  "evidence_sources": [
+    {{
+      "claim": "<dato concreto verificado>",
+      "source_url": "<URL exacta>",
+      "source_title": "<título de la página>",
+      "source_quote": "<fragmento textual breve (≤200 chars) que respalda el claim>",
+      "verification": "verificado|inferido|no_verificado"
+    }}
+  ],
+  "feasibility_breakdown": {{
+    "funder_match":          {{"score": <0-100>, "reason": "<por qué el tema encaja con el financiador>"}},
+    "geographic_eligibility":{{"score": <0-100>, "reason": "<Ecuador elegible? probarlo>"}},
+    "deadline_feasibility":  {{"score": <0-100>, "reason": "<tiempo suficiente para preparar?>"}},
+    "institutional_fit":     {{"score": <0-100>, "reason": "<perfil del proponente exigido>"}},
+    "budget_fit":            {{"score": <0-100>, "reason": "<ask cabe en el rango del financiador>"}}
+  }}
 }}
+"""
+
+
+def _build_url_prompt(url: str) -> str:
+    """Prompt para modo URL: descargar el link y emitir un dictamen riguroso."""
+    return f"""
+El usuario te entregó esta URL para que la analices con MÁXIMO RIGOR:
+
+    {url}
+
+PROCESO OBLIGATORIO:
+1. Llama a fetch_page(url="{url}") como PRIMERA acción para leer el contenido real.
+2. Si el contenido devuelve un login wall (LinkedIn no autenticado), inténtalo de todos modos —
+   muchas páginas tienen previews públicas. Si no, declara explícitamente "contenido no accesible"
+   en el análisis y baja viability_score.
+3. Identifica qué tipo de página es:
+   - Convocatoria oficial de un financiador (BID, CAF, PNUD, fundación, etc.)
+   - Post en LinkedIn anunciando una oportunidad
+   - Artículo de noticia sobre un programa
+   - Página de un proyecto existente
+   - Web institucional de una fundación
+4. Si es una CONVOCATORIA: extrae deadline, monto, elegibilidad, sectores prioritarios, formato exigido,
+   moneda, cofinanciamiento, criterios de evaluación. Si falta alguno, márcalo como "no verificado".
+5. Si es un PROYECTO EXISTENTE: identifica el sector y propón el financiador más adecuado para
+   replicar/escalar/financiar algo similar en Ecuador. Verifica con deep_search que ese financiador
+   tenga ventana abierta o ciclo anual.
+6. Si es un POST LINKEDIN: extrae las pistas que da (nombre del programa, fechas, contacto, links)
+   y haz deep_search para encontrar la página oficial del financiador.
+7. Llama a deep_search con 4-6 queries para CRUZAR la información: confirmar el financiador,
+   verificar la elegibilidad de Ecuador, encontrar la página oficial si solo viste un anuncio.
+
+REGLAS DE RIGOR ya descritas en el system: cita evidence_sources con URLs reales,
+distingue verificado/inferido/no_verificado, y NO inventes deadlines ni montos.
+
+Si la URL no es accesible y no encuentras información cruzada suficiente:
+- go_no_go: "CONDITIONAL"
+- viability_score: ≤55
+- explica en raw_analysis qué te falta para emitir un GO
+
+Cuando termines, responde ÚNICAMENTE con el mismo JSON del modo búsqueda
+(incluyendo evidence_sources y feasibility_breakdown). Sin texto extra.
 """
 
 
@@ -297,6 +386,8 @@ def run(session: ProjectSession, api_key: str) -> AnalysisResult:
 
     if session.input_mode == "search":
         prompt = _build_search_prompt(session.user_input)
+    elif session.input_mode == "url":
+        prompt = _build_url_prompt(session.user_input.strip())
     else:
         prompt = _build_analysis_prompt(session.user_input)
 
@@ -350,4 +441,6 @@ def run(session: ProjectSession, api_key: str) -> AnalysisResult:
         raw_analysis=data.get("raw_analysis", raw),
         national_guidelines=data.get("national_guidelines", []),
         international_guidelines=data.get("international_guidelines", []),
+        evidence_sources=data.get("evidence_sources", []),
+        feasibility_breakdown=data.get("feasibility_breakdown", {}),
     )

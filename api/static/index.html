@@ -177,15 +177,29 @@
   <main>
     <section class="panel" id="form-panel">
       <h2>Nueva propuesta</h2>
-      <label for="user_input">Tema / idea / texto base</label>
-      <textarea id="user_input"
-        placeholder="Ej: Programa de educación rural con conectividad satelital en la Amazonía ecuatoriana — 3,500 estudiantes, 24 meses, ODS 4 y 10."></textarea>
-
       <label for="mode">Modo de entrada</label>
-      <select id="mode">
+      <select id="mode" onchange="switchModeUI()">
         <option value="text" selected>Pegar idea/texto</option>
         <option value="search">Buscar oportunidades automáticamente</option>
+        <option value="url">Analizar URL/link (convocatoria, LinkedIn, fundación)</option>
       </select>
+
+      <div id="input-text-wrap">
+        <label for="user_input">Tema / idea / texto base</label>
+        <textarea id="user_input"
+          placeholder="Ej: Programa de educación rural con conectividad satelital en la Amazonía ecuatoriana — 3,500 estudiantes, 24 meses, ODS 4 y 10."></textarea>
+      </div>
+
+      <div id="input-url-wrap" style="display:none">
+        <label for="user_url">URL a analizar</label>
+        <input id="user_url" type="text"
+          placeholder="https://www.iadb.org/... o https://linkedin.com/posts/...">
+        <div class="help" style="margin-top:6px">
+          Funciona con páginas de convocatoria oficiales, posts de LinkedIn,
+          notas de prensa o webs de fundaciones. El agente descargará el contenido
+          y emitirá dictamen con evidencias citadas.
+        </div>
+      </div>
 
       <label for="doc_type">Tipo de documento</label>
       <select id="doc_type">
@@ -289,12 +303,31 @@
       } catch (e) { /* silent en arranque */ }
     }
 
+    function switchModeUI() {
+      const m = $("mode").value;
+      $("input-text-wrap").style.display = (m === "url") ? "none" : "";
+      $("input-url-wrap").style.display = (m === "url") ? "" : "none";
+    }
+
+    function validUrl(s) {
+      try { const u = new URL(s); return u.protocol === "http:" || u.protocol === "https:"; }
+      catch { return false; }
+    }
+
     async function submitProposal() {
-      const user_input = $("user_input").value.trim();
       const mode = $("mode").value;
       const doc_type_key = $("doc_type").value;
-      if (user_input.length < 10) {
-        showToast("Escribe al menos 10 caracteres.", "err"); return;
+      let user_input = "";
+      if (mode === "url") {
+        user_input = $("user_url").value.trim();
+        if (!validUrl(user_input)) {
+          showToast("Pega una URL válida (http o https).", "err"); return;
+        }
+      } else {
+        user_input = $("user_input").value.trim();
+        if (user_input.length < 10) {
+          showToast("Escribe al menos 10 caracteres.", "err"); return;
+        }
       }
       $("submit-btn").disabled = true;
       try {
@@ -302,7 +335,7 @@
           body: JSON.stringify({ user_input, mode, doc_type_key }) });
         const j = await r.json();
         showToast(`Encolada: ${j.session_id}`, "ok");
-        $("user_input").value = "";
+        if (mode === "url") $("user_url").value = ""; else $("user_input").value = "";
         loadList();
       } catch (e) { showToast(e.message, "err"); }
       finally { $("submit-btn").disabled = false; }
@@ -349,6 +382,53 @@
     function scheduleNextPoll(active) {
       if (pollTimer) clearTimeout(pollTimer);
       if (active) pollTimer = setTimeout(loadList, POLL_MS);
+    }
+
+    function renderFeasibility(fb) {
+      if (!fb || !Object.keys(fb).length) return "";
+      const labels = {
+        funder_match: "Match financiador",
+        geographic_eligibility: "Elegibilidad geográfica",
+        deadline_feasibility: "Tiempo para deadline",
+        institutional_fit: "Perfil institucional",
+        budget_fit: "Encaje de presupuesto",
+      };
+      const rows = Object.entries(fb).map(([k, v]) => {
+        const score = (v && typeof v === "object") ? Number(v.score ?? 0) : 0;
+        const reason = (v && typeof v === "object") ? (v.reason || "") : "";
+        const color = score >= 80 ? "var(--ok)" : score >= 60 ? "var(--accent-2)" : "var(--warn)";
+        return `<div class="criterion" title="${escapeHtml(reason)}">
+          <div>${escapeHtml(labels[k] || k)}</div>
+          <div class="bar"><div style="width:${score}%;background:${color}"></div></div>
+          <div style="text-align:right;font-variant-numeric:tabular-nums">${Math.round(score)}</div>
+        </div>`;
+      }).join("");
+      return `<div class="sec-title" style="margin-top:14px">Feasibility breakdown</div>
+              <div class="criteria-list">${rows}</div>`;
+    }
+
+    function renderEvidence(sources) {
+      if (!sources || !sources.length) return "";
+      const items = sources.map(s => {
+        const v = (s.verification || "inferido").toLowerCase();
+        const badge = v === "verificado"     ? '<span class="pill approved">verificado</span>'
+                     : v === "no_verificado" ? '<span class="pill failed">no verificado</span>'
+                     : '<span class="pill running">inferido</span>';
+        const link = s.source_url
+          ? `<a href="${escapeHtml(s.source_url)}" target="_blank" rel="noopener">${escapeHtml(s.source_title || s.source_url)}</a>`
+          : escapeHtml(s.source_title || "-");
+        const quote = s.source_quote ? `<div class="meta" style="font-style:italic;margin-top:4px">"${escapeHtml(s.source_quote)}"</div>` : "";
+        return `<div class="cyc" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:10px">
+            <b>${escapeHtml(s.claim || "(claim sin texto)")}</b>
+            ${badge}
+          </div>
+          <div style="margin-top:4px">${link}</div>
+          ${quote}
+        </div>`;
+      }).join("");
+      return `<div class="sec-title" style="margin-top:18px">Evidencias citadas (${sources.length})</div>
+              <div class="timeline">${items}</div>`;
     }
 
     function scoreGauge(score) {
@@ -418,28 +498,41 @@
         const gauge = scoreGauge(d.overall_score);
 
         // KV info
+        const funderHtml = d.funder
+          ? (d.funder_url
+              ? `${escapeHtml(d.funder)} <a href="${escapeHtml(d.funder_url)}" target="_blank" rel="noopener">↗</a>`
+              : escapeHtml(d.funder))
+          : "-";
+        const goNoGoColor = d.go_no_go === "GO" ? "var(--ok)"
+                           : d.go_no_go === "NO-GO" ? "var(--err)" : "var(--warn)";
         const info = `
           <div class="grid-2">
             <div>
               <div class="kv">
                 <div>session_id</div><div style="font-family:ui-monospace,monospace">${escapeHtml(d.session_id)}</div>
                 <div>Estado</div><div>${statusPill(d.status)}</div>
+                <div>Modo</div><div class="meta">${escapeHtml(d.input_mode || "-")}</div>
                 <div>Título</div><div><b>${escapeHtml(d.title || "(sin título)")}</b></div>
-                <div>Financiador</div><div>${escapeHtml(d.funder || "-")}</div>
+                <div>Financiador</div><div>${funderHtml}</div>
+                <div>Deadline</div><div>${escapeHtml(d.deadline || "-")}</div>
                 <div>Tipo doc.</div><div>${escapeHtml(d.doc_type_key)}</div>
-                <div>Ciclo actual</div><div>${d.current_cycle}</div>
-                <div>Aprobada</div><div>${d.approved ? "✓ Sí" : "—"}</div>
+                <div>Ciclo</div><div>${d.current_cycle}</div>
+                <div>Veredicto</div><div><span style="color:${goNoGoColor};font-weight:600">${escapeHtml(d.go_no_go || "-")}</span></div>
+                <div>Viabilidad</div><div>${d.viability_score != null ? Math.round(d.viability_score) + "/100" : "-"}</div>
+                <div>Prob. ganar</div><div>${d.winning_probability != null ? Math.round(d.winning_probability) + "%" : "-"}</div>
                 <div>Creada</div><div class="meta">${escapeHtml(d.created_at || "-")}</div>
                 <div>Terminada</div><div class="meta">${escapeHtml(d.completed_at || "-")}</div>
               </div>
             </div>
             <div>
               ${d.overall_score != null ? `<div class="score-block">${gauge}
-                <div><div class="meta">Score global</div><div style="font-weight:600">
+                <div><div class="meta">Score global propuesta</div><div style="font-weight:600">
                 ${Math.round(d.overall_score)}/100 ${d.approved?"<span style='color:var(--ok)'>✓ aprobada</span>":""}
                 </div></div></div>` : ""}
+              ${renderFeasibility(d.feasibility_breakdown)}
             </div>
-          </div>`;
+          </div>
+          ${renderEvidence(d.evidence_sources)}`;
 
         const errBlock = error ? `
           <div class="err-banner">

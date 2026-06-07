@@ -92,7 +92,7 @@ def run_pipeline(
     api_key = api_key or ANTHROPIC_API_KEY
     if not api_key:
         raise RuntimeError("ANTHROPIC_API_KEY no configurada")
-    if mode not in ("search", "text", "file"):
+    if mode not in ("search", "text", "file", "url"):
         raise ValueError(f"mode inválido: {mode!r}")
 
     session_id = session_id or uuid.uuid4().hex[:8]

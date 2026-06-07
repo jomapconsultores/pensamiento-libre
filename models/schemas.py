@@ -60,6 +60,11 @@ class AnalysisResult:
     national_guidelines: list = field(default_factory=list)       # lineamientos nacionales (Ecuador)
     international_guidelines: list = field(default_factory=list)   # lineamientos del financiador
 
+    # Rigor: cada dato concreto (deadline, monto, eligibility) viene con URL/snippet probatorio
+    # y desglose de feasibility por dimensión.
+    evidence_sources: list = field(default_factory=list)
+    feasibility_breakdown: dict = field(default_factory=dict)
+
     @property
     def requires_excel(self) -> bool:
         return bool(self.format_requirements.get("requires_excel_budget", False))
