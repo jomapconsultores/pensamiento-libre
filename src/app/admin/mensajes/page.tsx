@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { EmptyState, formatDate } from '@/components/admin/DataTable';
+import { ExportCSV } from '@/components/admin/ExportCSV';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,9 +16,22 @@ export default async function AdminMessagesPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-display font-bold text-brand-navy">Mensajes de contacto</h1>
-        <p className="text-brand-navy/60 mt-1">{data?.length ?? 0} mensaje(s) totales.</p>
+      <header className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-brand-navy">Mensajes de contacto</h1>
+          <p className="text-brand-navy/60 mt-1">{data?.length ?? 0} mensaje(s) totales.</p>
+        </div>
+        <ExportCSV
+          filename="mensajes-contacto"
+          headers={[
+            { key: 'created_at', label: 'Fecha' },
+            { key: 'name', label: 'Nombre' },
+            { key: 'email', label: 'Email' },
+            { key: 'topic', label: 'Asunto' },
+            { key: 'message', label: 'Mensaje' },
+          ]}
+          rows={data ?? []}
+        />
       </header>
 
       {!data || data.length === 0 ? (

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { EmptyState, formatDate, formatMoney } from '@/components/admin/DataTable';
+import { ExportCSV } from '@/components/admin/ExportCSV';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,11 +16,26 @@ export default async function AdminDonationsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-display font-bold text-brand-navy">Donaciones</h1>
-        <p className="text-brand-navy/60 mt-1">
-          {data?.length ?? 0} transacción(es) · Total: <strong>{formatMoney(total)}</strong>
-        </p>
+      <header className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-brand-navy">Donaciones</h1>
+          <p className="text-brand-navy/60 mt-1">
+            {data?.length ?? 0} transacción(es) · Total: <strong>{formatMoney(total)}</strong>
+          </p>
+        </div>
+        <ExportCSV
+          filename="donaciones"
+          headers={[
+            { key: 'created_at', label: 'Fecha' },
+            { key: 'donor_email', label: 'Donante' },
+            { key: 'amount_cents', label: 'Monto (centavos)' },
+            { key: 'currency', label: 'Moneda' },
+            { key: 'recurring', label: 'Recurrente' },
+            { key: 'status', label: 'Estado' },
+            { key: 'stripe_session_id', label: 'Stripe Session' },
+          ]}
+          rows={data ?? []}
+        />
       </header>
 
       {!data || data.length === 0 ? (

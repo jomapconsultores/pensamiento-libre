@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { EmptyState, formatDate } from '@/components/admin/DataTable';
+import { ExportCSV } from '@/components/admin/ExportCSV';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +20,23 @@ export default async function AdminNewsletterPage() {
           <p className="text-brand-navy/60 mt-1">{data?.length ?? 0} suscriptor(es).</p>
         </div>
         {data && data.length > 0 && (
-          <a
-            href={`mailto:?bcc=${data.map((s) => s.email).join(',')}`}
-            className="btn-outline text-sm"
-          >
-            Componer email a todos
-          </a>
+          <div className="flex gap-2 flex-wrap">
+            <a
+              href={`mailto:?bcc=${data.map((s) => s.email).join(',')}`}
+              className="btn-outline text-sm"
+            >
+              Componer email a todos
+            </a>
+            <ExportCSV
+              filename="newsletter-suscriptores"
+              headers={[
+                { key: 'created_at', label: 'Fecha' },
+                { key: 'email', label: 'Email' },
+                { key: 'source', label: 'Origen' },
+              ]}
+              rows={data}
+            />
+          </div>
         )}
       </header>
 

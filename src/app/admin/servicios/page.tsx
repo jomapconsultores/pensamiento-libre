@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { EmptyState, formatDate, formatMoney } from '@/components/admin/DataTable';
+import { ExportCSV } from '@/components/admin/ExportCSV';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,11 +16,25 @@ export default async function AdminServicesPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-display font-bold text-brand-navy">Pagos por servicios</h1>
-        <p className="text-brand-navy/60 mt-1">
-          {data?.length ?? 0} pago(s) · Total: <strong>{formatMoney(total)}</strong>
-        </p>
+      <header className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-brand-navy">Pagos por servicios</h1>
+          <p className="text-brand-navy/60 mt-1">
+            {data?.length ?? 0} pago(s) · Total: <strong>{formatMoney(total)}</strong>
+          </p>
+        </div>
+        <ExportCSV
+          filename="pagos-servicios"
+          headers={[
+            { key: 'created_at', label: 'Fecha' },
+            { key: 'buyer_email', label: 'Comprador' },
+            { key: 'service_id', label: 'Servicio' },
+            { key: 'amount_cents', label: 'Monto (centavos)' },
+            { key: 'currency', label: 'Moneda' },
+            { key: 'status', label: 'Estado' },
+          ]}
+          rows={data ?? []}
+        />
       </header>
 
       {!data || data.length === 0 ? (

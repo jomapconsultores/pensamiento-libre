@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '@/lib/supabase';
 import { EmptyState, formatDate } from '@/components/admin/DataTable';
+import { ExportCSV } from '@/components/admin/ExportCSV';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,11 +16,25 @@ export default async function AdminMembershipsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-display font-bold text-brand-navy">Membresías</h1>
-        <p className="text-brand-navy/60 mt-1">
-          {data?.length ?? 0} membresía(s) · {active} activa(s).
-        </p>
+      <header className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-brand-navy">Membresías</h1>
+          <p className="text-brand-navy/60 mt-1">
+            {data?.length ?? 0} membresía(s) · {active} activa(s).
+          </p>
+        </div>
+        <ExportCSV
+          filename="membresias"
+          headers={[
+            { key: 'created_at', label: 'Inicio' },
+            { key: 'member_email', label: 'Email' },
+            { key: 'tier', label: 'Plan' },
+            { key: 'status', label: 'Estado' },
+            { key: 'current_period_end', label: 'Renueva' },
+            { key: 'stripe_subscription_id', label: 'Stripe Sub' },
+          ]}
+          rows={data ?? []}
+        />
       </header>
 
       {!data || data.length === 0 ? (
