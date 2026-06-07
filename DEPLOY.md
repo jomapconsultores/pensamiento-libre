@@ -25,10 +25,15 @@ git commit -m "Initial commit: agente_map API + CLI"
 Crea el repo en GitHub (vacío, sin README inicial). Luego:
 
 ```powershell
-git branch -M main
-git remote add origin https://github.com/TU_USUARIO/agente-map.git
-git push -u origin main
+git branch -M agente-map
+git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
+git push -u origin agente-map
 ```
+
+> Nota: este proyecto convive como rama `agente-map` dentro del repo
+> `pensamiento-libre`. La rama `main` está reservada para el Next.js.
+> Render despliega desde la rama `agente-map` (ya configurado en
+> `render.yaml`).
 
 ⚠️ **Antes de push verifica** con `git status` que `.env` no aparece staged.
 El `.gitignore` lo excluye, pero confirma con tus ojos.
