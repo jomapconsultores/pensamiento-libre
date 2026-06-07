@@ -16,8 +16,14 @@ const playfair = Playfair_Display({
   display: 'swap',
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+
 export const metadata: Metadata = {
-  title: 'Fundación Pensamiento Libre — Desarrollo personal integral',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'Fundación Pensamiento Libre — Desarrollo personal integral',
+    template: '%s | Fundación Pensamiento Libre',
+  },
   description:
     'Fundación Pensamiento Libre impulsa el desarrollo personal integral a través de salud mental, educación consciente y crecimiento humano. Súmate como voluntario, miembro o donante.',
   keywords: [
@@ -29,12 +35,21 @@ export const metadata: Metadata = {
     'voluntariado',
     'donaciones',
   ],
+  authors: [{ name: 'Fundación Pensamiento Libre' }],
   openGraph: {
     title: 'Fundación Pensamiento Libre',
     description: 'Libera tu mente, transforma tu vida.',
-    images: ['/logo.png'],
+    url: SITE_URL,
+    siteName: 'Fundación Pensamiento Libre',
+    images: [{ url: '/logo.png', width: 900, height: 900, alt: 'Logo Fundación Pensamiento Libre' }],
     locale: 'es_ES',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Fundación Pensamiento Libre',
+    description: 'Libera tu mente, transforma tu vida.',
+    images: ['/logo.png'],
   },
   icons: {
     icon: '/logo.png',
