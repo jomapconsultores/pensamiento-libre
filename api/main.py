@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 import config
@@ -154,6 +154,16 @@ def _row_to_summary(row: dict) -> SessionSummary:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────
+STATIC_DIR = Path(__file__).parent / "static"
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    """UI de una sola página. La página pide el X-API-Key y lo guarda en
+    localStorage; los demás endpoints siguen exigiéndolo en el header."""
+    return FileResponse(STATIC_DIR / "index.html")
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "service": "agente_map", "version": app.version}

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>agente_map — Propuestas de Financiamiento</title>
+  <style>
+    :root {
+      --bg: #0f172a; --panel: #1e293b; --line: #334155;
+      --fg: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
+      --ok: #22c55e; --warn: #f59e0b; --err: #ef4444; --info: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
+                 font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+                 font-size: 14px; line-height: 1.5; }
+    header { background: var(--panel); border-bottom: 1px solid var(--line);
+             padding: 14px 20px; display: flex; align-items: center; gap: 16px; }
+    header h1 { margin: 0; font-size: 18px; font-weight: 600; flex: 1; }
+    header .brand { color: var(--accent); }
+    .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+    .key-row input { background: #0f172a; border: 1px solid var(--line); color: var(--fg);
+                     padding: 6px 10px; border-radius: 4px; width: 280px; font-family: monospace; }
+    button { background: var(--accent); color: white; border: 0; padding: 8px 14px;
+             border-radius: 4px; cursor: pointer; font-weight: 500; }
+    button:hover { filter: brightness(1.15); }
+    button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    button.danger { background: var(--err); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    main { padding: 20px; max-width: 1200px; margin: 0 auto;
+           display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+    .panel { background: var(--panel); border: 1px solid var(--line);
+             border-radius: 8px; padding: 18px; }
+    .panel h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600;
+                display: flex; justify-content: space-between; align-items: center; }
+    .panel label { display: block; margin: 10px 0 4px; color: var(--muted); font-size: 12px; }
+    .panel textarea, .panel input[type="text"], .panel select {
+      width: 100%; background: #0f172a; border: 1px solid var(--line);
+      color: var(--fg); padding: 8px 10px; border-radius: 4px; font-size: 14px;
+      font-family: inherit;
+    }
+    .panel textarea { min-height: 110px; resize: vertical; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; }
+    tr.row { cursor: pointer; }
+    tr.row:hover { background: rgba(99, 102, 241, 0.08); }
+    tr.row.active { background: rgba(99, 102, 241, 0.18); }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 99px;
+            font-size: 11px; font-weight: 500; }
+    .pill.pending  { background: rgba(148,163,184,0.2); color: var(--muted); }
+    .pill.running  { background: rgba(96,165,250,0.2); color: var(--info); }
+    .pill.approved { background: rgba(34,197,94,0.2); color: var(--ok); }
+    .pill.failed   { background: rgba(239,68,68,0.2); color: var(--err); }
+    .meta { color: var(--muted); font-size: 12px; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--panel);
+             border: 1px solid var(--line); padding: 12px 16px; border-radius: 6px;
+             box-shadow: 0 8px 20px rgba(0,0,0,0.4); max-width: 360px; z-index: 100;
+             opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .toast.show { opacity: 1; }
+    .toast.err { border-color: var(--err); }
+    .toast.ok { border-color: var(--ok); }
+    .detail { display: none; }
+    .detail.show { display: block; }
+    .detail .kv { display: grid; grid-template-columns: 140px 1fr; gap: 8px 14px;
+                  font-size: 13px; padding: 8px 0; }
+    .detail .kv div:nth-child(odd) { color: var(--muted); }
+    .downloads { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .downloads a { text-decoration: none; }
+    .empty { color: var(--muted); padding: 20px; text-align: center; font-size: 13px; }
+    .help { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><span class="brand">agente_map</span> — Propuestas de financiamiento</h1>
+    <div class="key-row">
+      <span>X-API-Key</span>
+      <input id="apikey" type="password" placeholder="pega tu API key" autocomplete="off">
+      <button class="ghost" onclick="saveKey()">Guardar</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel" id="form-panel">
+      <h2>Nueva propuesta</h2>
+      <label for="user_input">Tema / idea / texto base</label>
+      <textarea id="user_input"
+        placeholder="Ej: programa de educación rural con conectividad satelital en la Amazonía ecuatoriana"></textarea>
+
+      <label for="mode">Modo de entrada</label>
+      <select id="mode">
+        <option value="text" selected>Pegar idea/texto</option>
+        <option value="search">Buscar oportunidades automáticamente</option>
+      </select>
+
+      <label for="doc_type">Tipo de documento</label>
+      <select id="doc_type">
+        <option value="auto" selected>Auto-detectar</option>
+      </select>
+
+      <div style="margin-top: 16px; display: flex; gap: 8px;">
+        <button id="submit-btn" onclick="submitProposal()">Enviar</button>
+        <button class="ghost" onclick="loadList()">Refrescar lista</button>
+      </div>
+      <div class="help">Cada propuesta tarda 5–15 min y consume Anthropic API. Se procesa en background; ve a la lista para seguir el estado.</div>
+    </section>
+
+    <section class="panel" id="list-panel">
+      <h2>Propuestas recientes
+        <span class="meta"><span id="poll-indicator"></span></span>
+      </h2>
+      <table id="sessions-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Título</th><th>Tipo</th><th>Estado</th><th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="sessions-body">
+          <tr><td colspan="5" class="empty">Carga el API key y refresca.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="panel detail" id="detail-panel" style="grid-column: 1 / -1;">
+      <h2>Detalle <button class="ghost" onclick="closeDetail()" style="float:right">Cerrar</button></h2>
+      <div id="detail-body"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const KEY_LS = "agente_map.api_key";
+    const POLL_MS = 6000;
+    let pollTimer = null;
+    let activeId = null;
+
+    function $(id){ return document.getElementById(id); }
+
+    function showToast(msg, kind="info") {
+      const t = $("toast"); t.textContent = msg;
+      t.className = "toast show " + (kind==="err"?"err":kind==="ok"?"ok":"");
+      clearTimeout(t._h);
+      t._h = setTimeout(() => t.className = "toast", 3500);
+    }
+
+    function getKey() { return $("apikey").value.trim(); }
+    function saveKey() {
+      const k = getKey();
+      if (!k) { showToast("Pega una API key primero.", "err"); return; }
+      localStorage.setItem(KEY_LS, k);
+      showToast("Guardada.", "ok");
+      loadDocTypes(); loadList();
+    }
+    function loadSavedKey() {
+      const k = localStorage.getItem(KEY_LS) || "";
+      if (k) $("apikey").value = k;
+    }
+
+    async function api(path, opts={}) {
+      const key = getKey();
+      if (!key) throw new Error("Falta API key — pégala arriba y guarda.");
+      const res = await fetch(path, {
+        ...opts,
+        headers: { "X-API-Key": key, "Content-Type": "application/json", ...(opts.headers||{}) },
+      });
+      if (!res.ok) {
+        let detail = res.statusText;
+        try { const j = await res.json(); detail = j.detail || detail; } catch {}
+        throw new Error(`${res.status}: ${detail}`);
+      }
+      return res;
+    }
+
+    async function loadDocTypes() {
+      try {
+        const r = await api("/doc_types");
+        const types = await r.json();
+        const sel = $("doc_type");
+        sel.innerHTML = '<option value="auto" selected>Auto-detectar</option>';
+        types.forEach(t => {
+          const o = document.createElement("option");
+          o.value = t.key; o.textContent = t.name;
+          sel.appendChild(o);
+        });
+      } catch (e) { /* silencioso si falla auth en arranque */ }
+    }
+
+    async function submitProposal() {
+      const user_input = $("user_input").value.trim();
+      const mode = $("mode").value;
+      const doc_type_key = $("doc_type").value;
+      if (user_input.length < 10) {
+        showToast("Escribe al menos 10 caracteres en la idea.", "err"); return;
+      }
+      $("submit-btn").disabled = true;
+      try {
+        const r = await api("/propuestas", {
+          method: "POST",
+          body: JSON.stringify({ user_input, mode, doc_type_key }),
+        });
+        const j = await r.json();
+        showToast(`Encolada: ${j.session_id}`, "ok");
+        $("user_input").value = "";
+        loadList();
+      } catch (e) {
+        showToast(e.message, "err");
+      } finally {
+        $("submit-btn").disabled = false;
+      }
+    }
+
+    function statusPill(s) {
+      const cls = ["pending","running","approved","failed"].includes(s) ? s : "pending";
+      return `<span class="pill ${cls}">${s||"-"}</span>`;
+    }
+
+    async function loadList() {
+      try {
+        const r = await api("/propuestas?limit=30");
+        const rows = await r.json();
+        const tb = $("sessions-body");
+        if (!rows.length) {
+          tb.innerHTML = '<tr><td colspan="5" class="empty">Aún no hay propuestas. Envía la primera arriba.</td></tr>';
+        } else {
+          tb.innerHTML = rows.map(r => `
+            <tr class="row ${r.session_id===activeId?'active':''}" onclick="showDetail('${r.session_id}')">
+              <td style="font-family:monospace">${r.session_id}</td>
+              <td>${escapeHtml(r.title || "(sin título)")}</td>
+              <td>${escapeHtml(r.doc_type_key)}</td>
+              <td>${statusPill(r.status)}</td>
+              <td>${r.overall_score != null ? r.overall_score.toFixed(0) : "-"}</td>
+            </tr>`).join("");
+        }
+        const anyRunning = rows.some(r => r.status === "running" || r.status === "pending");
+        $("poll-indicator").textContent = anyRunning ? "● polling cada 6s" : "";
+        scheduleNextPoll(anyRunning);
+      } catch (e) {
+        $("sessions-body").innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(e.message)}</td></tr>`;
+      }
+    }
+
+    function scheduleNextPoll(anyRunning) {
+      if (pollTimer) clearTimeout(pollTimer);
+      if (anyRunning) pollTimer = setTimeout(loadList, POLL_MS);
+    }
+
+    async function showDetail(id) {
+      activeId = id;
+      $("detail-panel").classList.add("show");
+      $("detail-body").innerHTML = '<div class="empty">Cargando…</div>';
+      try {
+        const r = await api(`/propuestas/${id}`);
+        const d = await r.json();
+        const base = window.location.origin;
+        const dl = (kind, label) => `<a href="${base}/propuestas/${id}/${kind}?apikey_via_header_needed=1"
+              onclick="downloadFile(event, '${id}', '${kind}', '${label}')">
+              <button class="ghost">${label}</button></a>`;
+        $("detail-body").innerHTML = `
+          <div class="kv">
+            <div>session_id</div><div style="font-family:monospace">${escapeHtml(d.session_id)}</div>
+            <div>Estado</div><div>${statusPill(d.status)}</div>
+            <div>Título</div><div>${escapeHtml(d.title || "(sin título)")}</div>
+            <div>Financiador</div><div>${escapeHtml(d.funder || "-")}</div>
+            <div>Tipo</div><div>${escapeHtml(d.doc_type_key)}</div>
+            <div>Ciclo</div><div>${d.current_cycle}</div>
+            <div>Score</div><div>${d.overall_score != null ? d.overall_score.toFixed(0) + "/100" : "-"}</div>
+            <div>Aprobada</div><div>${d.approved ? "Sí" : "No"}</div>
+            <div>Creada</div><div class="meta">${d.created_at || "-"}</div>
+            <div>Terminada</div><div class="meta">${d.completed_at || "-"}</div>
+            ${d.error_message ? `<div>Error</div><div style="color:var(--err)">${escapeHtml(d.error_message)}</div>` : ""}
+          </div>
+          <div class="downloads">
+            ${dl("markdown", "Descargar Markdown")}
+            ${dl("word", "Descargar Word")}
+            ${dl("excel", "Descargar Excel")}
+          </div>
+        `;
+        loadList();  // sync highlight
+      } catch (e) {
+        $("detail-body").innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
+      }
+    }
+    function closeDetail() {
+      $("detail-panel").classList.remove("show");
+      activeId = null; loadList();
+    }
+
+    async function downloadFile(evt, id, kind, label) {
+      evt.preventDefault();
+      try {
+        const r = await api(`/propuestas/${id}/${kind}`);
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        const ext = kind === "word" ? "docx" : kind === "excel" ? "xlsx" : "md";
+        a.download = `propuesta_${id}.${ext}`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) { showToast(e.message, "err"); }
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "").replace(/[&<>"']/g, c =>
+        ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    }
+
+    loadSavedKey();
+    loadDocTypes();
+    loadList();
+  </script>
+</body>
+</html>
