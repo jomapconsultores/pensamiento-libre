@@ -1,0 +1,156 @@
+from dataclasses import dataclass, field
+from typing import Optional
+
+
+@dataclass
+class FunderInfo:
+    name: str
+    type: str           # multilateral | bilateral | UN | EU | fundacion | nacional
+    url: str
+    deadline: str
+    amount_range: str
+    language: str       # idioma requerido de la propuesta
+    sector: str
+    country_focus: str
+
+
+@dataclass
+class EcuadorAlignment:
+    legal_framework: str        # leyes/reglamentos aplicables
+    plan_nacional: str          # alineación con Plan Nacional de Desarrollo
+    ods_aligned: list           # ODS aplicables
+    institutional_capacity: str # capacidad del proponente
+    national_priority: bool     # es prioridad nacional
+
+
+@dataclass
+class AnalysisResult:
+    viable: bool
+    go_no_go: str               # "GO" | "NO-GO" | "CONDITIONAL"
+    viability_score: float      # 0-100
+    winning_probability: float  # 0-100
+
+    # Opportunity info
+    project_title: str
+    funder: FunderInfo
+    sector: str
+    total_amount: str
+    duration_months: int
+    beneficiaries: str
+    language: str               # idioma de la propuesta
+
+    # Alignment
+    ecuador_alignment: EcuadorAlignment
+
+    # Assessment
+    strengths: list
+    risks: list
+    critical_success_factors: list
+    comparable_projects: list   # proyectos similares exitosos como referencia
+
+    # For Agent 2
+    format_requirements: dict   # estructura requerida por el financiador
+    key_requirements: list      # requisitos indispensables
+    differentiators: list       # qué hará que esta propuesta destaque
+    recommendations: str        # instrucciones clave para el redactor
+
+    raw_analysis: str           # análisis completo en texto libre
+
+    # Lineamientos para la verificación 90/90
+    national_guidelines: list = field(default_factory=list)       # lineamientos nacionales (Ecuador)
+    international_guidelines: list = field(default_factory=list)   # lineamientos del financiador
+
+    @property
+    def requires_excel(self) -> bool:
+        return bool(self.format_requirements.get("requires_excel_budget", False))
+
+
+@dataclass
+class ReviewResult:
+    approved: bool
+    overall_score: float        # 0-100
+    cycle: int
+
+    # Puntajes por criterio (dinámicos según el tipo de documento): {label: score}
+    criterion_scores: dict = field(default_factory=dict)
+    # Verificación mecánica de formato: word_count, char_count, page_estimate, within_limits, issues[]
+    format_check: dict = field(default_factory=dict)
+
+    # Feedback
+    strengths: list = field(default_factory=list)
+    corrections: list = field(default_factory=list)       # correcciones específicas y accionables
+    critical_issues: list = field(default_factory=list)   # problemas críticos que impiden aprobación
+    compliance_checklist: list = field(default_factory=list)  # checklist de cumplimiento normativo verificado
+    failing_elements: list = field(default_factory=list)  # criterios por debajo del umbral por elemento
+
+    recommendation: str = ""    # texto resumen de la revisión
+
+    def scores_by_criterion(self) -> dict:
+        """Devuelve {nombre: puntaje} de todos los criterios evaluados."""
+        return dict(self.criterion_scores)
+
+
+@dataclass
+class DocumentBrief:
+    """Interfaz UNIVERSAL que consumen el Redactor y el Revisor, sin importar el tipo
+    de documento. Se construye desde el Analista (propuestas) o el Clasificador (otros)."""
+    doc_type_key: str
+    title: str
+    language: str = "es"
+    personas: list = field(default_factory=list)          # perfiles de experto a adoptar
+    sections: list = field(default_factory=list)          # secciones a producir
+    format_spec: dict = field(default_factory=dict)       # FormatSpec serializado (tipo/letra/márgenes/límites)
+    instructions: str = ""                                # "qué hay que hacer" — brief detallado
+    national_guidelines: list = field(default_factory=list)
+    international_guidelines: list = field(default_factory=list)
+    key_requirements: list = field(default_factory=list)
+    quality_markers: list = field(default_factory=list)   # diferenciadores / marcas de excelencia
+    source_notes: str = ""                                # hallazgos de investigación / referencias reales
+    needs_budget_excel: bool = False
+    evaluation_criteria: list = field(default_factory=list)  # ejes que evaluará el revisor
+    rigor_notes: str = ""
+    raw: str = ""
+
+
+@dataclass
+class FinancialPackage:
+    """Datos estructurados que alimentan el Excel y se reflejan en el Word.
+    Garantiza que los cálculos del Excel y la narrativa del Word coincidan."""
+    currency: str = "USD"
+    # Presupuesto: lista de dicts con keys:
+    #   categoria, actividad, unidad, cantidad, costo_unitario,
+    #   fuente_solicitada, contraparte, anio (opcional)
+    budget_items: list = field(default_factory=list)
+    # Marco lógico: lista de dicts con keys:
+    #   nivel (Impacto/Efecto/Producto/Actividad), resumen_narrativo,
+    #   indicador, linea_base, meta, fuente_verificacion, supuestos
+    logframe_rows: list = field(default_factory=list)
+    # Cronograma: lista de dicts con keys: actividad, responsable, meses (list[int]), entregable
+    schedule_rows: list = field(default_factory=list)
+    # Metas/indicadores resumidos y notas de cofinanciamiento
+    cofinancing_notes: str = ""
+    budget_narrative: str = ""
+
+
+@dataclass
+class ProjectSession:
+    session_id: str
+    user_input: str
+    input_mode: str             # "search" | "text" | "file"
+
+    analysis: Optional[AnalysisResult] = None
+    proposal_versions: list = field(default_factory=list)
+    review_results: list = field(default_factory=list)
+    current_cycle: int = 0
+    final_proposal: Optional[str] = None
+    approved: bool = False
+    output_path: Optional[str] = None
+    financial: Optional["FinancialPackage"] = None
+    word_path: Optional[str] = None
+    excel_path: Optional[str] = None
+
+    # Tipo de documento, formato y materiales de entrada
+    doc_type_key: str = "propuesta"
+    brief: Optional["DocumentBrief"] = None
+    template_text: str = ""               # plantilla/modelo OPCIONAL a imitar (no obligatorio)
+    support_docs: list = field(default_factory=list)  # [(nombre, texto)] documentos de apoyo

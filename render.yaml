@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: agente-map-api
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.6
+      - key: ANTHROPIC_API_KEY
+        sync: false        # configurar en el dashboard
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      - key: SYSTEM_LANGUAGE
+        value: es
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_JWT
+        sync: false
+      - key: AGENTE_MAP_API_KEY
+        generateValue: true   # Render genera un secreto aleatorio en el primer deploy
