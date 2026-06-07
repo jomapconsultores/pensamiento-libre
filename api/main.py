@@ -287,6 +287,46 @@ def _build_and_stream(session_id: str, kind: str):
     )
 
 
+@app.post("/propuestas/{session_id}/retry", response_model=CreateProposalResponse, status_code=202)
+def retry_proposal(
+    session_id: str,
+    background: BackgroundTasks,
+    x_api_key: Optional[str] = Header(None),
+):
+    """Relanza el pipeline para una sesión existente, reutilizando user_input
+    y configuración. Borra borradores/revisiones previas vía cascade-delete
+    en repository.save_session() (que reemplaza por session_id)."""
+    _require_api_key(x_api_key)
+    row = queries.get_session(session_id)
+    if not row:
+        raise HTTPException(404, "session_id no encontrado")
+
+    if not config.ANTHROPIC_API_KEY:
+        raise HTTPException(500, "ANTHROPIC_API_KEY no configurada en el servidor")
+
+    user_input = row["user_input"]
+    mode = row.get("input_mode") or "text"
+    doc_type_key = row.get("doc_type_key") or "auto"
+    template_text = row.get("template_text") or ""
+    support_docs = [
+        (d.get("name"), d.get("text")) for d in (row.get("support_docs") or [])
+    ]
+
+    def _run():
+        try:
+            from core.pipeline import run_pipeline
+            run_pipeline(
+                user_input=user_input, mode=mode, doc_type_key=doc_type_key,
+                template_text=template_text, support_docs=support_docs,
+                session_id=session_id,   # reutiliza id → upsert sobre el mismo row
+            )
+        except Exception:
+            pass
+
+    background.add_task(_run)
+    return CreateProposalResponse(session_id=session_id, status="pending")
+
+
 @app.get("/propuestas/{session_id}/word")
 def get_proposal_word(session_id: str, x_api_key: Optional[str] = Header(None)):
     _require_api_key(x_api_key)

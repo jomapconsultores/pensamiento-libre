@@ -292,7 +292,8 @@ def _parse_result(raw: str) -> dict:
 
 
 def run(session: ProjectSession, api_key: str) -> AnalysisResult:
-    client = anthropic.Anthropic(api_key=api_key)
+    from agents._client import make_client
+    client = make_client(api_key)
 
     if session.input_mode == "search":
         prompt = _build_search_prompt(session.user_input)

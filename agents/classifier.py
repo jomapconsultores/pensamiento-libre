@@ -55,7 +55,8 @@ DOCUMENTOS DE APOYO (opcional):
 Devuelve ÚNICAMENTE la clave del tipo más adecuado (p. ej. articulo_cientifico).
 Si nada encaja con claridad, responde: generico
 """
-    client = anthropic.Anthropic(api_key=api_key)
+    from agents._client import make_client
+    client = make_client(api_key)
     resp = client.messages.create(
         model=MODEL, max_tokens=20, system=_DETECT_SYSTEM,
         messages=[{"role": "user", "content": prompt}],
@@ -174,7 +175,8 @@ Luego responde ÚNICAMENTE con este JSON (sin texto extra):
   "source_notes": "<fuentes y referencias reales encontradas, con datos verificables>"
 }}
 """
-    client = anthropic.Anthropic(api_key=api_key)
+    from agents._client import make_client
+    client = make_client(api_key)
     raw = _run_research_loop(client, prompt)
     data = _parse_json(raw)
 

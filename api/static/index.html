@@ -4,78 +4,169 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>agente_map — Propuestas de Financiamiento</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9C%3C/text%3E%3C/svg%3E">
   <style>
     :root {
-      --bg: #0f172a; --panel: #1e293b; --line: #334155;
-      --fg: #e2e8f0; --muted: #94a3b8; --accent: #6366f1;
-      --ok: #22c55e; --warn: #f59e0b; --err: #ef4444; --info: #60a5fa;
+      --bg: #0b1220;
+      --panel: #11192c;
+      --panel-2: #0f1729;
+      --line: #1f2a44;
+      --line-2: #2c3a5e;
+      --fg: #e7ecf5;
+      --muted: #8693b0;
+      --accent: #7c3aed;
+      --accent-2: #a78bfa;
+      --ok: #10b981; --warn: #f59e0b; --err: #ef4444; --info: #3b82f6;
+      --code-bg: #07101f;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg);
-                 font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
-                 font-size: 14px; line-height: 1.5; }
-    header { background: var(--panel); border-bottom: 1px solid var(--line);
-             padding: 14px 20px; display: flex; align-items: center; gap: 16px; }
-    header h1 { margin: 0; font-size: 18px; font-weight: 600; flex: 1; }
-    header .brand { color: var(--accent); }
+                 font-family: -apple-system, "Inter", "Segoe UI", system-ui, sans-serif;
+                 font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent-2); }
+
+    /* Header */
+    header { background: linear-gradient(180deg, #11192c, #0d1426);
+             border-bottom: 1px solid var(--line);
+             padding: 14px 24px; display: flex; align-items: center; gap: 16px;
+             position: sticky; top: 0; z-index: 50; backdrop-filter: blur(6px); }
+    .brand { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .logo { width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, #7c3aed 0%, #3b82f6 100%);
+            display: grid; place-items: center; font-size: 18px; }
+    .brand h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+    .brand small { color: var(--muted); font-weight: 400; margin-left: 4px; }
     .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
-    .key-row input { background: #0f172a; border: 1px solid var(--line); color: var(--fg);
-                     padding: 6px 10px; border-radius: 4px; width: 280px; font-family: monospace; }
-    button { background: var(--accent); color: white; border: 0; padding: 8px 14px;
-             border-radius: 4px; cursor: pointer; font-weight: 500; }
-    button:hover { filter: brightness(1.15); }
-    button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .key-row input { background: var(--code-bg); border: 1px solid var(--line);
+                     color: var(--fg); padding: 7px 10px; border-radius: 6px;
+                     width: 280px; font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+                     font-size: 12px; }
+    .key-row input:focus { outline: 0; border-color: var(--accent); }
+
+    /* Buttons */
+    button, .btn { background: var(--accent); color: white; border: 0;
+                   padding: 8px 14px; border-radius: 6px; cursor: pointer;
+                   font-weight: 500; font-size: 13px; transition: filter .15s; }
+    button:hover, .btn:hover { filter: brightness(1.18); }
+    button.ghost, .btn.ghost { background: transparent; color: var(--accent-2);
+                               border: 1px solid var(--line-2); }
+    button.ghost:hover, .btn.ghost:hover { background: rgba(124,58,237,.1); border-color: var(--accent); }
     button.danger { background: var(--err); }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    main { padding: 20px; max-width: 1200px; margin: 0 auto;
-           display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 880px) { main { grid-template-columns: 1fr; } }
+    button.warn { background: var(--warn); color: #1a1f2e; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+
+    /* Layout */
+    main { padding: 24px; max-width: 1280px; margin: 0 auto;
+           display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
     .panel { background: var(--panel); border: 1px solid var(--line);
-             border-radius: 8px; padding: 18px; }
-    .panel h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600;
+             border-radius: 10px; padding: 18px; }
+    .panel h2 { margin: 0 0 14px; font-size: 14px; font-weight: 600;
+                color: var(--accent-2); text-transform: uppercase;
+                letter-spacing: 0.04em;
                 display: flex; justify-content: space-between; align-items: center; }
-    .panel label { display: block; margin: 10px 0 4px; color: var(--muted); font-size: 12px; }
+    .panel label { display: block; margin: 12px 0 5px; color: var(--muted); font-size: 12px; }
     .panel textarea, .panel input[type="text"], .panel select {
-      width: 100%; background: #0f172a; border: 1px solid var(--line);
-      color: var(--fg); padding: 8px 10px; border-radius: 4px; font-size: 14px;
+      width: 100%; background: var(--panel-2); border: 1px solid var(--line);
+      color: var(--fg); padding: 9px 12px; border-radius: 6px; font-size: 13px;
       font-family: inherit;
     }
-    .panel textarea { min-height: 110px; resize: vertical; }
+    .panel textarea:focus, .panel input:focus, .panel select:focus {
+      outline: 0; border-color: var(--accent);
+    }
+    .panel textarea { min-height: 120px; resize: vertical; }
+
+    /* Table */
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
-    th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; }
-    tr.row { cursor: pointer; }
-    tr.row:hover { background: rgba(99, 102, 241, 0.08); }
-    tr.row.active { background: rgba(99, 102, 241, 0.18); }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 99px;
-            font-size: 11px; font-weight: 500; }
-    .pill.pending  { background: rgba(148,163,184,0.2); color: var(--muted); }
-    .pill.running  { background: rgba(96,165,250,0.2); color: var(--info); }
-    .pill.approved { background: rgba(34,197,94,0.2); color: var(--ok); }
-    .pill.failed   { background: rgba(239,68,68,0.2); color: var(--err); }
+    th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 500; font-size: 10.5px;
+         text-transform: uppercase; letter-spacing: 0.05em; }
+    tr.row { cursor: pointer; transition: background .12s; }
+    tr.row:hover { background: rgba(124,58,237,.06); }
+    tr.row.active { background: rgba(124,58,237,.18); }
+    .pill { display: inline-block; padding: 3px 9px; border-radius: 99px;
+            font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+    .pill.pending  { background: rgba(148,163,184,.18); color: #cbd5e1; }
+    .pill.running  { background: rgba(59,130,246,.2); color: #93c5fd; }
+    .pill.approved { background: rgba(16,185,129,.2); color: #6ee7b7; }
+    .pill.failed   { background: rgba(239,68,68,.2); color: #fca5a5; }
     .meta { color: var(--muted); font-size: 12px; }
+
+    /* Toast */
     .toast { position: fixed; bottom: 20px; right: 20px; background: var(--panel);
-             border: 1px solid var(--line); padding: 12px 16px; border-radius: 6px;
-             box-shadow: 0 8px 20px rgba(0,0,0,0.4); max-width: 360px; z-index: 100;
+             border: 1px solid var(--line); padding: 12px 16px; border-radius: 8px;
+             box-shadow: 0 8px 24px rgba(0,0,0,.5); max-width: 380px; z-index: 100;
              opacity: 0; pointer-events: none; transition: opacity .2s; }
     .toast.show { opacity: 1; }
     .toast.err { border-color: var(--err); }
     .toast.ok { border-color: var(--ok); }
+
+    /* Detail */
     .detail { display: none; }
     .detail.show { display: block; }
-    .detail .kv { display: grid; grid-template-columns: 140px 1fr; gap: 8px 14px;
-                  font-size: 13px; padding: 8px 0; }
-    .detail .kv div:nth-child(odd) { color: var(--muted); }
-    .downloads { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
-    .downloads a { text-decoration: none; }
-    .empty { color: var(--muted); padding: 20px; text-align: center; font-size: 13px; }
-    .help { color: var(--muted); font-size: 12px; margin-top: 8px; }
-    a { color: var(--accent); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+    .kv { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px;
+          font-size: 13px; padding: 6px 0; }
+    .kv > div:nth-child(odd) { color: var(--muted); }
+    .downloads { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .empty { color: var(--muted); padding: 26px; text-align: center; font-size: 13px; }
+    .help { color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.5; }
+
+    /* Score gauge */
+    .score-block { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+    .score-gauge { position: relative; width: 56px; height: 56px; flex: 0 0 56px; }
+    .score-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .score-gauge .bg-circle { fill: none; stroke: var(--line); stroke-width: 6; }
+    .score-gauge .fg-circle { fill: none; stroke: var(--accent-2); stroke-width: 6;
+                              stroke-linecap: round; transition: stroke-dashoffset .5s; }
+    .score-gauge .label { position: absolute; inset: 0; display: grid; place-items: center;
+                          font-size: 15px; font-weight: 700; }
+
+    /* Criteria bars */
+    .criteria-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .criterion { display: grid; grid-template-columns: 110px 1fr 36px;
+                 gap: 8px; align-items: center; font-size: 12px; }
+    .criterion .bar { position: relative; height: 8px; background: var(--line);
+                      border-radius: 99px; overflow: hidden; }
+    .criterion .bar > div { height: 100%; border-radius: 99px; transition: width .4s; }
+
+    /* Markdown preview */
+    .md-preview { background: var(--panel-2); border: 1px solid var(--line);
+                  border-radius: 6px; padding: 12px 14px; max-height: 320px;
+                  overflow: auto; font-family: ui-monospace, monospace;
+                  font-size: 12.5px; white-space: pre-wrap; word-break: break-word;
+                  color: #d1d8e8; }
+
+    /* Cycles timeline */
+    .timeline { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .cyc { display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+           background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+           font-size: 12.5px; }
+    .cyc .num { width: 24px; height: 24px; border-radius: 50%; display: grid;
+                place-items: center; font-weight: 700; background: var(--accent);
+                color: white; font-size: 11px; flex-shrink: 0; }
+    .cyc .flag { margin-left: auto; }
+
+    /* Error banner */
+    .err-banner { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.4);
+                  border-radius: 8px; padding: 12px 14px; margin: 12px 0;
+                  font-size: 12.5px; line-height: 1.6; }
+    .err-banner .title { color: #fca5a5; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+    .err-banner code { background: rgba(0,0,0,.3); padding: 2px 6px; border-radius: 4px;
+                       font-size: 11.5px; }
+
+    /* Section title */
+    .sec-title { font-size: 11.5px; font-weight: 600; color: var(--accent-2);
+                 text-transform: uppercase; letter-spacing: 0.05em; margin: 18px 0 8px; }
   </style>
 </head>
 <body>
   <header>
-    <h1><span class="brand">agente_map</span> — Propuestas de financiamiento</h1>
+    <div class="brand">
+      <div class="logo">📜</div>
+      <h1>agente_map <small>· Pipeline multiagente de propuestas</small></h1>
+    </div>
     <div class="key-row">
       <span>X-API-Key</span>
       <input id="apikey" type="password" placeholder="pega tu API key" autocomplete="off">
@@ -88,7 +179,7 @@
       <h2>Nueva propuesta</h2>
       <label for="user_input">Tema / idea / texto base</label>
       <textarea id="user_input"
-        placeholder="Ej: programa de educación rural con conectividad satelital en la Amazonía ecuatoriana"></textarea>
+        placeholder="Ej: Programa de educación rural con conectividad satelital en la Amazonía ecuatoriana — 3,500 estudiantes, 24 meses, ODS 4 y 10."></textarea>
 
       <label for="mode">Modo de entrada</label>
       <select id="mode">
@@ -98,34 +189,41 @@
 
       <label for="doc_type">Tipo de documento</label>
       <select id="doc_type">
-        <option value="auto" selected>Auto-detectar</option>
+        <option value="auto" selected>Auto-detectar (recomendado)</option>
       </select>
 
       <div style="margin-top: 16px; display: flex; gap: 8px;">
-        <button id="submit-btn" onclick="submitProposal()">Enviar</button>
-        <button class="ghost" onclick="loadList()">Refrescar lista</button>
+        <button id="submit-btn" onclick="submitProposal()">Enviar al pipeline</button>
+        <button class="ghost" onclick="loadList()">Refrescar</button>
       </div>
-      <div class="help">Cada propuesta tarda 5–15 min y consume Anthropic API. Se procesa en background; ve a la lista para seguir el estado.</div>
+      <div class="help">
+        Cada corrida tarda 5–15 min, consume Anthropic API (~$0.50–2) y se procesa en
+        background. Mira la lista de la derecha para seguir el estado y descargar resultados.
+      </div>
     </section>
 
     <section class="panel" id="list-panel">
-      <h2>Propuestas recientes
-        <span class="meta"><span id="poll-indicator"></span></span>
-      </h2>
+      <h2>Propuestas <span id="poll-indicator" class="meta"></span></h2>
       <table id="sessions-table">
         <thead>
           <tr>
-            <th>ID</th><th>Título</th><th>Tipo</th><th>Estado</th><th>Score</th>
+            <th>ID</th><th>Título</th><th>Tipo</th><th>Estado</th><th style="text-align:right">Score</th>
           </tr>
         </thead>
         <tbody id="sessions-body">
-          <tr><td colspan="5" class="empty">Carga el API key y refresca.</td></tr>
+          <tr><td colspan="5" class="empty">Pega tu API key arriba y haz clic en Guardar.</td></tr>
         </tbody>
       </table>
     </section>
 
     <section class="panel detail" id="detail-panel" style="grid-column: 1 / -1;">
-      <h2>Detalle <button class="ghost" onclick="closeDetail()" style="float:right">Cerrar</button></h2>
+      <h2>
+        <span id="detail-title">Detalle</span>
+        <div style="display:flex;gap:8px">
+          <button id="retry-btn" class="warn" onclick="retrySession()" style="display:none">Reintentar</button>
+          <button class="ghost" onclick="closeDetail()">Cerrar</button>
+        </div>
+      </h2>
       <div id="detail-body"></div>
     </section>
   </main>
@@ -138,21 +236,23 @@
     let pollTimer = null;
     let activeId = null;
 
-    function $(id){ return document.getElementById(id); }
+    const $ = id => document.getElementById(id);
+    const escapeHtml = s => String(s ?? "").replace(/[&<>"']/g,
+      c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
     function showToast(msg, kind="info") {
       const t = $("toast"); t.textContent = msg;
       t.className = "toast show " + (kind==="err"?"err":kind==="ok"?"ok":"");
       clearTimeout(t._h);
-      t._h = setTimeout(() => t.className = "toast", 3500);
+      t._h = setTimeout(() => t.className = "toast", 4000);
     }
 
-    function getKey() { return $("apikey").value.trim(); }
+    const getKey = () => $("apikey").value.trim();
     function saveKey() {
       const k = getKey();
       if (!k) { showToast("Pega una API key primero.", "err"); return; }
       localStorage.setItem(KEY_LS, k);
-      showToast("Guardada.", "ok");
+      showToast("API key guardada.", "ok");
       loadDocTypes(); loadList();
     }
     function loadSavedKey() {
@@ -180,13 +280,13 @@
         const r = await api("/doc_types");
         const types = await r.json();
         const sel = $("doc_type");
-        sel.innerHTML = '<option value="auto" selected>Auto-detectar</option>';
+        sel.innerHTML = '<option value="auto" selected>Auto-detectar (recomendado)</option>';
         types.forEach(t => {
           const o = document.createElement("option");
           o.value = t.key; o.textContent = t.name;
           sel.appendChild(o);
         });
-      } catch (e) { /* silencioso si falla auth en arranque */ }
+      } catch (e) { /* silent en arranque */ }
     }
 
     async function submitProposal() {
@@ -194,103 +294,203 @@
       const mode = $("mode").value;
       const doc_type_key = $("doc_type").value;
       if (user_input.length < 10) {
-        showToast("Escribe al menos 10 caracteres en la idea.", "err"); return;
+        showToast("Escribe al menos 10 caracteres.", "err"); return;
       }
       $("submit-btn").disabled = true;
       try {
-        const r = await api("/propuestas", {
-          method: "POST",
-          body: JSON.stringify({ user_input, mode, doc_type_key }),
-        });
+        const r = await api("/propuestas", { method: "POST",
+          body: JSON.stringify({ user_input, mode, doc_type_key }) });
         const j = await r.json();
         showToast(`Encolada: ${j.session_id}`, "ok");
         $("user_input").value = "";
         loadList();
-      } catch (e) {
-        showToast(e.message, "err");
-      } finally {
-        $("submit-btn").disabled = false;
-      }
+      } catch (e) { showToast(e.message, "err"); }
+      finally { $("submit-btn").disabled = false; }
     }
 
-    function statusPill(s) {
+    const statusPill = s => {
       const cls = ["pending","running","approved","failed"].includes(s) ? s : "pending";
       return `<span class="pill ${cls}">${s||"-"}</span>`;
-    }
+    };
 
     async function loadList() {
       try {
-        const r = await api("/propuestas?limit=30");
+        const r = await api("/propuestas?limit=40");
         const rows = await r.json();
         const tb = $("sessions-body");
         if (!rows.length) {
-          tb.innerHTML = '<tr><td colspan="5" class="empty">Aún no hay propuestas. Envía la primera arriba.</td></tr>';
+          tb.innerHTML = '<tr><td colspan="5" class="empty">Aún no hay propuestas. Envía la primera a la izquierda.</td></tr>';
         } else {
           tb.innerHTML = rows.map(r => `
             <tr class="row ${r.session_id===activeId?'active':''}" onclick="showDetail('${r.session_id}')">
-              <td style="font-family:monospace">${r.session_id}</td>
+              <td style="font-family:ui-monospace,monospace;color:var(--muted)">${r.session_id}</td>
               <td>${escapeHtml(r.title || "(sin título)")}</td>
-              <td>${escapeHtml(r.doc_type_key)}</td>
+              <td class="meta">${escapeHtml(r.doc_type_key)}</td>
               <td>${statusPill(r.status)}</td>
-              <td>${r.overall_score != null ? r.overall_score.toFixed(0) : "-"}</td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums">
+                ${r.overall_score != null ? Math.round(r.overall_score) : "-"}
+              </td>
             </tr>`).join("");
         }
-        const anyRunning = rows.some(r => r.status === "running" || r.status === "pending");
-        $("poll-indicator").textContent = anyRunning ? "● polling cada 6s" : "";
-        scheduleNextPoll(anyRunning);
+        const inProgress = rows.filter(r => r.status === "running" || r.status === "pending").length;
+        $("poll-indicator").textContent = inProgress
+          ? `● ${inProgress} en progreso · poll 6s` : "";
+        scheduleNextPoll(inProgress > 0);
+        // Si hay una vista detalle abierta y es de las que están corriendo, refresca
+        if (activeId && inProgress > 0 && rows.some(r => r.session_id === activeId && (r.status==="running"||r.status==="pending"))) {
+          showDetail(activeId, true);
+        }
       } catch (e) {
-        $("sessions-body").innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(e.message)}</td></tr>`;
+        $("sessions-body").innerHTML =
+          `<tr><td colspan="5" class="empty">${escapeHtml(e.message)}</td></tr>`;
       }
     }
 
-    function scheduleNextPoll(anyRunning) {
+    function scheduleNextPoll(active) {
       if (pollTimer) clearTimeout(pollTimer);
-      if (anyRunning) pollTimer = setTimeout(loadList, POLL_MS);
+      if (active) pollTimer = setTimeout(loadList, POLL_MS);
     }
 
-    async function showDetail(id) {
+    function scoreGauge(score) {
+      if (score == null) return "";
+      const pct = Math.max(0, Math.min(100, score));
+      const C = 2 * Math.PI * 24;
+      const offset = C * (1 - pct / 100);
+      const color = pct >= 90 ? "var(--ok)" : pct >= 70 ? "var(--accent-2)" : "var(--warn)";
+      return `
+        <div class="score-gauge">
+          <svg viewBox="0 0 56 56">
+            <circle cx="28" cy="28" r="24" class="bg-circle"/>
+            <circle cx="28" cy="28" r="24" class="fg-circle"
+              style="stroke:${color}; stroke-dasharray:${C}; stroke-dashoffset:${offset}"/>
+          </svg>
+          <div class="label">${Math.round(pct)}</div>
+        </div>`;
+    }
+
+    function parseError(err) {
+      if (!err) return null;
+      // Heurísticas para errores de Anthropic
+      if (/RateLimitError|rate_limit_error|429/i.test(err)) {
+        return {
+          title: "Anthropic rate limit alcanzado",
+          msg: "Tu cuenta de Anthropic hizo demasiadas requests/tokens en un minuto. La tier free tiene 30k tokens/min — el pipeline necesita más.",
+          fix: "Sube a tier 1 comprando créditos (≥$5) en console.anthropic.com/settings/billing. O reintenta más tarde."
+        };
+      }
+      if (/insufficient.+credit|billing/i.test(err)) {
+        return {
+          title: "Sin créditos en Anthropic",
+          msg: "Tu cuenta de Anthropic no tiene créditos suficientes.",
+          fix: "Compra créditos en console.anthropic.com/settings/billing y reintenta."
+        };
+      }
+      if (/timeout|TimeoutError/i.test(err)) {
+        return {
+          title: "Timeout en el pipeline",
+          msg: "Una llamada al modelo o a búsqueda tardó más de lo permitido.",
+          fix: "Reintenta — la mayoría de timeouts son transitorios."
+        };
+      }
+      // Fallback
+      const short = err.length > 240 ? err.slice(0, 240) + "…" : err;
+      return { title: "Error en el pipeline", msg: short, fix: "Mira los logs en Render para más detalle." };
+    }
+
+    async function showDetail(id, silent=false) {
       activeId = id;
       $("detail-panel").classList.add("show");
-      $("detail-body").innerHTML = '<div class="empty">Cargando…</div>';
+      $("detail-title").textContent = `Sesión ${id}`;
+      if (!silent) $("detail-body").innerHTML = '<div class="empty">Cargando…</div>';
       try {
-        const r = await api(`/propuestas/${id}`);
-        const d = await r.json();
-        const base = window.location.origin;
-        const dl = (kind, label) => `<a href="${base}/propuestas/${id}/${kind}?apikey_via_header_needed=1"
-              onclick="downloadFile(event, '${id}', '${kind}', '${label}')">
-              <button class="ghost">${label}</button></a>`;
-        $("detail-body").innerHTML = `
-          <div class="kv">
-            <div>session_id</div><div style="font-family:monospace">${escapeHtml(d.session_id)}</div>
-            <div>Estado</div><div>${statusPill(d.status)}</div>
-            <div>Título</div><div>${escapeHtml(d.title || "(sin título)")}</div>
-            <div>Financiador</div><div>${escapeHtml(d.funder || "-")}</div>
-            <div>Tipo</div><div>${escapeHtml(d.doc_type_key)}</div>
-            <div>Ciclo</div><div>${d.current_cycle}</div>
-            <div>Score</div><div>${d.overall_score != null ? d.overall_score.toFixed(0) + "/100" : "-"}</div>
-            <div>Aprobada</div><div>${d.approved ? "Sí" : "No"}</div>
-            <div>Creada</div><div class="meta">${d.created_at || "-"}</div>
-            <div>Terminada</div><div class="meta">${d.completed_at || "-"}</div>
-            ${d.error_message ? `<div>Error</div><div style="color:var(--err)">${escapeHtml(d.error_message)}</div>` : ""}
-          </div>
+        const [r1, r2] = await Promise.all([
+          api(`/propuestas/${id}`),
+          api(`/propuestas/${id}/markdown`).catch(() => null),
+        ]);
+        const d = await r1.json();
+        const md = r2 ? await r2.text() : "";
+
+        $("retry-btn").style.display = d.status === "failed" ? "" : "none";
+
+        const error = parseError(d.error_message);
+
+        // Encabezado con gauge
+        const gauge = scoreGauge(d.overall_score);
+
+        // KV info
+        const info = `
+          <div class="grid-2">
+            <div>
+              <div class="kv">
+                <div>session_id</div><div style="font-family:ui-monospace,monospace">${escapeHtml(d.session_id)}</div>
+                <div>Estado</div><div>${statusPill(d.status)}</div>
+                <div>Título</div><div><b>${escapeHtml(d.title || "(sin título)")}</b></div>
+                <div>Financiador</div><div>${escapeHtml(d.funder || "-")}</div>
+                <div>Tipo doc.</div><div>${escapeHtml(d.doc_type_key)}</div>
+                <div>Ciclo actual</div><div>${d.current_cycle}</div>
+                <div>Aprobada</div><div>${d.approved ? "✓ Sí" : "—"}</div>
+                <div>Creada</div><div class="meta">${escapeHtml(d.created_at || "-")}</div>
+                <div>Terminada</div><div class="meta">${escapeHtml(d.completed_at || "-")}</div>
+              </div>
+            </div>
+            <div>
+              ${d.overall_score != null ? `<div class="score-block">${gauge}
+                <div><div class="meta">Score global</div><div style="font-weight:600">
+                ${Math.round(d.overall_score)}/100 ${d.approved?"<span style='color:var(--ok)'>✓ aprobada</span>":""}
+                </div></div></div>` : ""}
+            </div>
+          </div>`;
+
+        const errBlock = error ? `
+          <div class="err-banner">
+            <div class="title">${escapeHtml(error.title)}</div>
+            <div>${escapeHtml(error.msg)}</div>
+            <div style="margin-top:6px"><b>Cómo resolver:</b> ${escapeHtml(error.fix)}</div>
+            ${d.error_message ? `<details style="margin-top:8px"><summary class="meta" style="cursor:pointer">Mostrar error técnico</summary>
+              <code style="display:block;margin-top:6px;white-space:pre-wrap;max-height:140px;overflow:auto">${escapeHtml(d.error_message)}</code>
+            </details>` : ""}
+          </div>` : "";
+
+        const downloads = `
+          <div class="sec-title">Descargas</div>
           <div class="downloads">
-            ${dl("markdown", "Descargar Markdown")}
-            ${dl("word", "Descargar Word")}
-            ${dl("excel", "Descargar Excel")}
-          </div>
-        `;
-        loadList();  // sync highlight
+            <button class="ghost" onclick="downloadFile('${id}','markdown')">Markdown</button>
+            <button class="ghost" onclick="downloadFile('${id}','word')">Word</button>
+            <button class="ghost" onclick="downloadFile('${id}','excel')">Excel</button>
+          </div>`;
+
+        const preview = md ? `
+          <div class="sec-title">Vista previa del documento final</div>
+          <div class="md-preview">${escapeHtml(md.length > 5000 ? md.slice(0, 5000) + "\n\n[...truncado para preview...]" : md)}</div>
+        ` : `<div class="meta" style="margin-top:14px">${d.status==="running" || d.status==="pending"
+          ? "⏳ Aún no hay borrador disponible — el pipeline está procesando."
+          : "Sin contenido para previsualizar."}</div>`;
+
+        $("detail-body").innerHTML = info + errBlock + downloads + preview;
+        loadList();
       } catch (e) {
         $("detail-body").innerHTML = `<div class="empty">${escapeHtml(e.message)}</div>`;
       }
     }
+
     function closeDetail() {
       $("detail-panel").classList.remove("show");
       activeId = null; loadList();
     }
 
-    async function downloadFile(evt, id, kind, label) {
-      evt.preventDefault();
+    async function retrySession() {
+      if (!activeId) return;
+      if (!confirm("¿Reintentar esta sesión? El pipeline correrá de nuevo y consumirá API.")) return;
+      $("retry-btn").disabled = true;
+      try {
+        await api(`/propuestas/${activeId}/retry`, { method: "POST" });
+        showToast("Reintento encolado.", "ok");
+        showDetail(activeId);
+      } catch (e) { showToast(e.message, "err"); }
+      finally { $("retry-btn").disabled = false; }
+    }
+
+    async function downloadFile(id, kind) {
       try {
         const r = await api(`/propuestas/${id}/${kind}`);
         const blob = await r.blob();
@@ -302,11 +502,6 @@
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
       } catch (e) { showToast(e.message, "err"); }
-    }
-
-    function escapeHtml(s) {
-      return String(s ?? "").replace(/[&<>"']/g, c =>
-        ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     }
 
     loadSavedKey();

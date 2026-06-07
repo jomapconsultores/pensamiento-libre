@@ -110,7 +110,8 @@ def _num(v) -> float:
 
 
 def run(session, proposal: str, api_key: str) -> FinancialPackage:
-    client = anthropic.Anthropic(api_key=api_key)
+    from agents._client import make_client
+    client = make_client(api_key)
     brief: DocumentBrief = session.brief
     prompt = _build_prompt(brief, proposal)
 

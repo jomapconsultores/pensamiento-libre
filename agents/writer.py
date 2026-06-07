@@ -150,7 +150,8 @@ incluyendo cumplimiento de formato y de lineamientos nacionales e internacionale
 
 
 def run(session: ProjectSession, corrections: list, api_key: str) -> str:
-    client = anthropic.Anthropic(api_key=api_key)
+    from agents._client import make_client
+    client = make_client(api_key)
     brief = session.brief
     prompt = _build_prompt(brief, session, corrections, session.current_cycle)
     response = client.messages.create(

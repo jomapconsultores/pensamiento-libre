@@ -119,7 +119,8 @@ def _parse_result(raw: str) -> dict:
 
 
 def run(session, proposal: str, api_key: str) -> ReviewResult:
-    client = anthropic.Anthropic(api_key=api_key)
+    from agents._client import make_client
+    client = make_client(api_key)
     brief: DocumentBrief = session.brief
     cycle = session.current_cycle
 
