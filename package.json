@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:setup": "node scripts/apply-migration.mjs",
-    "stripe:setup": "node scripts/setup-stripe.mjs"
+    "stripe:setup": "node scripts/setup-stripe.mjs",
+    "render:setup": "node scripts/setup-render.mjs"
   },
   "dependencies": {
     "@stripe/stripe-js": "^4.9.0",
