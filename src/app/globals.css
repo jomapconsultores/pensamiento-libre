@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-navy: #1e3a6d;
+  --brand-navy-dark: #142850;
+  --brand-gold: #d4a017;
+  --brand-sky: #5ab4e3;
+  --brand-cream: #fdf8ed;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--brand-navy);
+  background: #ffffff;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           bg-brand-gold text-white font-semibold shadow-lg
+           hover:bg-brand-gold-light hover:shadow-xl transition-all
+           focus:outline-none focus:ring-4 focus:ring-brand-gold/30;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           bg-brand-navy text-white font-semibold shadow-lg
+           hover:bg-brand-navy-dark hover:shadow-xl transition-all
+           focus:outline-none focus:ring-4 focus:ring-brand-navy/30;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-full
+           border-2 border-brand-navy text-brand-navy font-semibold
+           hover:bg-brand-navy hover:text-white transition-all;
+  }
+
+  .container-page {
+    @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold text-brand-navy text-center;
+  }
+
+  .section-subtitle {
+    @apply text-lg md:text-xl text-brand-navy/70 text-center max-w-3xl mx-auto mt-4;
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #1e3a6d 0%, #5ab4e3 50%, #d4a017 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-bg {
+  background:
+    radial-gradient(ellipse at top right, rgba(90, 180, 227, 0.15), transparent 50%),
+    radial-gradient(ellipse at bottom left, rgba(212, 160, 23, 0.10), transparent 50%),
+    linear-gradient(180deg, #ffffff 0%, #fdf8ed 100%);
+}
