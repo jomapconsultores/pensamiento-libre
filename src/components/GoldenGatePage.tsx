@@ -299,11 +299,12 @@ export function GoldenGatePage() {
                     className="absolute inset-0 transition-opacity duration-700"
                     style={{ opacity: i === activeImg ? 1 : 0 }}
                   >
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src={img.src}
                       alt={img.alt}
-                      fill
-                      className="object-cover"
+                      className="w-full h-full object-cover"
+                      loading="eager"
                     />
                   </div>
                 ))}
@@ -334,11 +335,12 @@ export function GoldenGatePage() {
                     i === activeImg ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-gray-950' : 'opacity-60 hover:opacity-100'
                   }`}
                 >
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={img.src}
                     alt={img.alt}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="eager"
                   />
                 </button>
               </FadeIn>
