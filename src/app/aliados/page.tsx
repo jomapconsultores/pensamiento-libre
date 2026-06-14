@@ -1,5 +1,17 @@
 import type { Metadata } from 'next';
-import { AliadosHub } from '@/components/AliadosHub';
+import dynamic from 'next/dynamic';
+
+const AliadosHub = dynamic(
+  () => import('@/components/AliadosHub').then((m) => ({ default: m.AliadosHub })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-96 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" />
+      </div>
+    ),
+  }
+);
 
 export const metadata: Metadata = {
   title: 'Aliados y Ecosistema | Fundación Pensamiento Libre',

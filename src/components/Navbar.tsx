@@ -10,6 +10,8 @@ const navItems = [
   { href: '/programas', label: 'Programas' },
   { href: '/servicios', label: 'Servicios' },
   { href: '/aliados', label: 'Aliados' },
+  { href: '/cmaj', label: 'CMAJ' },
+  { href: '/golden-gate', label: 'Golden Gate' },
   { href: '/membresias', label: 'Membresías' },
   { href: '/contacto', label: 'Contacto' },
 ];

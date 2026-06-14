@@ -209,9 +209,7 @@ const COMPANIES: Company[] = [
       { label: 'Sectores', value: 'Público · Privado · Académico' },
       { label: 'Cupos por curso', value: 'Máx. 20 participantes' },
     ],
-    videos: [
-      { src: '/videos/atlas-ia-promo.mp4', label: 'Curso IA Académica' },
-    ],
+    videos: [],
   },
   {
     id: 'cmaj',
@@ -344,6 +342,53 @@ const COMPANIES: Company[] = [
       { label: 'Integración', value: 'API disponible' },
     ],
   },
+  {
+    id: 'golden',
+    name: 'Golden Gate',
+    tagline: 'Aprende inglés de manera diferente',
+    description:
+      'Centro de inglés con metodología activa y certificaciones internacionales TOEFL y Cambridge. Clases presenciales y virtuales con grupos reducidos para máxima atención personalizada.',
+    logo: '/logos/golden-gate.jpg',
+    bg: 'from-[#7c2d12] to-[#c2410c]',
+    accent: '#fb923c',
+    textOnBg: 'text-white',
+    url: '/golden-gate',
+    platformLabel: 'Ver Golden Gate',
+    services: [
+      {
+        title: 'Niveles de Inglés',
+        icon: '📚',
+        items: [
+          'Básico A1-A2',
+          'Intermedio B1-B2',
+          'Avanzado C1-C2',
+          'Clases presenciales y virtuales',
+          'Grupos reducidos',
+          'Metodología activa',
+        ],
+      },
+      {
+        title: 'Certificaciones',
+        icon: '🏆',
+        items: [
+          'Preparación TOEFL',
+          'Cambridge English',
+          'Inglés de Negocios',
+          'Inglés para entrevistas',
+          'Certificados internacionales',
+        ],
+      },
+    ],
+    socials: [
+      { name: 'WhatsApp', url: 'https://wa.me/593963051347', icon: 'whatsapp' },
+      { name: 'Email', url: 'mailto:jomapconsultores@gmail.com', icon: 'email' },
+    ],
+    stats: [
+      { label: 'Certificaciones', value: 'TOEFL · Cambridge' },
+      { label: 'Modalidad', value: 'Presencial / Virtual' },
+      { label: 'Contacto', value: '+593 96 305 1347' },
+    ],
+  },
 ];
 
 /* ─────────────────────── FLOATING PARTICLES ─────────────────────── */
@@ -392,7 +437,7 @@ function VideoGallery({ videos }: { videos: { src: string; label: string }[] }) 
           ref={videoRef}
           key={videos[active].src}
           src={videos[active].src}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain bg-black"
           muted
           loop
           playsInline
@@ -580,7 +625,7 @@ export function AliadosHub() {
             Nuestro ecosistema de aliados
           </p>
           <div className="flex flex-wrap justify-center items-center gap-10 md:gap-16">
-            {COMPANIES.filter((c) => ['atlas', 'capsa', 'cmaj'].includes(c.id)).map((c) => (
+            {COMPANIES.filter((c) => ['atlas', 'capsa', 'cmaj', 'golden'].includes(c.id)).map((c) => (
               <button
                 key={c.id}
                 onClick={() => {

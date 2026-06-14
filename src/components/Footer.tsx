@@ -42,6 +42,8 @@ export function Footer() {
             <li><Link href="/programas" className="hover:text-brand-gold-light transition-colors">Programas</Link></li>
             <li><Link href="/servicios" className="hover:text-brand-gold-light transition-colors">Servicios</Link></li>
             <li><Link href="/aliados" className="hover:text-brand-gold-light transition-colors">Aliados</Link></li>
+            <li><Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">CMAJ</Link></li>
+            <li><Link href="/golden-gate" className="hover:text-brand-gold-light transition-colors">Golden Gate</Link></li>
             <li><Link href="/membresias" className="hover:text-brand-gold-light transition-colors">Membresías</Link></li>
             <li><Link href="/donar" className="hover:text-brand-gold-light transition-colors">Donar</Link></li>
             <li><Link href="/contacto" className="hover:text-brand-gold-light transition-colors">Contacto</Link></li>
@@ -58,8 +60,18 @@ export function Footer() {
             </li>
             <li>
               <a href="https://jomap-sistema.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
-                CAPSA · CMAJ Asociados
+                CAPSA Consultoría
               </a>
+            </li>
+            <li>
+              <Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">
+                CMAJ Asociados
+              </Link>
+            </li>
+            <li>
+              <Link href="/golden-gate" className="hover:text-brand-gold-light transition-colors">
+                Golden Gate English Center
+              </Link>
             </li>
             <li>
               <a href="https://tributos-web.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
