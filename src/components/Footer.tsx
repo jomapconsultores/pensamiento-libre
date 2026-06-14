@@ -22,9 +22,9 @@ export function Footer() {
             </div>
           </div>
           <p className="text-white/70 max-w-md leading-relaxed">
-            Impulsamos el desarrollo personal integral a través de la salud mental,
-            la educación consciente y el crecimiento humano. Liberamos mentes para
-            transformar vidas.
+            Persona jurídica de derecho privado sin fines de lucro. Promovemos el
+            desarrollo humano integral en educación, salud mental y cultura física.
+            Resolución MINEDEC-CZ6-2025-01466-R · Cuenca, Azuay, Ecuador.
           </p>
           <div className="mt-6">
             <SocialLinks />
@@ -75,6 +75,9 @@ export function Footer() {
               <a href="mailto:jomapconsultores@gmail.com" className="hover:text-brand-gold-light transition-colors">
                 jomapconsultores@gmail.com
               </a>
+            </li>
+            <li className="text-white/50 text-xs leading-relaxed">
+              Las Palmeras 177 y Casuarina<br />Cuenca, Azuay, Ecuador
             </li>
           </ul>
         </div>

@@ -215,10 +215,10 @@ const COMPANIES: Company[] = [
   },
   {
     id: 'cmaj',
-    name: 'CMAJ Asociados',
+    name: 'CMAJ Asociados S.A.S.',
     tagline: 'Tu firma electrónica e impuestos en un solo lugar',
     description:
-      'Firma electrónica con entrega inmediata para facturación electrónica, contratos digitales y trámites gubernamentales. Gestión tributaria experta para personas naturales y empresas, con soporte técnico integral.',
+      'CMAJ ASOCIADOS S.A.S. es una Sociedad por Acciones Simplificada constituida el 30 de septiembre de 2024, con domicilio en el Cantón Cuenca, Provincia del Azuay. Especializada en capacitación, asesoría empresarial y consultoría contable-tributaria, brinda firma electrónica con entrega inmediata, gestión ante el SRI y formación continua para personas naturales y empresas.',
     logo: '/logos/cmaj.png',
     bg: 'from-[#1e2d40] to-[#2d3e56]',
     accent: '#c9a84c',
@@ -267,9 +267,9 @@ const COMPANIES: Company[] = [
       { name: 'WhatsApp', url: 'https://wa.me/593963511411', icon: 'whatsapp' },
     ],
     stats: [
+      { label: 'Constituida', value: 'Sep. 2024' },
       { label: 'Firma electrónica', value: 'Entrega inmediata' },
-      { label: 'Nota de crédito', value: '85% del monto' },
-      { label: 'Oficina', value: 'Cuenca, Ecuador' },
+      { label: 'Domicilio', value: 'Cuenca, Azuay' },
     ],
   },
   {

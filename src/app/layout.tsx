@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: '%s | Fundación Pensamiento Libre',
   },
   description:
-    'Fundación Pensamiento Libre impulsa el desarrollo personal integral a través de salud mental, educación consciente y crecimiento humano. Súmate como voluntario, miembro o donante.',
+    'Fundación Pensamiento Libre — persona jurídica sin fines de lucro con domicilio en Cuenca, Azuay, Ecuador (Resolución MINEDEC-CZ6-2025-01466-R). Promovemos el desarrollo humano integral en educación, salud mental, deporte y cultura. Súmate como voluntario, miembro o donante.',
   keywords: [
     'fundación',
     'pensamiento libre',
