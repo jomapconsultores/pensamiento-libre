@@ -41,6 +41,7 @@ export function Footer() {
             <li><Link href="/sobre-nosotros" className="hover:text-brand-gold-light transition-colors">Sobre nosotros</Link></li>
             <li><Link href="/programas" className="hover:text-brand-gold-light transition-colors">Programas</Link></li>
             <li><Link href="/servicios" className="hover:text-brand-gold-light transition-colors">Servicios</Link></li>
+            <li><Link href="/aliados" className="hover:text-brand-gold-light transition-colors">Aliados</Link></li>
             <li><Link href="/membresias" className="hover:text-brand-gold-light transition-colors">Membresías</Link></li>
             <li><Link href="/donar" className="hover:text-brand-gold-light transition-colors">Donar</Link></li>
             <li><Link href="/contacto" className="hover:text-brand-gold-light transition-colors">Contacto</Link></li>
@@ -48,17 +49,31 @@ export function Footer() {
         </div>
 
         <div>
-          <h3 className="font-bold text-brand-gold-light mb-4">Contacto</h3>
+          <h3 className="font-bold text-brand-gold-light mb-4">Plataformas aliadas</h3>
           <ul className="space-y-2 text-white/80 text-sm">
             <li>
-              <a href="mailto:jomapconsultores@gmail.com" className="hover:text-brand-gold-light transition-colors">
-                jomapconsultores@gmail.com
+              <a href="https://atlas-sistema.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+                Atlas Centro de Estudios
               </a>
             </li>
-            <li className="pt-4">
-              <p className="font-semibold text-white">Aliados</p>
-              <a href="https://jomapconsultores.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors text-sm">
-                JOMAP Consultores
+            <li>
+              <a href="https://jomap-sistema.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+                CAPSA · CMAJ Asociados
+              </a>
+            </li>
+            <li>
+              <a href="https://tributos-web.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+                Tributos Web
+              </a>
+            </li>
+            <li>
+              <a href="https://calendarios-map.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+                Calendarios MAP
+              </a>
+            </li>
+            <li className="pt-3">
+              <a href="mailto:jomapconsultores@gmail.com" className="hover:text-brand-gold-light transition-colors">
+                jomapconsultores@gmail.com
               </a>
             </li>
           </ul>

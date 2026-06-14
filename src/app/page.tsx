@@ -1,6 +1,7 @@
 import { Hero } from '@/components/Hero';
 import { MissionVision } from '@/components/MissionVision';
 import { Programs } from '@/components/Programs';
+import { AliadosPreview } from '@/components/AliadosPreview';
 import { Testimonials } from '@/components/Testimonials';
 import { DonateCTA } from '@/components/DonateCTA';
 
@@ -10,6 +11,7 @@ export default function HomePage() {
       <Hero />
       <MissionVision />
       <Programs />
+      <AliadosPreview />
       <Testimonials />
       <DonateCTA />
     </>
