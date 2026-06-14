@@ -86,7 +86,7 @@ export default function SobreNosotrosPage() {
             <p className="mt-6 text-brand-navy/75 leading-relaxed">
               La <strong>Fundación Pensamiento Libre</strong> es una persona jurídica de derecho
               privado, sin fines de lucro, constituida en la ciudad de <strong>Cuenca, Cantón
-              Cuenca, Provincia del Azuay</strong> (Calles Las Palmeras 177 y Casuarina). Sus
+              Cuenca, Provincia del Azuay</strong>. Sus
               estatutos fueron aprobados por la asamblea fundadora el <strong>20 de noviembre de
               2025</strong>.
             </p>
@@ -205,7 +205,7 @@ export default function SobreNosotrosPage() {
               </div>
               <div>
                 <dt className="text-brand-gold font-semibold uppercase tracking-wide text-xs mb-1">Domicilio</dt>
-                <dd className="text-brand-navy/80">Las Palmeras 177 y Casuarina, Cuenca, Azuay, Ecuador</dd>
+                <dd className="text-brand-navy/80">Cuenca, Azuay, Ecuador</dd>
               </div>
               <div>
                 <dt className="text-brand-gold font-semibold uppercase tracking-wide text-xs mb-1">Resolución de personería</dt>

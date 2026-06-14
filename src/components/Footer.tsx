@@ -76,9 +76,6 @@ export function Footer() {
                 jomapconsultores@gmail.com
               </a>
             </li>
-            <li className="text-white/50 text-xs leading-relaxed">
-              Las Palmeras 177 y Casuarina<br />Cuenca, Azuay, Ecuador
-            </li>
           </ul>
         </div>
       </div>
