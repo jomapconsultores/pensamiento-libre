@@ -10,11 +10,11 @@ export function Footer() {
         <div className="md:col-span-2">
           <div className="flex items-center gap-3 mb-4">
             <Image
-              src="/logo.png"
+              src="/logo-transparent.png"
               alt="Fundación Pensamiento Libre"
               width={64}
               height={64}
-              className="h-16 w-auto bg-white rounded-lg p-1"
+              className="h-16 w-auto"
             />
             <div>
               <p className="font-display text-xl font-bold">Fundación</p>

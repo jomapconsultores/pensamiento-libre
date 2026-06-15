@@ -24,7 +24,7 @@ export function Navbar() {
       <nav className="container-page flex items-center justify-between h-20">
         <Link href="/" className="flex items-center gap-3" aria-label="Inicio">
           <Image
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt="Fundación Pensamiento Libre"
             width={56}
             height={56}

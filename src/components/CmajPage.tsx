@@ -358,16 +358,16 @@ export function CmajPage() {
                 </p>
                 <div className="grid grid-cols-3 gap-4 mb-8">
                   {[
-                    { icon: '💰', value: '85%', label: 'del valor nominal' },
-                    { icon: '⚡', value: '24h', label: 'tiempo de pago' },
-                    { icon: '🔒', value: '100%', label: 'seguro y legal' },
+                    { icon: '💰', value: '85%', label: 'Compramos al 85% del valor nominal' },
+                    { icon: '⚡', value: '24h', label: 'Pago garantizado en 24 horas' },
+                    { icon: '🔒', value: '100%', label: 'Proceso seguro y legal' },
                   ].map((stat) => (
-                    <div key={stat.label} className="bg-white/10 rounded-xl p-4">
-                      <div className="text-2xl mb-1">{stat.icon}</div>
-                      <p className="text-[#c9a84c] text-2xl font-bold">
+                    <div key={stat.label} className="bg-white/10 rounded-xl p-5 flex flex-col items-center">
+                      <div className="text-3xl mb-2">{stat.icon}</div>
+                      <p className="text-[#c9a84c] text-3xl font-black">
                         <AnimatedCounter value={stat.value} />
                       </p>
-                      <p className="text-white/60 text-xs mt-1">{stat.label}</p>
+                      <p className="text-white/80 text-sm mt-2 font-medium leading-tight">{stat.label}</p>
                     </div>
                   ))}
                 </div>

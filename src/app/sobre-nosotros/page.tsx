@@ -14,35 +14,21 @@ const EJES = [
     title: 'Educación Formal y Regular',
     icon: '🏫',
     description:
-      'Creación y administración de instituciones educativas en niveles de Educación Inicial, Educación General Básica (EGB) y Bachillerato en Ciencias y Técnico, en modalidades presencial, semipresencial, a distancia y virtual.',
+      'Creación y administración de instituciones educativas en niveles de Educación Inicial, EGB y Bachillerato, en modalidades presencial, semipresencial, a distancia y virtual.',
   },
   {
     letra: 'B',
     title: 'Educación Superior y Formación Continua',
     icon: '🎓',
     description:
-      'Diseño y ejecución de programas de Formación Continua y Capacitación Profesional (cursos, talleres, seminarios). Gestión de convenios con universidades nacionales e internacionales e impulso de institutos superiores tecnológicos.',
+      'Diseño y ejecución de cursos, talleres y seminarios de capacitación profesional. Convenios con universidades nacionales e internacionales.',
   },
   {
     letra: 'C',
     title: 'Desarrollo Psicológico y Bienestar',
     icon: '🧠',
     description:
-      'Establece Departamentos de Consejería Estudiantil (DECE) y Gabinetes Psicopedagógicos para diagnóstico, terapia, orientación vocacional y soporte socioemocional. Implementa programas de prevención de riesgos psicosociales y escuelas para padres.',
-  },
-  {
-    letra: 'D',
-    title: 'Cultura Física, Deporte y Recreación',
-    icon: '⚽',
-    description:
-      'Fomenta la Educación Física y el Deporte Recreativo como herramientas pedagógicas para el desarrollo del carácter, mediante clubes formativos, escuelas deportivas extracurriculares y campamentos vacacionales.',
-  },
-  {
-    letra: 'E',
-    title: 'Inclusión Intergeneracional',
-    icon: '👴👶',
-    description:
-      'Programas de Gerontagogía (educación para adultos mayores), alfabetización digital, gimnasia cerebral y terapia ocupacional. Centros de desarrollo infantil y estimulación temprana para primera infancia.',
+      'Consejería estudiantil (DECE), gabinetes psicopedagógicos, orientación vocacional, soporte socioemocional y prevención de riesgos psicosociales.',
   },
 ];
 
@@ -83,19 +69,15 @@ export default function SobreNosotrosPage() {
             <h2 className="text-3xl md:text-4xl font-display font-bold text-brand-navy">
               Fundación Pensamiento Libre
             </h2>
-            <p className="mt-6 text-brand-navy/75 leading-relaxed">
+            <p className="mt-6 text-brand-navy/75 leading-relaxed text-justify">
               La <strong>Fundación Pensamiento Libre</strong> es una persona jurídica de derecho
-              privado, sin fines de lucro, constituida en la ciudad de <strong>Cuenca, Cantón
-              Cuenca, Provincia del Azuay</strong>. Sus
-              estatutos fueron aprobados por la asamblea fundadora el <strong>20 de noviembre de
-              2025</strong>.
+              privado sin fines de lucro, constituida en <strong>Cuenca, Azuay</strong>, con
+              estatutos aprobados el <strong>20 de noviembre de 2025</strong>.
             </p>
-            <p className="mt-4 text-brand-navy/75 leading-relaxed">
-              El Ministerio de Educación, Deporte y Cultura otorgó la <strong>personalidad
-              jurídica</strong> mediante <strong>Resolución Nro. MINEDEC-CZ6-2025-01466-R</strong> el
-              29 de diciembre de 2025, y registró a su directiva electa mediante Oficio
-              Nro. MINEDEC-CZ6-2026-00029-OF el 13 de enero de 2026, para el período
-              comprendido desde el 29 de diciembre de 2025 hasta el 29 de diciembre de 2029.
+            <p className="mt-4 text-brand-navy/75 leading-relaxed text-justify">
+              El Ministerio de Educación, Deporte y Cultura otorgó la personería jurídica
+              mediante <strong>Resolución MINEDEC-CZ6-2025-01466-R</strong> (29 dic. 2025),
+              con directiva registrada para el período 2025 – 2029.
             </p>
           </div>
           <div className="relative">
