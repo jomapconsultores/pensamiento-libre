@@ -6,13 +6,12 @@ create table if not exists public.users (
     name text,
     password_hash text not null,
     password_salt text not null,
-    role text not null default 'user',
-    status text not null default 'pending',
+    role text not null,
+    status text not null,
     created_at timestamptz not null default now(),
     last_login_at timestamptz
 );
 create index if not exists users_email_idx on public.users (email);
-create index if not exists users_status_idx on public.users (status);
 
 create table if not exists public.sessions (
     id uuid primary key default gen_random_uuid(),
@@ -20,8 +19,8 @@ create table if not exists public.sessions (
     user_input text not null,
     input_mode text not null,
     doc_type_key text not null,
-    language text not null default 'es',
-    status text not null default 'pending',
+    language text,
+    status text,
     approved boolean not null default false,
     current_cycle int not null default 0,
     error_message text,
@@ -30,7 +29,7 @@ create table if not exists public.sessions (
     word_path text,
     excel_path text,
     template_text text,
-    support_docs jsonb not null default '[]'::jsonb,
+    support_docs jsonb,
     analysis jsonb,
     brief jsonb,
     financial jsonb,
@@ -40,8 +39,6 @@ create table if not exists public.sessions (
     updated_at timestamptz not null default now()
 );
 create index if not exists sessions_created_at_idx on public.sessions (created_at desc);
-create index if not exists sessions_doc_type_idx on public.sessions (doc_type_key);
-create index if not exists sessions_status_idx on public.sessions (status);
 create index if not exists sessions_owner_idx on public.sessions (owner_user_id);
 
 create table if not exists public.proposal_versions (
@@ -60,14 +57,14 @@ create table if not exists public.reviews (
     session_id uuid not null references public.sessions(id) on delete cascade,
     cycle int not null,
     approved boolean not null,
-    overall_score numeric(5,2) not null,
-    criterion_scores jsonb not null default '{}'::jsonb,
-    format_check jsonb not null default '{}'::jsonb,
-    strengths jsonb not null default '[]'::jsonb,
-    corrections jsonb not null default '[]'::jsonb,
-    critical_issues jsonb not null default '[]'::jsonb,
-    compliance_checklist jsonb not null default '[]'::jsonb,
-    failing_elements jsonb not null default '[]'::jsonb,
+    overall_score numeric,
+    criterion_scores jsonb,
+    format_check jsonb,
+    strengths jsonb,
+    corrections jsonb,
+    critical_issues jsonb,
+    compliance_checklist jsonb,
+    failing_elements jsonb,
     recommendation text,
     created_at timestamptz not null default now(),
     unique (session_id, cycle)
