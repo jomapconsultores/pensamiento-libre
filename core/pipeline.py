@@ -30,18 +30,18 @@ def _resolve_doc_type(user_input: str, template_text: str, support_docs: list,
         return "generico"
 
 
-def _mark_running(session_id: str):
+def _mark_running(session_id: str, owner_user_id: Optional[str] = None):
     if not repository.is_enabled():
         return
     try:
         from utils.supabase_client import get_client
         sb = get_client(service_role=True)
-        sb.table("sessions").upsert(
-            {"session_id": session_id, "status": "running",
-             "started_at": "now()", "user_input": "(initializing)",
-             "input_mode": "text", "doc_type_key": "propuesta"},
-            on_conflict="session_id",
-        ).execute()
+        row = {"session_id": session_id, "status": "running",
+               "started_at": "now()", "user_input": "(initializing)",
+               "input_mode": "text", "doc_type_key": "propuesta"}
+        if owner_user_id:
+            row["owner_user_id"] = owner_user_id
+        sb.table("sessions").upsert(row, on_conflict="session_id").execute()
     except Exception:
         pass  # no bloquea el pipeline
 
@@ -83,6 +83,7 @@ def run_pipeline(
     support_docs: Optional[list[tuple[str, str]]] = None,
     api_key: Optional[str] = None,
     session_id: Optional[str] = None,
+    owner_user_id: Optional[str] = None,
 ) -> ProjectSession:
     """Corre el pipeline completo sin interacción. Devuelve la sesión final.
 
@@ -108,9 +109,10 @@ def run_pipeline(
         doc_type_key=resolved_type,
         template_text=template_text,
         support_docs=support_docs,
+        owner_user_id=owner_user_id,
     )
 
-    _mark_running(session_id)
+    _mark_running(session_id, owner_user_id)
 
     try:
         doc_type = get_doc_type(resolved_type)

@@ -47,6 +47,12 @@ def builder_for_cycle(cycle: int) -> str:
         return "anthropic"
     return BUILDER_ROTATION[(max(1, cycle) - 1) % len(BUILDER_ROTATION)]
 
+# ── Auth multiusuario ───────────────────────────────────────────────────────
+# Secreto para firmar tokens de sesión. Si no se define, cae en AGENTE_MAP_API_KEY.
+AUTH_SECRET = os.getenv("AUTH_SECRET", "") or os.getenv("AGENTE_MAP_API_KEY", "")
+AUTH_TOKEN_TTL_HOURS = int(os.getenv("AUTH_TOKEN_TTL_HOURS", "168"))  # 7 días
+# La X-API-Key maestra (AGENTE_MAP_API_KEY) entra como administrador (bootstrap).
+
 # ── Supabase ───────────────────────────────────────────────────────────────
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")

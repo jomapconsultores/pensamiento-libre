@@ -1,19 +1,16 @@
 """API HTTP de agente_map.
 
-Endpoints:
-    POST   /propuestas                 → encola una nueva sesión, devuelve session_id
-    GET    /propuestas                 → lista las últimas N
-    GET    /propuestas/{session_id}    → estado + datos
-    GET    /propuestas/{session_id}/word   → descarga .docx generado on-demand
-    GET    /propuestas/{session_id}/excel  → descarga .xlsx generado on-demand
-    GET    /healthz                    → liveness
+Auth multiusuario:
+- `POST /auth/register` (auto-registro; 1er usuario = admin aprobado, resto pending)
+- `POST /auth/login` → token firmado (Bearer)
+- La X-API-Key maestra (AGENTE_MAP_API_KEY) entra como ADMIN bootstrap.
+- Cada usuario ve SUS entregables; el admin ve todos.
 
-Auth: header X-API-Key debe coincidir con env var AGENTE_MAP_API_KEY.
-Todos los endpoints excepto /healthz lo exigen.
+Endpoints de datos: /modules, /doc_types, /extract, /propuestas[...],
+/propuestas/{id}/(markdown|word|excel|retry|reviews).
 
-Trabajos largos: el pipeline corre en BackgroundTasks. El estado se persiste en
-sessions.status (pending → running → approved/failed) — consúltalo polleando
-GET /propuestas/{id}.
+Trabajos largos: el pipeline corre en BackgroundTasks; el estado se persiste en
+sessions.status (pending → running → approved/failed).
 """
 from __future__ import annotations
 
@@ -25,40 +22,101 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import (
-    BackgroundTasks, FastAPI, File, Header, HTTPException, Query, UploadFile,
+    BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, UploadFile,
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 import config
+import api.auth as auth_lib
 from core.pipeline import run_pipeline
 from db import queries
+from db import users as users_repo
 from models.doc_types import list_doc_types, list_modules
-from models.schemas import (
-    DocumentBrief, FinancialPackage, ProjectSession,
-)
+from models.schemas import DocumentBrief, FinancialPackage, ProjectSession
 
 
 app = FastAPI(
     title="agente_map API",
-    description="Pipeline multiagente de propuestas de financiamiento no reembolsable.",
-    version="0.1.0",
+    description="Pipeline multiagente multiusuario de entregables de alto nivel.",
+    version="0.2.0",
 )
 
-
-# ── Auth ──────────────────────────────────────────────────────────────────
 API_KEY_ENV = "AGENTE_MAP_API_KEY"
 
 
-def _require_api_key(x_api_key: Optional[str]):
-    expected = os.getenv(API_KEY_ENV, "")
-    if not expected:
-        raise HTTPException(500, f"{API_KEY_ENV} no configurada en el servidor")
-    if not x_api_key or x_api_key != expected:
-        raise HTTPException(401, "API key inválida o ausente (header X-API-Key)")
+# ── Auth / principal ────────────────────────────────────────────────────────
+class Principal:
+    def __init__(self, user_id: Optional[str], role: str,
+                 email: Optional[str] = None, name: Optional[str] = None,
+                 master: bool = False):
+        self.user_id = user_id
+        self.role = role
+        self.email = email
+        self.name = name
+        self.master = master
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
+
+    def owner_filter(self) -> Optional[str]:
+        """None → ve todo (admin/maestra). Si no, restringe a su user_id."""
+        return None if self.is_admin else self.user_id
+
+
+def get_principal(authorization: Optional[str] = Header(None),
+                  x_api_key: Optional[str] = Header(None)) -> Principal:
+    master = os.getenv(API_KEY_ENV, "")
+    if x_api_key and master and x_api_key == master:
+        return Principal(None, "admin", name="Administrador", master=True)
+    token = None
+    if authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+    if token:
+        payload = auth_lib.parse_token(token)
+        if payload:
+            return Principal(payload.get("uid"), payload.get("role", "user"))
+    raise HTTPException(401, "No autenticado. Inicia sesión.")
+
+
+def require_admin(p: Principal) -> None:
+    if not p.is_admin:
+        raise HTTPException(403, "Requiere rol administrador.")
+
+
+def _require_supabase() -> None:
+    if not users_repo.is_enabled():
+        raise HTTPException(500, "Base de datos (Supabase) no configurada en el servidor.")
+
+
+def _db(fn, *args, **kwargs):
+    """Ejecuta una operación de usuarios traduciendo errores de BD a un mensaje
+    claro (típicamente: falta aplicar la migración 004)."""
+    try:
+        return fn(*args, **kwargs)
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        msg = str(e)
+        if "users" in msg and ("does not exist" in msg or "schema cache" in msg or "relation" in msg):
+            raise HTTPException(500, "La tabla de usuarios no existe. Aplica la migración "
+                                     "db/004_auth_and_owner.sql en Supabase (SQL Editor).")
+        raise HTTPException(500, f"Error de base de datos: {type(e).__name__}: {e}")
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────
+class RegisterRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=200)
+    name: str = Field("", max_length=120)
+    password: str = Field(..., min_length=6, max_length=200)
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
 class CreateProposalRequest(BaseModel):
     user_input: str = Field(..., min_length=10, description="Idea, tema o propuesta a procesar.")
     mode: str = Field("text", pattern="^(search|text|file|url)$")
@@ -90,6 +148,7 @@ class SessionSummary(BaseModel):
     go_no_go: Optional[str] = None
     evidence_sources: list = []
     feasibility_breakdown: dict = {}
+    owner_user_id: Optional[str] = None
     created_at: Optional[str] = None
     completed_at: Optional[str] = None
     error_message: Optional[str] = None
@@ -97,19 +156,14 @@ class SessionSummary(BaseModel):
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 def _project_session_from_db(row: dict) -> ProjectSession:
-    """Reconstruye un ProjectSession completo desde el JSONB en Supabase
-    para poder regenerar Word/Excel sin tener disco persistente."""
     from dataclasses import fields
-    from models.schemas import (
-        AnalysisResult, EcuadorAlignment, FunderInfo, ReviewResult,
-    )
+    from models.schemas import AnalysisResult, EcuadorAlignment, FunderInfo, ReviewResult
 
     def _rebuild_dc(cls, d: dict | None):
         if d is None:
             return None
         valid = {f.name for f in fields(cls)}
-        kwargs = {k: v for k, v in d.items() if k in valid}
-        return cls(**kwargs)
+        return cls(**{k: v for k, v in d.items() if k in valid})
 
     analysis = None
     if row.get("analysis"):
@@ -135,9 +189,7 @@ def _project_session_from_db(row: dict) -> ProjectSession:
         current_cycle=row.get("current_cycle", 0),
     )
     session.proposal_versions = [v["content"] for v in row.get("proposal_versions", [])]
-    session.review_results = [
-        _rebuild_dc(ReviewResult, r) for r in row.get("reviews", [])
-    ]
+    session.review_results = [_rebuild_dc(ReviewResult, r) for r in row.get("reviews", [])]
     if session.proposal_versions:
         session.final_proposal = session.proposal_versions[-1]
     return session
@@ -167,20 +219,29 @@ def _row_to_summary(row: dict) -> SessionSummary:
         go_no_go=analysis.get("go_no_go"),
         evidence_sources=analysis.get("evidence_sources") or [],
         feasibility_breakdown=analysis.get("feasibility_breakdown") or {},
+        owner_user_id=row.get("owner_user_id"),
         created_at=str(row.get("created_at")) if row.get("created_at") else None,
         completed_at=str(row.get("completed_at")) if row.get("completed_at") else None,
         error_message=row.get("error_message"),
     )
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────
+def _owned_row(session_id: str, p: Principal) -> dict:
+    """Recupera la sesión y verifica que el principal pueda verla."""
+    row = queries.get_session(session_id)
+    if not row:
+        raise HTTPException(404, "session_id no encontrado")
+    if not p.is_admin and row.get("owner_user_id") != p.user_id:
+        raise HTTPException(403, "No tienes acceso a este entregable.")
+    return row
+
+
+# ── Static / health ─────────────────────────────────────────────────────────
 STATIC_DIR = Path(__file__).parent / "static"
 
 
 @app.get("/", include_in_schema=False)
 def root():
-    """UI de una sola página. La página pide el X-API-Key y lo guarda en
-    localStorage; los demás endpoints siguen exigiéndolo en el header."""
     return FileResponse(STATIC_DIR / "index.html")
 
 
@@ -189,39 +250,108 @@ def healthz():
     return {"ok": True, "service": "agente_map", "version": app.version}
 
 
+# ── Auth endpoints ───────────────────────────────────────────────────────────
+@app.post("/auth/register")
+def register(req: RegisterRequest):
+    _require_supabase()
+    email = req.email.strip().lower()
+    if "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(400, "Email inválido.")
+    if _db(users_repo.get_by_email, email):
+        raise HTTPException(409, "Ya existe una cuenta con ese email.")
+    first = _db(users_repo.count_users) == 0
+    h, salt = auth_lib.hash_password(req.password)
+    role = "admin" if first else "user"
+    status = "approved" if first else "pending"
+    _db(users_repo.create_user, email=email, name=req.name, password_hash=h,
+        password_salt=salt, role=role, status=status)
+    return {
+        "status": status, "role": role,
+        "message": ("Eres el administrador; ya puedes iniciar sesión."
+                    if first else
+                    "Cuenta creada. Queda pendiente de aprobación por el administrador."),
+    }
+
+
+@app.post("/auth/login")
+def login(req: LoginRequest):
+    _require_supabase()
+    u = _db(users_repo.get_by_email, req.email)
+    if not u or not auth_lib.verify_password(req.password, u.get("password_hash", ""),
+                                             u.get("password_salt", "")):
+        raise HTTPException(401, "Email o contraseña incorrectos.")
+    if u.get("status") == "pending":
+        raise HTTPException(403, "Tu cuenta está pendiente de aprobación por el administrador.")
+    if u.get("status") != "approved":
+        raise HTTPException(403, "Tu cuenta no está activa. Contacta al administrador.")
+    users_repo.touch_login(u["id"])
+    token = auth_lib.make_token(u["id"], u.get("role", "user"))
+    return {"token": token, "user": users_repo.public_view(u)}
+
+
+@app.get("/auth/me")
+def me(p: Principal = Depends(get_principal)):
+    if p.master:
+        return {"id": None, "name": "Administrador (clave maestra)", "email": None,
+                "role": "admin", "status": "approved"}
+    u = _db(users_repo.get_by_id, p.user_id) if p.user_id else None
+    if not u:
+        raise HTTPException(401, "Sesión inválida.")
+    return users_repo.public_view(u)
+
+
+# ── Gestión de usuarios (solo admin) ─────────────────────────────────────────
+@app.get("/users")
+def list_users_ep(status: Optional[str] = Query(None), p: Principal = Depends(get_principal)):
+    require_admin(p)
+    _require_supabase()
+    return _db(users_repo.list_users, status)
+
+
+@app.post("/users/{user_id}/approve")
+def approve_user(user_id: str, p: Principal = Depends(get_principal)):
+    require_admin(p)
+    users_repo.set_status(user_id, "approved")
+    return {"ok": True, "status": "approved"}
+
+
+@app.post("/users/{user_id}/reject")
+def reject_user(user_id: str, p: Principal = Depends(get_principal)):
+    require_admin(p)
+    users_repo.set_status(user_id, "rejected")
+    return {"ok": True, "status": "rejected"}
+
+
+@app.post("/users/{user_id}/make-admin")
+def make_admin(user_id: str, p: Principal = Depends(get_principal)):
+    require_admin(p)
+    users_repo.set_role(user_id, "admin")
+    return {"ok": True, "role": "admin"}
+
+
+# ── Catálogo ─────────────────────────────────────────────────────────────────
 @app.get("/modules")
-def modules(x_api_key: Optional[str] = Header(None)):
-    _require_api_key(x_api_key)
+def modules(p: Principal = Depends(get_principal)):
     return list_modules()
 
 
 @app.get("/doc_types")
-def doc_types(x_api_key: Optional[str] = Header(None)):
-    _require_api_key(x_api_key)
-    return [{"key": d.key, "name": d.name, "description": d.description,
-             "module": d.module}
+def doc_types(p: Principal = Depends(get_principal)):
+    return [{"key": d.key, "name": d.name, "description": d.description, "module": d.module}
             for d in list_doc_types()]
 
 
-# Límites de carga (protegen memoria y tokens)
+# ── Extracción de archivos ───────────────────────────────────────────────────
 MAX_EXTRACT_FILES = 12
-MAX_EXTRACT_BYTES = 20 * 1024 * 1024   # 20 MB por archivo
-MAX_EXTRACT_CHARS = 120_000            # texto máx. devuelto por archivo
+MAX_EXTRACT_BYTES = 20 * 1024 * 1024
+MAX_EXTRACT_CHARS = 120_000
 
 
 @app.post("/extract")
-async def extract(
-    files: list[UploadFile] = File(...),
-    x_api_key: Optional[str] = Header(None),
-):
-    """Extrae texto de archivos subidos (PDF/Word/txt/md) para usarlos como
-    documentos de apoyo. Devuelve [{name, text, chars, truncated}]."""
-    _require_api_key(x_api_key)
+async def extract(files: list[UploadFile] = File(...), p: Principal = Depends(get_principal)):
     from tools import file_reader
-
     if len(files) > MAX_EXTRACT_FILES:
         raise HTTPException(413, f"Máximo {MAX_EXTRACT_FILES} archivos por carga.")
-
     out = []
     for f in files:
         data = await f.read()
@@ -235,48 +365,33 @@ async def extract(
             raise HTTPException(415, f"'{f.filename}': {e}")
         except Exception as e:  # noqa: BLE001
             raise HTTPException(422, f"No se pudo procesar '{f.filename}': {e}")
-
         text = (text or "").strip()
         if not text:
-            raise HTTPException(
-                422, f"'{f.filename}' no contiene texto legible "
-                     "(¿es un PDF escaneado sin OCR?)."
-            )
-        truncated = len(text) > MAX_EXTRACT_CHARS
-        out.append({
-            "name": f.filename,
-            "text": text[:MAX_EXTRACT_CHARS],
-            "chars": len(text),
-            "truncated": truncated,
-        })
+            raise HTTPException(422, f"'{f.filename}' no contiene texto legible "
+                                     "(¿PDF escaneado sin OCR?).")
+        out.append({"name": f.filename, "text": text[:MAX_EXTRACT_CHARS],
+                    "chars": len(text), "truncated": len(text) > MAX_EXTRACT_CHARS})
     return out
 
 
+# ── Entregables ──────────────────────────────────────────────────────────────
 @app.post("/propuestas", response_model=CreateProposalResponse, status_code=202)
-def create_proposal(
-    req: CreateProposalRequest,
-    background: BackgroundTasks,
-    x_api_key: Optional[str] = Header(None),
-):
-    _require_api_key(x_api_key)
+def create_proposal(req: CreateProposalRequest, background: BackgroundTasks,
+                    p: Principal = Depends(get_principal)):
     if not config.ANTHROPIC_API_KEY:
         raise HTTPException(500, "ANTHROPIC_API_KEY no configurada en el servidor")
-
     session_id = uuid.uuid4().hex[:8]
+    owner = p.user_id  # None si es la clave maestra
 
     def _run():
         try:
             run_pipeline(
-                user_input=req.user_input,
-                mode=req.mode,
+                user_input=req.user_input, mode=req.mode,
                 doc_type_key=(req.doc_type_key or "auto"),
-                template_text=req.template_text,
-                support_docs=req.support_docs,
-                session_id=session_id,
+                template_text=req.template_text, support_docs=req.support_docs,
+                session_id=session_id, owner_user_id=owner,
             )
         except Exception:
-            # _mark_failed dentro del pipeline ya registró el error.
-            # Capturamos para que no escale al runner de tareas.
             pass
 
     background.add_task(_run)
@@ -284,132 +399,112 @@ def create_proposal(
 
 
 @app.get("/propuestas", response_model=list[SessionSummary])
-def list_proposals(
-    limit: int = Query(20, ge=1, le=100),
-    approved_only: bool = False,
-    x_api_key: Optional[str] = Header(None),
-):
-    _require_api_key(x_api_key)
-    rows = queries.list_sessions(limit=limit, approved_only=approved_only)
+def list_proposals(limit: int = Query(20, ge=1, le=100), approved_only: bool = False,
+                   p: Principal = Depends(get_principal)):
+    rows = queries.list_sessions(limit=limit, approved_only=approved_only,
+                                 owner_user_id=p.owner_filter())
     return [_row_to_summary(r) for r in rows]
 
 
 @app.get("/propuestas/{session_id}", response_model=SessionSummary)
-def get_proposal(session_id: str, x_api_key: Optional[str] = Header(None)):
-    _require_api_key(x_api_key)
-    row = queries.get_session(session_id)
-    if not row:
-        raise HTTPException(404, "session_id no encontrado")
-    return _row_to_summary(row)
+def get_proposal(session_id: str, p: Principal = Depends(get_principal)):
+    return _row_to_summary(_owned_row(session_id, p))
+
+
+@app.get("/propuestas/{session_id}/reviews")
+def get_proposal_reviews(session_id: str, p: Principal = Depends(get_principal)):
+    """Historial completo de verificación 90/90 (por ciclo) + versiones, para
+    auditar/verificar lo producido en cualquier momento."""
+    row = _owned_row(session_id, p)
+    brief = row.get("brief") or {}
+    return {
+        "session_id": session_id,
+        "approved": row.get("approved", False),
+        "doc_type_key": row.get("doc_type_key"),
+        "evaluation_criteria": brief.get("evaluation_criteria") or [],
+        "reviews": row.get("reviews") or [],
+        "versions": [{"cycle": v.get("cycle"), "char_count": v.get("char_count"),
+                      "created_at": str(v.get("created_at"))}
+                     for v in (row.get("proposal_versions") or [])],
+    }
 
 
 @app.get("/propuestas/{session_id}/markdown")
-def get_proposal_markdown(session_id: str, x_api_key: Optional[str] = Header(None)):
-    _require_api_key(x_api_key)
-    row = queries.get_session(session_id)
-    if not row:
-        raise HTTPException(404, "session_id no encontrado")
+def get_proposal_markdown(session_id: str, p: Principal = Depends(get_principal)):
+    row = _owned_row(session_id, p)
     versions = row.get("proposal_versions") or []
     if not versions:
-        raise HTTPException(409, "La propuesta aún no tiene borradores; revisa el status.")
+        raise HTTPException(409, "El entregable aún no tiene borradores; revisa el status.")
     return StreamingResponse(
         io.BytesIO(versions[-1]["content"].encode("utf-8")),
         media_type="text/markdown; charset=utf-8",
-        headers={"Content-Disposition": f'attachment; filename="propuesta_{session_id}.md"'},
+        headers={"Content-Disposition": f'attachment; filename="entregable_{session_id}.md"'},
     )
 
 
-def _build_and_stream(session_id: str, kind: str):
+def _build_and_stream(row: dict, kind: str):
     from tools import document_builder
-
-    row = queries.get_session(session_id)
-    if not row:
-        raise HTTPException(404, "session_id no encontrado")
+    session_id = row["session_id"]
     if not (row.get("proposal_versions") or []):
-        raise HTTPException(409, "La propuesta aún no tiene contenido.")
-
+        raise HTTPException(409, "El entregable aún no tiene contenido.")
     sess = _project_session_from_db(row)
-
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
         if kind == "word":
             excel_name = f"CALCULOS_{session_id}.xlsx"
-            out = tmp_path / f"PROPUESTA_{session_id}.docx"
-            built = document_builder.build_word(
-                sess.final_proposal, sess.brief, sess.financial,
-                excel_name, out,
-            )
+            out = tmp_path / f"ENTREGABLE_{session_id}.docx"
+            built = document_builder.build_word(sess.final_proposal, sess.brief,
+                                                sess.financial, excel_name, out)
             mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             ext = "docx"
         elif kind == "excel":
             if not (sess.financial and sess.financial.budget_items):
-                raise HTTPException(409, "Esta propuesta no tiene presupuesto estructurado.")
+                raise HTTPException(409, "Este entregable no tiene presupuesto estructurado.")
             out = tmp_path / f"CALCULOS_{session_id}.xlsx"
             built = document_builder.build_excel(sess.brief, sess.financial, out)
             mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             ext = "xlsx"
         else:
             raise HTTPException(400, f"kind inválido: {kind}")
-
         if not built or not out.exists():
-            raise HTTPException(500, f"No se pudo generar el {kind} (revisa logs del servidor).")
-
+            raise HTTPException(500, f"No se pudo generar el {kind} (revisa logs).")
         data = out.read_bytes()
-
     return StreamingResponse(
-        io.BytesIO(data),
-        media_type=mime,
-        headers={"Content-Disposition": f'attachment; filename="propuesta_{session_id}.{ext}"'},
+        io.BytesIO(data), media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="entregable_{session_id}.{ext}"'},
     )
 
 
-@app.post("/propuestas/{session_id}/retry", response_model=CreateProposalResponse, status_code=202)
-def retry_proposal(
-    session_id: str,
-    background: BackgroundTasks,
-    x_api_key: Optional[str] = Header(None),
-):
-    """Relanza el pipeline para una sesión existente, reutilizando user_input
-    y configuración. Borra borradores/revisiones previas vía cascade-delete
-    en repository.save_session() (que reemplaza por session_id)."""
-    _require_api_key(x_api_key)
-    row = queries.get_session(session_id)
-    if not row:
-        raise HTTPException(404, "session_id no encontrado")
+@app.get("/propuestas/{session_id}/word")
+def get_proposal_word(session_id: str, p: Principal = Depends(get_principal)):
+    return _build_and_stream(_owned_row(session_id, p), "word")
 
+
+@app.get("/propuestas/{session_id}/excel")
+def get_proposal_excel(session_id: str, p: Principal = Depends(get_principal)):
+    return _build_and_stream(_owned_row(session_id, p), "excel")
+
+
+@app.post("/propuestas/{session_id}/retry", response_model=CreateProposalResponse, status_code=202)
+def retry_proposal(session_id: str, background: BackgroundTasks,
+                   p: Principal = Depends(get_principal)):
+    row = _owned_row(session_id, p)
     if not config.ANTHROPIC_API_KEY:
         raise HTTPException(500, "ANTHROPIC_API_KEY no configurada en el servidor")
-
     user_input = row["user_input"]
     mode = row.get("input_mode") or "text"
     doc_type_key = row.get("doc_type_key") or "auto"
     template_text = row.get("template_text") or ""
-    support_docs = [
-        (d.get("name"), d.get("text")) for d in (row.get("support_docs") or [])
-    ]
+    support_docs = [(d.get("name"), d.get("text")) for d in (row.get("support_docs") or [])]
+    owner = row.get("owner_user_id")
 
     def _run():
         try:
-            from core.pipeline import run_pipeline
-            run_pipeline(
-                user_input=user_input, mode=mode, doc_type_key=doc_type_key,
-                template_text=template_text, support_docs=support_docs,
-                session_id=session_id,   # reutiliza id → upsert sobre el mismo row
-            )
+            run_pipeline(user_input=user_input, mode=mode, doc_type_key=doc_type_key,
+                         template_text=template_text, support_docs=support_docs,
+                         session_id=session_id, owner_user_id=owner)
         except Exception:
             pass
 
     background.add_task(_run)
     return CreateProposalResponse(session_id=session_id, status="pending")
-
-
-@app.get("/propuestas/{session_id}/word")
-def get_proposal_word(session_id: str, x_api_key: Optional[str] = Header(None)):
-    _require_api_key(x_api_key)
-    return _build_and_stream(session_id, "word")
-
-
-@app.get("/propuestas/{session_id}/excel")
-def get_proposal_excel(session_id: str, x_api_key: Optional[str] = Header(None)):
-    _require_api_key(x_api_key)
-    return _build_and_stream(session_id, "excel")

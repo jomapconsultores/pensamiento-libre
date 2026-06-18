@@ -287,6 +287,7 @@
     .seg button { background:transparent; color:var(--muted); border:0; padding:8px; border-radius:4px; font-size:12.5px; font-weight:500; }
     .seg button:hover { background:var(--line); color:var(--fg-2); }
     .seg button.active { background:var(--accent); color:#fff; }
+    .seg.cols-2 { grid-template-columns:1fr 1fr; }
     .module-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .module-card { text-align:left; background:var(--panel); border:1px solid var(--line);
       border-radius:var(--radius-sm); padding:13px 14px; transition:border-color .12s, background .12s; }
@@ -347,34 +348,39 @@
   <div class="lock" id="lock">
     <div class="lock-card">
       <div class="lock-logo">📚</div>
-      <h1 id="lock-title">Acceso al panel</h1>
-      <div class="sub" id="lock-sub">Identifícate para entrar a Investigación &amp; Proyectos.</div>
+      <h1 id="lock-title">Acceso</h1>
+      <div class="sub">Investigación &amp; Proyectos</div>
 
       <button class="bio-btn" id="bio-btn" style="display:none" onclick="unlockWithBiometric()">
-        <span class="big" id="bio-icon">🔐</span> <span id="bio-label">Entrar con huella / Face ID</span>
+        <span class="big">🔐</span> <span>Entrar con huella / Face ID</span>
       </button>
+      <div class="divider" id="lock-divider" style="display:none">o con tu cuenta</div>
 
-      <div class="divider" id="lock-divider" style="display:none">o con clave</div>
-
-      <div id="key-form">
-        <div class="lock-field" id="name-field">
-          <label>Tu nombre <span class="muted">(opcional)</span></label>
-          <input id="lock-name" type="text" placeholder="Ej: Marco" autocomplete="name">
-        </div>
-        <div class="lock-field">
-          <label>Clave de acceso al panel</label>
-          <input id="lock-key" type="password" placeholder="Clave del panel (no es la de Claude/Mistral)"
-                 autocomplete="current-password" onkeydown="if(event.key==='Enter')unlockWithKey()">
-        </div>
-        <label class="chk">
-          <input type="checkbox" id="lock-remember" checked>
-          Recordar en este dispositivo
-        </label>
-        <button class="btn btn-block" onclick="unlockWithKey()">Entrar</button>
+      <div class="seg cols-2" id="auth-tabs" style="margin-bottom:16px">
+        <button type="button" class="active" data-tab="login" onclick="setAuthTab('login')">Iniciar sesión</button>
+        <button type="button" data-tab="register" onclick="setAuthTab('register')">Crear cuenta</button>
       </div>
 
+      <div class="lock-field" id="reg-name-field" style="display:none">
+        <label>Nombre</label>
+        <input id="lk-name" type="text" placeholder="Tu nombre" autocomplete="name">
+      </div>
+      <div class="lock-field">
+        <label>Email</label>
+        <input id="lk-email" type="email" placeholder="tucorreo@ejemplo.com" autocomplete="username">
+      </div>
+      <div class="lock-field">
+        <label>Contraseña</label>
+        <input id="lk-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')submitAuth()">
+      </div>
+      <label class="chk"><input type="checkbox" id="lk-remember" checked> Recordar en este dispositivo</label>
+      <button class="btn btn-block" id="auth-btn" onclick="submitAuth()">Entrar</button>
+
       <div class="lock-msg" id="lock-msg"></div>
-      <div class="lock-hint" id="lock-hint"></div>
+      <div class="lock-hint">
+        <a href="#" onclick="masterLogin();return false">Acceso de administrador con clave maestra</a>
+      </div>
     </div>
   </div>
 
@@ -405,6 +411,9 @@
 
         <div class="sb-section">Estado</div>
         <button class="sb-item" data-nav="incon" onclick="navTo('incon')"><span class="ic">⏳</span> Inconclusos <span class="sb-badge" id="sb-incon" style="display:none">0</span></button>
+
+        <div class="sb-section" id="sb-admin-sec" style="display:none">Administración</div>
+        <button class="sb-item" id="sb-users-btn" style="display:none" onclick="openUsersModal()"><span class="ic">👥</span> Usuarios <span class="sb-badge" id="sb-pending" style="display:none">0</span></button>
       </nav>
       <div class="sb-foot">
         <div class="sb-user">
@@ -545,17 +554,31 @@
     </div>
   </div>
 
+  <!-- Modal: usuarios (admin) -->
+  <div class="modal-backdrop" id="users-modal" onclick="if(event.target===this)this.classList.remove('show')">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>👥 Usuarios</h2>
+        <button class="btn ghost btn-sm" onclick="document.getElementById('users-modal').classList.remove('show')">✕</button>
+      </div>
+      <div class="modal-body" id="users-body">Cargando…</div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
     /* ════════ Estado ════════ */
-    const KEY_LS = "agente_map.api_key";
-    const NAME_LS = "agente_map.user_name";
+    const TOKEN_LS = "agente_map.token";
+    const USER_LS = "agente_map.user";
+    const MASTER_LS = "agente_map.master";
     const WA_CRED_LS = "agente_map.webauthn_cred";
     const POLL_MS = 6000;
 
-    let panelKey = "";
-    let userName = "";
+    let authToken = "";
+    let masterKey = "";
+    let currentUser = null;
+    let bioOkCache = false;
     let pollTimer = null;
     let activeId = null;
     let currentModule = "investigacion";
@@ -622,7 +645,7 @@
       catch { return false; }
     }
     async function registerBiometric() {
-      const name = userName || "usuario";
+      const name = (currentUser && (currentUser.name || currentUser.email)) || "usuario";
       const cred = await navigator.credentials.create({ publicKey: {
         challenge: randomBytes(32),
         rp: { name: "agente_map", id: location.hostname },
@@ -643,133 +666,171 @@
       return true;
     }
 
-    /* ════════ Lock screen ════════ */
+    /* ════════ Sesión / login ════════ */
     function lockMsg(text, kind="") { $("lock-msg").textContent = text; $("lock-msg").className = "lock-msg " + kind; }
+    let authTab = "login";
+    function setAuthTab(t) {
+      authTab = t;
+      $("auth-tabs").querySelectorAll("button").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+      $("reg-name-field").style.display = t === "register" ? "" : "none";
+      $("auth-btn").textContent = t === "register" ? "Crear cuenta" : "Entrar";
+      $("lk-pass").setAttribute("autocomplete", t === "register" ? "new-password" : "current-password");
+      lockMsg("");
+    }
 
     async function initLock() {
-      userName = localStorage.getItem(NAME_LS) || "";
-      if (userName) { $("lock-name").value = userName; $("lock-title").textContent = `Hola, ${userName}`; }
-      const storedKey = localStorage.getItem(KEY_LS) || "";
+      const hasTok = !!localStorage.getItem(TOKEN_LS) || !!localStorage.getItem(MASTER_LS);
       const hasBio = !!localStorage.getItem(WA_CRED_LS);
-      const bioOk = await biometricAvailable();
-
-      if (storedKey && hasBio && bioOk) {
-        // Mostrar biometría como método principal
-        $("bio-btn").style.display = "flex";
-        $("lock-divider").style.display = "flex";
-        $("key-form").style.display = "none";
-        $("lock-sub").textContent = "Usa tu huella o Face ID para entrar.";
-        $("lock-hint").innerHTML = '<a href="#" onclick="showKeyForm();return false">Entrar con clave</a> en su lugar.';
-      } else {
-        $("key-form").style.display = "";
-        if (storedKey) { $("lock-key").value = storedKey; }
-        $("lock-hint").textContent = bioOk
-          ? "Tras entrar podrás activar huella / Face ID para la próxima vez."
-          : "Este dispositivo/navegador no ofrece huella ni Face ID; usarás la clave.";
-      }
+      bioOkCache = await biometricAvailable();
+      const showBio = hasTok && hasBio && bioOkCache;
+      $("bio-btn").style.display = showBio ? "flex" : "none";
+      $("lock-divider").style.display = showBio ? "flex" : "none";
+      const u = JSON.parse(localStorage.getItem(USER_LS) || "null");
+      if (u && u.email) $("lk-email").value = u.email;
+      if (u && u.name) $("lock-title").textContent = `Hola, ${u.name.split(" ")[0]}`;
+      setAuthTab("login");
     }
-    function showKeyForm() {
-      $("key-form").style.display = "";
-      $("lock-divider").style.display = "none";
-      $("bio-btn").style.display = "none";
-      setTimeout(() => $("lock-key").focus(), 50);
+
+    async function submitAuth() {
+      const email = $("lk-email").value.trim();
+      const pass = $("lk-pass").value;
+      const remember = $("lk-remember").checked;
+      if (!email || !pass) { lockMsg("Completa email y contraseña.", "err"); return; }
+      $("auth-btn").disabled = true;
+      try {
+        if (authTab === "register") {
+          const name = $("lk-name").value.trim();
+          const r = await fetch("/auth/register", { method:"POST", headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({ email, name, password: pass }) });
+          const j = await r.json().catch(()=>({}));
+          if (!r.ok) { lockMsg(j.detail || "No se pudo registrar.", "err"); return; }
+          lockMsg(j.message || "Cuenta creada.", j.role === "admin" ? "ok" : "info");
+          setAuthTab("login");
+          return;
+        }
+        const r = await fetch("/auth/login", { method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ email, password: pass }) });
+        const j = await r.json().catch(()=>({}));
+        if (!r.ok) { lockMsg(j.detail || "No se pudo iniciar sesión.", "err"); return; }
+        authToken = j.token; masterKey = ""; currentUser = j.user;
+        if (remember) { localStorage.setItem(TOKEN_LS, authToken); localStorage.setItem(USER_LS, JSON.stringify(j.user)); localStorage.removeItem(MASTER_LS); }
+        else { localStorage.removeItem(TOKEN_LS); localStorage.removeItem(USER_LS); }
+        await doUnlock();
+        if (remember && bioOkCache && !localStorage.getItem(WA_CRED_LS)) setTimeout(offerBiometricSetup, 600);
+      } catch (e) { lockMsg("No se pudo contactar el servidor.", "err"); }
+      finally { $("auth-btn").disabled = false; }
+    }
+
+    async function masterLogin() {
+      const k = prompt("Clave maestra de administrador (AGENTE_MAP_API_KEY):");
+      if (!k) return;
+      try {
+        const r = await fetch("/auth/me", { headers: { "X-API-Key": k } });
+        if (!r.ok) { lockMsg("Clave maestra incorrecta.", "err"); return; }
+        masterKey = k; authToken = ""; currentUser = await r.json();
+        if ($("lk-remember").checked) { localStorage.setItem(MASTER_LS, k); localStorage.setItem(USER_LS, JSON.stringify(currentUser)); }
+        await doUnlock();
+      } catch { lockMsg("No se pudo contactar el servidor.", "err"); }
     }
 
     async function unlockWithBiometric() {
       lockMsg("Verificando…", "info");
       try {
         await verifyBiometric();
-        const k = localStorage.getItem(KEY_LS) || "";
-        if (!k) { lockMsg("No hay clave guardada; entra con clave.", "err"); showKeyForm(); return; }
-        await doUnlock(k);
-      } catch (e) {
-        lockMsg("No se pudo verificar la biometría. Usa tu clave.", "err");
-        showKeyForm();
-      }
-    }
-
-    async function unlockWithKey() {
-      const k = $("lock-key").value.trim();
-      if (!k) { lockMsg("Escribe la clave de acceso al panel.", "err"); return; }
-      const remember = $("lock-remember").checked;
-      userName = $("lock-name").value.trim();
-      lockMsg("Comprobando…", "info");
-      // Validar la clave contra el servidor
-      try {
-        const res = await fetch("/modules", { headers: { "X-API-Key": k } });
-        if (res.status === 401) { lockMsg("Clave incorrecta.", "err"); return; }
-        if (!res.ok) { lockMsg(`Error ${res.status} del servidor.`, "err"); return; }
-      } catch { lockMsg("No se pudo contactar el servidor.", "err"); return; }
-
-      if (remember) localStorage.setItem(KEY_LS, k); else localStorage.removeItem(KEY_LS);
-      if (userName) localStorage.setItem(NAME_LS, userName); else localStorage.removeItem(NAME_LS);
-
-      await doUnlock(k);
-
-      // Ofrecer activar biometría si está disponible y aún no registrada
-      if (remember && await biometricAvailable() && !localStorage.getItem(WA_CRED_LS)) {
-        setTimeout(offerBiometricSetup, 600);
-      }
+        const tok = localStorage.getItem(TOKEN_LS) || "";
+        const mk = localStorage.getItem(MASTER_LS) || "";
+        if (tok) { authToken = tok; masterKey = ""; }
+        else if (mk) { masterKey = mk; authToken = ""; }
+        else { lockMsg("No hay sesión guardada; inicia sesión.", "err"); return; }
+        const r = await fetch("/auth/me", { headers: authHeaders() });
+        if (!r.ok) { authToken=""; masterKey=""; localStorage.removeItem(TOKEN_LS);
+          lockMsg("La sesión expiró. Inicia sesión de nuevo.", "err"); initLock(); return; }
+        currentUser = await r.json();
+        await doUnlock();
+      } catch (e) { lockMsg("No se pudo verificar la biometría.", "err"); }
     }
 
     async function offerBiometricSetup() {
-      if (!confirm("¿Activar huella / Face ID para entrar más rápido la próxima vez en este dispositivo?")) return;
+      if (!confirm("¿Activar huella / Face ID para entrar más rápido en este dispositivo?")) return;
       try { await registerBiometric(); toast("Huella / Face ID activado.", "ok"); }
       catch (e) { toast("No se pudo activar la biometría.", "warn"); }
     }
 
-    async function doUnlock(key) {
-      panelKey = key;
-      lockMsg("", "");
-      $("lock").hidden = true;
-      $("app").hidden = false;
-      // Perfil en sidebar
-      const display = userName || "Usuario";
-      $("sb-name").textContent = display;
-      $("sb-avatar").textContent = (display[0] || "U").toUpperCase();
-      // Cargar datos
+    async function doUnlock() {
+      lockMsg("");
+      $("lock").hidden = true; $("app").hidden = false;
+      const name = (currentUser && currentUser.name) || (currentUser && currentUser.email) || "Usuario";
+      $("sb-name").textContent = name;
+      $("sb-avatar").textContent = (name[0] || "U").toUpperCase();
+      const isAdmin = currentUser && currentUser.role === "admin";
+      $("sb-admin-sec").style.display = isAdmin ? "" : "none";
+      $("sb-users-btn").style.display = isAdmin ? "" : "none";
       await loadDocTypes();
       initDropzone();
       await loadList();
+      if (isAdmin) refreshPendingBadge();
       maybeRequestNotificationPermission();
     }
 
     function lockNow() {
-      panelKey = "";
+      authToken = ""; masterKey = ""; currentUser = null;
+      localStorage.removeItem(TOKEN_LS); localStorage.removeItem(MASTER_LS);
       if (pollTimer) clearTimeout(pollTimer);
-      $("app").hidden = true;
-      $("lock").hidden = false;
-      lockMsg("Sesión bloqueada.", "ok");
-      initLock();
+      $("app").hidden = true; $("lock").hidden = false;
+      lockMsg("Sesión cerrada.", "ok"); initLock();
+    }
+
+    /* ════════ Usuarios (admin) ════════ */
+    async function refreshPendingBadge() {
+      try {
+        const r = await api("/users?status=pending"); const u = await r.json();
+        const b = $("sb-pending");
+        if (u.length) { b.style.display = ""; b.textContent = u.length; } else b.style.display = "none";
+      } catch {}
+    }
+    async function openUsersModal() {
+      $("users-modal").classList.add("show");
+      $("users-body").innerHTML = "Cargando…";
+      try {
+        const r = await api("/users"); const list = await r.json();
+        $("users-body").innerHTML = list.length ? list.map(userRow).join("")
+          : '<div class="muted">No hay usuarios.</div>';
+      } catch (e) { $("users-body").innerHTML = `<div class="muted">${esc(e.message)}</div>`; }
+    }
+    function userRow(u) {
+      const st = u.status==="approved" ? '<span class="pill approved">aprobado</span>'
+               : u.status==="pending" ? '<span class="pill pending">pendiente</span>'
+               : '<span class="pill failed">rechazado</span>';
+      const role = u.role==="admin" ? '<span class="pill go">admin</span>' : '';
+      const actions = u.status==="pending"
+        ? `<button class="btn btn-sm" onclick="userAction('${u.id}','approve')">Aprobar</button> <button class="btn subtle btn-sm" onclick="userAction('${u.id}','reject')">Rechazar</button>`
+        : (u.role!=="admin" ? `<button class="btn subtle btn-sm" onclick="userAction('${u.id}','make-admin')">Hacer admin</button>` : "");
+      return `<div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)">
+        <div style="flex:1;min-width:0"><div style="font-weight:600">${esc(u.name||"(sin nombre)")} ${role}</div>
+        <div class="muted" style="font-size:12px">${esc(u.email)} · ${st}</div></div>
+        <div style="display:flex;gap:6px;flex-shrink:0">${actions}</div></div>`;
+    }
+    async function userAction(id, action) {
+      try { await api(`/users/${id}/${action}`, { method:"POST" }); toast("Hecho.", "ok"); openUsersModal(); refreshPendingBadge(); }
+      catch (e) { toast(e.message, "err"); }
     }
 
     /* ════════ API ════════ */
-    const getKey = () => panelKey;
+    function authHeaders() { return authToken ? { Authorization: "Bearer " + authToken } : masterKey ? { "X-API-Key": masterKey } : {}; }
     async function api(path, opts={}) {
-      if (!panelKey) throw new Error("Sesión bloqueada.");
-      const res = await fetch(path, { ...opts,
-        headers: { "X-API-Key": panelKey, "Content-Type": "application/json", ...(opts.headers||{}) } });
+      if (!authToken && !masterKey) throw new Error("Sesión cerrada.");
+      const res = await fetch(path, { ...opts, headers: { ...authHeaders(), "Content-Type":"application/json", ...(opts.headers||{}) } });
       if (res.status === 401) { lockNow(); throw new Error("Sesión expirada — vuelve a entrar."); }
-      if (!res.ok) {
-        let detail = res.statusText;
-        try { const j = await res.json(); detail = j.detail || detail; } catch {}
-        throw new Error(`${res.status}: ${detail}`);
-      }
+      if (!res.ok) { let detail=res.statusText; try { const j=await res.json(); detail=j.detail||detail; } catch {} throw new Error(`${res.status}: ${detail}`); }
       return res;
     }
     async function apiUpload(path, formData) {
-      if (!panelKey) throw new Error("Sesión bloqueada.");
-      const res = await fetch(path, { method:"POST", headers:{ "X-API-Key": panelKey }, body: formData });
-      if (!res.ok) {
-        let detail = res.statusText;
-        try { const j = await res.json(); detail = j.detail || detail; } catch {}
-        throw new Error(`${res.status}: ${detail}`);
-      }
+      if (!authToken && !masterKey) throw new Error("Sesión cerrada.");
+      const res = await fetch(path, { method:"POST", headers: authHeaders(), body: formData });
+      if (!res.ok) { let detail=res.statusText; try { const j=await res.json(); detail=j.detail||detail; } catch {} throw new Error(`${res.status}: ${detail}`); }
       return res;
     }
-    async function loadDocTypes() {
-      try { const r = await api("/doc_types"); docTypesAll = await r.json(); } catch (e) {}
-    }
+    async function loadDocTypes() { try { const r = await api("/doc_types"); docTypesAll = await r.json(); } catch (e) {} }
 
     /* ════════ Navegación lateral ════════ */
     const PAGE_TITLES = { all:"Inicio", investigacion:"🔬 Investigación", proyectos:"📊 Proyectos", incon:"⏳ Trabajo inconcluso" };
@@ -1042,7 +1103,7 @@
     }
 
     async function loadList() {
-      if (!panelKey) return;
+      if (!authToken && !masterKey) return;
       try {
         const r = await api("/propuestas?limit=60");
         const rows = await r.json();
@@ -1073,8 +1134,13 @@
       $("drawer-title").textContent = "Detalle";
       if (!silent) $("drawer-body").innerHTML = `<div class="list-empty">Cargando…</div>`;
       try {
-        const [r1, r2] = await Promise.all([ api(`/propuestas/${id}`), api(`/propuestas/${id}/markdown`).catch(()=>null) ]);
+        const [r1, r2, r3] = await Promise.all([
+          api(`/propuestas/${id}`),
+          api(`/propuestas/${id}/markdown`).catch(()=>null),
+          api(`/propuestas/${id}/reviews`).catch(()=>null),
+        ]);
         const d = await r1.json(); const md = r2 ? await r2.text() : "";
+        const ver = r3 ? await r3.json().catch(()=>null) : null;
         $("drawer-title").textContent = d.title || "(sin título)";
         $("retry-btn").style.display = d.status === "failed" ? "" : "none";
         const error = parseError(d.error_message);
@@ -1104,7 +1170,8 @@
         const previewHtml = md ? `<h3>Vista previa</h3><div class="md-preview">${esc(md.length>6000 ? md.slice(0,6000)+"\n\n[… truncado para preview, descarga el archivo para ver completo …]" : md)}</div>`
           : (d.status==="running"||d.status==="pending") ? `<h3>Vista previa</h3><div class="muted" style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px">⏳ El pipeline está procesando. La vista previa aparecerá cuando el redactor termine el primer borrador.</div>` : "";
         const inputHtml = d.user_input ? `<h3>Input original</h3><div class="md-preview" style="max-height:140px">${esc(d.user_input)}</div>` : "";
-        $("drawer-body").innerHTML = inconHtml + overviewHtml + scoresHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
+        const verifHtml = renderVerification(ver);
+        $("drawer-body").innerHTML = inconHtml + overviewHtml + scoresHtml + verifHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
         renderList();
       } catch (e) { $("drawer-body").innerHTML = `<div class="list-empty">${esc(e.message)}</div>`; }
     }
@@ -1123,6 +1190,25 @@
       }).join("");
       return `<h3>Feasibility breakdown</h3><div class="feasibility">${rows}</div>`;
     }
+    function renderVerification(v) {
+      if (!v || !(v.reviews || []).length) return "";
+      const rows = v.reviews.map(rv => {
+        const cs = rv.criterion_scores || {};
+        const crit = Object.entries(cs).map(([k, val]) => {
+          const s = Math.round(Number(val) || 0);
+          const col = s>=90?"var(--ok)":s>=70?"var(--accent-2)":"var(--warn)";
+          return `<div class="feas-row"><div>${esc(k)}</div><div class="bar"><div style="width:${s}%;background:${col}"></div></div><div class="num" style="color:${col}">${s}</div></div>`;
+        }).join("");
+        const fails = (rv.failing_elements||[]).length ? `<div style="margin-top:6px;font-size:12px"><b style="color:#fca5a5">No cumplen 90:</b> ${rv.failing_elements.map(esc).join("; ")}</div>` : "";
+        const corr = (rv.corrections||[]).length ? `<details style="margin-top:6px"><summary class="muted" style="font-size:12px;cursor:pointer">Correcciones aplicadas (${rv.corrections.length})</summary><ul style="margin:6px 0 0 16px;font-size:12px;line-height:1.5">${rv.corrections.map(c=>`<li>${esc(c)}</li>`).join("")}</ul></details>` : "";
+        return `<div class="evid-item">
+          <div class="claim">Ciclo ${rv.cycle} — <b style="color:${rv.approved?'var(--ok)':'var(--warn)'}">${Math.round(rv.overall_score)}/100</b>
+            ${rv.approved?'<span class="pill approved">aprobado</span>':'<span class="pill failed">no aprobado</span>'}</div>
+          <div class="feasibility" style="margin-top:8px">${crit}</div>${fails}${corr}</div>`;
+      }).join("");
+      return `<h3>Verificación 90/90 — historial (${v.reviews.length} ciclo(s))</h3><div class="evid">${rows}</div>`;
+    }
+
     function renderEvidence(sources) {
       if (!sources || !sources.length) return "";
       const items = sources.map(s => {

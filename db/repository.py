@@ -53,6 +53,7 @@ def _session_row(s: ProjectSession) -> dict:
         "excel_path":    s.excel_path,
         "template_text": s.template_text or None,
         "support_docs":  [{"name": n, "text": t} for n, t in (s.support_docs or [])],
+        "owner_user_id": s.owner_user_id,
         "analysis":      _dump(s.analysis),
         "brief":         _dump(s.brief),
         "financial":     _dump(s.financial),

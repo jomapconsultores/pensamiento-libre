@@ -157,6 +157,9 @@ class ProjectSession:
     # Trazabilidad de constructores: [{cycle, requested, used}] por ciclo de redacción
     builder_log: list = field(default_factory=list)
 
+    # Dueño (usuario que lo creó). None = creado por la clave maestra/admin.
+    owner_user_id: Optional[str] = None
+
     # Tipo de documento, formato y materiales de entrada
     doc_type_key: str = "propuesta"
     brief: Optional["DocumentBrief"] = None

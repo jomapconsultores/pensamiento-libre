@@ -10,20 +10,26 @@ from typing import Any, Optional
 from utils.supabase_client import get_client
 
 
-def list_sessions(limit: int = 20, *, approved_only: bool = False) -> list[dict[str, Any]]:
-    """Devuelve las sesiones más recientes con campos resumidos."""
+def list_sessions(limit: int = 20, *, approved_only: bool = False,
+                  owner_user_id: Optional[str] = None) -> list[dict[str, Any]]:
+    """Devuelve las sesiones más recientes con campos resumidos.
+
+    Si `owner_user_id` se pasa, filtra solo las de ese dueño (vista por usuario).
+    Si es None, devuelve todas (vista admin / clave maestra)."""
     sb = get_client(service_role=True)
     q = (
         sb.table("sessions")
         .select(
             "id, session_id, doc_type_key, approved, current_cycle, "
-            "created_at, brief, analysis"
+            "created_at, owner_user_id, brief, analysis"
         )
         .order("created_at", desc=True)
         .limit(limit)
     )
     if approved_only:
         q = q.eq("approved", True)
+    if owner_user_id is not None:
+        q = q.eq("owner_user_id", owner_user_id)
     rows = q.execute().data or []
 
     # Aplana los campos más útiles del JSON anidado para facilitar el listado.
