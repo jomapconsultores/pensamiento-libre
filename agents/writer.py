@@ -5,8 +5,8 @@ TDR/compras públicas, peer-review, tesis, documento legal/técnico) a partir de
 DocumentBrief. Adopta los perfiles de experto indicados, respeta el formato exacto y
 usa la plantilla (si existe) como referencia de estilo y los documentos de apoyo como fuente.
 """
-import anthropic
-from config import MODEL, MAX_TOKENS_WRITER
+import config
+from config import MAX_TOKENS_WRITER
 from models.schemas import DocumentBrief, ProjectSession
 
 
@@ -150,12 +150,19 @@ incluyendo cumplimiento de formato y de lineamientos nacionales e internacionale
 
 
 def run(session: ProjectSession, corrections: list, api_key: str) -> str:
-    from agents._client import make_client
-    client = make_client(api_key)
+    """Construye el documento. El proveedor rota por ciclo (Mistral→Codestral→
+    DeepSeek→…); el revisor (Claude) dirá qué corregir y el ciclo siguiente lo
+    aplica con el siguiente constructor. `api_key` (Anthropic) solo se usa como
+    fallback si todos los constructores no-Claude están caídos.
+    """
+    from agents import llm
     brief = session.brief
-    prompt = _build_prompt(brief, session, corrections, session.current_cycle)
-    response = client.messages.create(
-        model=MODEL, max_tokens=MAX_TOKENS_WRITER, system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+    cycle = session.current_cycle
+    provider = config.builder_for_cycle(cycle)
+    prompt = _build_prompt(brief, session, corrections, cycle)
+    text, used = llm.complete_builder(
+        provider, system=SYSTEM_PROMPT, prompt=prompt,
+        max_tokens=MAX_TOKENS_WRITER, anthropic_key=api_key,
     )
-    return response.content[0].text
+    session.builder_log.append({"cycle": cycle, "requested": provider, "used": used})
+    return text

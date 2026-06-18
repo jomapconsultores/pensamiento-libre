@@ -6,8 +6,8 @@ marco lógico, cronograma) en JSON. Esa misma data alimenta el Excel (cálculos
 vivos con fórmulas) y se referencia en el Word, garantizando que ambos coincidan.
 """
 import json
-import anthropic
-from config import MODEL, MAX_TOKENS_FINANCIAL
+import config
+from config import MAX_TOKENS_FINANCIAL
 from models.schemas import DocumentBrief, FinancialPackage
 
 
@@ -110,18 +110,20 @@ def _num(v) -> float:
 
 
 def run(session, proposal: str, api_key: str) -> FinancialPackage:
-    from agents._client import make_client
-    client = make_client(api_key)
+    from agents import llm
     brief: DocumentBrief = session.brief
     prompt = _build_prompt(brief, proposal)
 
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=MAX_TOKENS_FINANCIAL,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+    # Constructor (no-Claude) siguiendo la misma rotación por ciclo; con fallback.
+    provider = config.builder_for_cycle(session.current_cycle)
+    raw, used = llm.complete_builder(
+        provider, system=SYSTEM_PROMPT, prompt=prompt,
+        max_tokens=MAX_TOKENS_FINANCIAL, anthropic_key=api_key,
+        temperature=0.2,  # extracción estructurada → baja temperatura
     )
-    data = _parse_result(response.content[0].text)
+    session.builder_log.append({"cycle": session.current_cycle,
+                                "stage": "financial", "requested": provider, "used": used})
+    data = _parse_result(raw)
 
     # Normalizar números del presupuesto
     budget_items = []

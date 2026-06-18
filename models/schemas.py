@@ -154,6 +154,9 @@ class ProjectSession:
     word_path: Optional[str] = None
     excel_path: Optional[str] = None
 
+    # Trazabilidad de constructores: [{cycle, requested, used}] por ciclo de redacción
+    builder_log: list = field(default_factory=list)
+
     # Tipo de documento, formato y materiales de entrada
     doc_type_key: str = "propuesta"
     brief: Optional["DocumentBrief"] = None

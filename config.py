@@ -10,8 +10,42 @@ OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # ── API ────────────────────────────────────────────────────────────────────
+# Revisor / Analista / Clasificador → Anthropic (usan tool-use de búsqueda web).
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+
+# ── Constructores no-Claude (redactor + financiero) ─────────────────────────
+# Mistral, Codestral y DeepSeek exponen una API compatible con OpenAI
+# (chat/completions), por lo que comparten cliente HTTP en agents/llm.py.
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY", "")
+CODESTRAL_API_KEY = os.getenv("CODESTRAL_API_KEY", "")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+
+MISTRAL_MODEL = os.getenv("MISTRAL_MODEL", "mistral-large-latest")
+CODESTRAL_MODEL = os.getenv("CODESTRAL_MODEL", "codestral-latest")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+
+MISTRAL_BASE_URL = os.getenv("MISTRAL_BASE_URL", "https://api.mistral.ai/v1")
+CODESTRAL_BASE_URL = os.getenv("CODESTRAL_BASE_URL", "https://codestral.mistral.ai/v1")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+
+LLM_TIMEOUT_SEC = float(os.getenv("LLM_TIMEOUT_SEC", "600"))
+
+# Rotación de constructores por ciclo de redacción:
+#   ciclo 1 → Mistral, ciclo 2 → Codestral, ciclo 3 → DeepSeek, ciclo 4 → Mistral…
+# El corrector (revisor) SIEMPRE es Claude.
+BUILDER_ROTATION = [
+    p.strip() for p in os.getenv(
+        "BUILDER_ROTATION", "mistral,codestral,deepseek"
+    ).split(",") if p.strip()
+]
+
+
+def builder_for_cycle(cycle: int) -> str:
+    """Devuelve el proveedor constructor que toca en este ciclo (1-indexed)."""
+    if not BUILDER_ROTATION:
+        return "anthropic"
+    return BUILDER_ROTATION[(max(1, cycle) - 1) % len(BUILDER_ROTATION)]
 
 # ── Supabase ───────────────────────────────────────────────────────────────
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
