@@ -24,14 +24,16 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Query
+from fastapi import (
+    BackgroundTasks, FastAPI, File, Header, HTTPException, Query, UploadFile,
+)
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 import config
 from core.pipeline import run_pipeline
 from db import queries
-from models.doc_types import list_doc_types
+from models.doc_types import list_doc_types, list_modules
 from models.schemas import (
     DocumentBrief, FinancialPackage, ProjectSession,
 )
@@ -187,11 +189,67 @@ def healthz():
     return {"ok": True, "service": "agente_map", "version": app.version}
 
 
+@app.get("/modules")
+def modules(x_api_key: Optional[str] = Header(None)):
+    _require_api_key(x_api_key)
+    return list_modules()
+
+
 @app.get("/doc_types")
 def doc_types(x_api_key: Optional[str] = Header(None)):
     _require_api_key(x_api_key)
-    return [{"key": d.key, "name": d.name, "description": d.description}
+    return [{"key": d.key, "name": d.name, "description": d.description,
+             "module": d.module}
             for d in list_doc_types()]
+
+
+# Límites de carga (protegen memoria y tokens)
+MAX_EXTRACT_FILES = 12
+MAX_EXTRACT_BYTES = 20 * 1024 * 1024   # 20 MB por archivo
+MAX_EXTRACT_CHARS = 120_000            # texto máx. devuelto por archivo
+
+
+@app.post("/extract")
+async def extract(
+    files: list[UploadFile] = File(...),
+    x_api_key: Optional[str] = Header(None),
+):
+    """Extrae texto de archivos subidos (PDF/Word/txt/md) para usarlos como
+    documentos de apoyo. Devuelve [{name, text, chars, truncated}]."""
+    _require_api_key(x_api_key)
+    from tools import file_reader
+
+    if len(files) > MAX_EXTRACT_FILES:
+        raise HTTPException(413, f"Máximo {MAX_EXTRACT_FILES} archivos por carga.")
+
+    out = []
+    for f in files:
+        data = await f.read()
+        if not data:
+            raise HTTPException(400, f"'{f.filename}' está vacío.")
+        if len(data) > MAX_EXTRACT_BYTES:
+            raise HTTPException(413, f"'{f.filename}' supera 20 MB.")
+        try:
+            text = file_reader.read_upload(f.filename, data)
+        except (ValueError, ImportError) as e:
+            raise HTTPException(415, f"'{f.filename}': {e}")
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(422, f"No se pudo procesar '{f.filename}': {e}")
+
+        text = (text or "").strip()
+        if not text:
+            raise HTTPException(
+                422, f"'{f.filename}' no contiene texto legible "
+                     "(¿es un PDF escaneado sin OCR?)."
+            )
+        truncated = len(text) > MAX_EXTRACT_CHARS
+        out.append({
+            "name": f.filename,
+            "text": text[:MAX_EXTRACT_CHARS],
+            "chars": len(text),
+            "truncated": truncated,
+        })
+    return out
 
 
 @app.post("/propuestas", response_model=CreateProposalResponse, status_code=202)

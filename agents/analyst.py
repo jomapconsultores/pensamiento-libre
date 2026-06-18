@@ -282,15 +282,30 @@ Responde ÚNICAMENTE con el siguiente JSON (sin texto extra):
 """
 
 
-def _build_url_prompt(url: str) -> str:
-    """Prompt para modo URL: descargar el link y emitir un dictamen riguroso."""
-    return f"""
-El usuario te entregó esta URL para que la analices con MÁXIMO RIGOR:
+def _build_url_prompt(urls) -> str:
+    """Prompt para modo URL: descargar el/los link(s) y emitir un dictamen riguroso.
 
-    {url}
+    Acepta una URL (str) o varias (list[str])."""
+    if isinstance(urls, str):
+        urls = [urls]
+    urls = [u.strip() for u in urls if u and u.strip()]
+    url_list = "\n".join(f"    {i+1}. {u}" for i, u in enumerate(urls))
+    first = urls[0] if urls else ""
+    fetch_instr = "\n".join(
+        f'1.{i+1}. Llama a fetch_page(url="{u}") para leer su contenido real.'
+        for i, u in enumerate(urls)
+    )
+    return f"""
+El usuario te entregó {"estas URLs" if len(urls) > 1 else "esta URL"} para que {"las" if len(urls) > 1 else "la"} analices con MÁXIMO RIGOR:
+
+{url_list}
 
 PROCESO OBLIGATORIO:
-1. Llama a fetch_page(url="{url}") como PRIMERA acción para leer el contenido real.
+1. Descarga el contenido de CADA enlace (también si son PDFs publicados en la web):
+{fetch_instr}
+   Si hay varios enlaces, INTÉGRALOS: trátalos como piezas de un mismo caso (convocatoria
+   + bases + anexos, o varias fuentes del mismo programa) y cruza la información entre ellos.
+   (referencia del primero para los pasos siguientes: {first})
 2. Si el contenido devuelve un login wall (LinkedIn no autenticado), inténtalo de todos modos —
    muchas páginas tienen previews públicas. Si no, declara explícitamente "contenido no accesible"
    en el análisis y baja viability_score.
@@ -380,16 +395,37 @@ def _parse_result(raw: str) -> dict:
     return json.loads(raw)
 
 
+def _support_block(session: ProjectSession) -> str:
+    """Documentos adjuntos (subidos/arrastrados) como contexto para el analista."""
+    docs = getattr(session, "support_docs", None) or []
+    if not docs:
+        return ""
+    joined = "\n\n".join(
+        f"=== {n} ===\n{(t or '')[:6000]}" for n, t in docs
+    )
+    return f"""
+
+═══════════════════════════════════════════════════════════
+DOCUMENTOS ADJUNTOS POR EL USUARIO (analízalos como material fuente real)
+═══════════════════════════════════════════════════════════
+{joined}
+"""
+
+
 def run(session: ProjectSession, api_key: str) -> AnalysisResult:
+    import re
     from agents._client import make_client
     client = make_client(api_key)
 
     if session.input_mode == "search":
         prompt = _build_search_prompt(session.user_input)
     elif session.input_mode == "url":
-        prompt = _build_url_prompt(session.user_input.strip())
+        urls = re.findall(r"https?://\S+", session.user_input or "")
+        prompt = _build_url_prompt(urls or session.user_input.strip())
     else:
         prompt = _build_analysis_prompt(session.user_input)
+
+    prompt += _support_block(session)
 
     raw = _run_agent_loop(client, prompt)
     data = _parse_result(raw)

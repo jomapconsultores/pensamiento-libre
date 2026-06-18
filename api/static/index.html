@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>agente_map · Propuestas de financiamiento</title>
+  <title>agente_map · Investigación & Proyectos</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9C%3C/text%3E%3C/svg%3E">
   <style>
     :root {
@@ -80,6 +80,34 @@
       background: var(--muted-2);
     }
     .key-status.ok::before { background: var(--ok); }
+
+    /* ─────────── Modules nav ─────────── */
+    .modules-nav {
+      display: flex; gap: 4px; background: var(--code-bg);
+      border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 3px;
+    }
+    .mod-tab {
+      background: transparent; border: 0; color: var(--muted);
+      padding: 6px 13px; border-radius: 5px; font-size: 12.5px; font-weight: 500;
+      transition: background .12s, color .12s;
+    }
+    .mod-tab:hover { color: var(--fg-2); background: var(--line); }
+    .mod-tab.active { background: var(--accent); color: #fff; }
+    @media (max-width: 860px) { .modules-nav { display: none; } }
+
+    /* ─────────── Module cards (modal) ─────────── */
+    .module-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .module-card {
+      text-align: left; background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius-sm); padding: 13px 14px; transition: border-color .12s, background .12s;
+    }
+    .module-card:hover { border-color: var(--line-2); }
+    .module-card.active { border-color: var(--accent); background: var(--accent-3);
+                          box-shadow: 0 0 0 1px var(--accent); }
+    .module-card .mc-top { display: flex; align-items: center; gap: 8px; }
+    .module-card .mc-icon { font-size: 18px; }
+    .module-card .mc-name { font-weight: 600; font-size: 14px; color: var(--fg); }
+    .module-card .mc-desc { color: var(--muted); font-size: 11.5px; margin-top: 5px; line-height: 1.45; }
 
     /* ─────────── Buttons ─────────── */
     .btn {
@@ -361,6 +389,42 @@
     .seg button.active { background: var(--accent); color: white; }
     .seg-help { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
                 margin-top: 6px; font-size: 10.5px; color: var(--muted); text-align: center; }
+    .seg.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+    /* ─────────── Dropzone ─────────── */
+    .dropzone {
+      border: 1.5px dashed var(--line-2); border-radius: var(--radius-sm);
+      padding: 18px; text-align: center; cursor: pointer; background: var(--panel);
+      transition: border-color .15s, background .15s;
+    }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: var(--accent-3); }
+    .dz-inner { color: var(--muted); font-size: 12.5px; display: flex; flex-direction: column; gap: 4px; }
+    .dz-icon { font-size: 22px; }
+    .dz-link { color: var(--accent-2); }
+    .dz-sub { font-size: 11px; color: var(--muted-2); }
+    .dz-files { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .dz-chip {
+      display: flex; align-items: center; gap: 8px; background: var(--panel-2);
+      border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 12.5px;
+    }
+    .dz-chip .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--fg-2); }
+    .dz-chip .cz { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+    .dz-chip .rm { background: transparent; border: 0; color: var(--muted-2); cursor: pointer; font-size: 15px; line-height: 1; }
+    .dz-chip .rm:hover { color: var(--err); }
+
+    /* ─────────── URL list ─────────── */
+    .url-row { display: flex; gap: 6px; margin-bottom: 6px; }
+    .url-row input {
+      flex: 1; background: var(--panel); border: 1px solid var(--line);
+      color: var(--fg); padding: 9px 12px; border-radius: var(--radius-sm); font-size: 13px;
+    }
+    .url-row input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-3); }
+    .url-row .rm {
+      background: transparent; border: 1px solid var(--line); border-radius: var(--radius-sm);
+      color: var(--muted-2); padding: 0 12px; cursor: pointer; font-size: 15px;
+    }
+    .url-row .rm:hover { color: var(--err); border-color: var(--err); }
+    .req-star { color: var(--accent-2); }
 
     /* ─────────── Toast ─────────── */
     .toast {
@@ -402,16 +466,22 @@
 <body>
   <header>
     <div class="brand">
-      <div class="logo">📜</div>
+      <div class="logo">📚</div>
       <div>
-        <h1>agente_map <small>· panel de propuestas</small></h1>
+        <h1>agente_map <small>· Investigación &amp; Proyectos</small></h1>
       </div>
     </div>
+    <nav class="modules-nav" id="modules-nav" aria-label="Módulos">
+      <button class="mod-tab active" data-module="all" onclick="setNavModule('all')">Todos</button>
+      <button class="mod-tab" data-module="investigacion" onclick="setNavModule('investigacion')">🔬 Investigación</button>
+      <button class="mod-tab" data-module="proyectos" onclick="setNavModule('proyectos')">📊 Proyectos</button>
+    </nav>
     <div class="header-actions">
-      <span id="key-status" class="key-status">Sin API key</span>
-      <input id="apikey" class="key-input" type="password" placeholder="X-API-Key" autocomplete="off">
+      <span id="key-status" class="key-status" title="Llave de acceso a este panel (variable AGENTE_MAP_API_KEY del servidor). NO es la clave de Claude/Mistral.">Sin clave de panel</span>
+      <input id="apikey" class="key-input" type="password" placeholder="Clave de acceso al panel" autocomplete="off"
+             title="Llave de acceso a este panel (X-API-Key → AGENTE_MAP_API_KEY). Las claves de los modelos (Claude/Mistral/DeepSeek) van en el servidor, no aquí.">
       <button class="btn ghost btn-sm" onclick="saveKey()">Guardar</button>
-      <button class="btn" onclick="openNewModal()">＋ Nueva propuesta</button>
+      <button class="btn" onclick="openNewModal()">＋ Nuevo entregable</button>
     </div>
   </header>
 
@@ -492,45 +562,64 @@
   <div class="modal-backdrop" id="modal-backdrop">
     <div class="modal" role="dialog" aria-labelledby="modal-title">
       <div class="modal-header">
-        <h2 id="modal-title">Nueva propuesta</h2>
+        <h2 id="modal-title">Nuevo entregable</h2>
         <button class="btn ghost btn-sm" onclick="closeNewModal()" title="Cerrar (Esc)">✕</button>
       </div>
       <div class="modal-body">
         <div class="field">
-          <label>Modo de entrada</label>
-          <div class="seg" id="mode-seg">
-            <button data-mode="text"   onclick="setMode('text')"   class="active">Texto / idea</button>
-            <button data-mode="search" onclick="setMode('search')">Buscar online</button>
-            <button data-mode="url"    onclick="setMode('url')">URL / link</button>
-          </div>
-          <div class="seg-help">
-            <div>Pegas tu propuesta o idea</div>
-            <div>Web + LinkedIn por tema</div>
-            <div>Analizar una página</div>
-          </div>
-        </div>
-
-        <div class="field" id="text-field">
-          <label>Tema / idea / texto base</label>
-          <textarea id="user_input"
-            placeholder="Ej: Programa integral de educación rural con conectividad satelital y formación docente en comunidades indígenas de Ecuador — 24 meses, ODS 4 y 10."></textarea>
-        </div>
-
-        <div class="field" id="url-field" style="display:none">
-          <label>URL a analizar</label>
-          <input id="user_url" type="text"
-                 placeholder="https://www.iadb.org/... o https://linkedin.com/posts/...">
-          <div class="help">
-            Funciona con páginas oficiales de convocatoria, posts de LinkedIn, notas de prensa
-            o webs de fundaciones. El agente descarga el contenido y emite dictamen con evidencias.
+          <label>Módulo</label>
+          <div class="module-grid" id="module-grid">
+            <button type="button" class="module-card active" data-module="investigacion" onclick="setModule('investigacion')">
+              <div class="mc-top"><span class="mc-icon">🔬</span><span class="mc-name">Investigación</span></div>
+              <div class="mc-desc">Artículos científicos, tesis y revisión por pares.</div>
+            </button>
+            <button type="button" class="module-card" data-module="proyectos" onclick="setModule('proyectos')">
+              <div class="mc-top"><span class="mc-icon">📊</span><span class="mc-name">Proyectos</span></div>
+              <div class="mc-desc">Financiamiento, TDR/compras públicas y legal-técnico.</div>
+            </button>
           </div>
         </div>
 
         <div class="field">
+          <label>Acción</label>
+          <div class="seg" id="action-seg"></div>
+          <div class="help" id="action-help"></div>
+        </div>
+
+        <div class="field" id="doctype-field">
           <label>Tipo de documento</label>
-          <select id="doc_type">
+          <select id="doc_type" onchange="renderDocTypeHelp()">
             <option value="auto" selected>Auto-detectar (recomendado)</option>
           </select>
+          <div class="help" id="doc_type_help"></div>
+        </div>
+
+        <div class="field" id="text-field">
+          <label id="text-label">Tema / idea / texto base</label>
+          <textarea id="user_input"></textarea>
+          <div class="help" id="text-help"></div>
+        </div>
+
+        <div class="field" id="urls-field" style="display:none">
+          <label>Enlaces <span class="req-star">*</span> (uno o varios)</label>
+          <div id="urls-list"></div>
+          <button type="button" class="btn subtle btn-sm" onclick="addUrlRow()">＋ Añadir enlace</button>
+          <div class="help">Páginas oficiales de convocatoria, PDFs publicados en la web,
+            posts de LinkedIn, notas de prensa o webs de fundaciones. El agente descarga y cruza todos.</div>
+        </div>
+
+        <div class="field" id="drop-field" style="display:none">
+          <label id="drop-label">Documentos</label>
+          <div class="dropzone" id="dropzone">
+            <input type="file" id="file-input" multiple accept=".pdf,.docx,.txt,.md"
+                   style="display:none" onchange="onFilesPicked(event)">
+            <div class="dz-inner">
+              <div class="dz-icon">📎</div>
+              <div>Arrastra archivos aquí o <span class="dz-link">haz clic para seleccionar</span></div>
+              <div class="dz-sub">PDF · Word (.docx) · texto (.txt/.md) · hasta 12 archivos</div>
+            </div>
+          </div>
+          <div class="dz-files" id="dz-files"></div>
         </div>
       </div>
       <div class="modal-footer">
@@ -547,8 +636,61 @@
     const POLL_MS = 6000;
     let pollTimer = null;
     let activeId = null;
-    let currentMode = "text";
+    let currentModule = "investigacion";   // módulo seleccionado en el modal
+    let currentAction = "inv_hacer";       // submenú activo en el modal
+    let navModule = "all";                  // filtro de módulo en la lista
+    let docTypesAll = [];                   // [{key, name, description, module}]
+    let uploadedDocs = [];                  // [{name, text, chars}] extraídos
     let lastRows = [];
+
+    /* ─── Submenús / acciones por módulo ─── */
+    const ACTIONS = {
+      inv_hacer: {
+        module: "investigacion", mode: "text", label: "✍️ Hacer",
+        help: "Produce un artículo científico o tesis del más alto nivel académico.",
+        types: ["articulo_cientifico", "tesis"], dropzone: "optional", urls: false,
+        text: true, textRequired: true, textLabel: "Tema, objetivos e instrucciones",
+        textPlaceholder: "Ej: Artículo sobre el efecto del biochar en la retención hídrica de suelos andinos; enfoque experimental; meta revista Q1 (APA 7).",
+        dropHelp: "Material de apoyo (opcional): datos, borradores, fuentes, normas de la revista.",
+      },
+      inv_revisar: {
+        module: "investigacion", mode: "file", label: "🔍 Revisar", fixedType: "peer_review",
+        help: "Revisión por pares experta del documento subido: dictamen, comentarios mayores/menores, metodología, ética y citas.",
+        dropzone: "required", urls: false, text: true, textRequired: false,
+        textLabel: "Rúbrica o instrucciones de revisión (opcional)",
+        textPlaceholder: "Pega la rúbrica de la revista o deja vacío para usar criterios estándar del área.",
+        dropLabel: "Manuscrito a revisar", dropHelp: "Sube el artículo, tesis o manuscrito (PDF/Word).",
+      },
+      proj_buscar: {
+        module: "proyectos", mode: "search", label: "🌐 Buscar proyectos", type: "auto",
+        help: "Busca convocatorias y oportunidades en la web y páginas especializadas (BID, CAF, UE, PNUD, fundaciones…).",
+        dropzone: "none", urls: false, text: true, textRequired: true,
+        textLabel: "Tema / sector a buscar",
+        textPlaceholder: "Ej: convocatorias de cooperación no reembolsable para agua y saneamiento rural en Ecuador, 2025-2026.",
+      },
+      proj_enlaces: {
+        module: "proyectos", mode: "url", label: "🔗 Subir enlaces", type: "auto",
+        help: "Analiza uno o varios enlaces (incluidos PDFs publicados) y los cruza para emitir un dictamen.",
+        dropzone: "optional", urls: true, text: true, textRequired: false,
+        textLabel: "Contexto adicional (opcional)",
+        textPlaceholder: "Notas o instrucciones sobre qué buscar en estos enlaces.",
+        dropHelp: "Documentos de apoyo adicionales (opcional).",
+      },
+      proj_docs: {
+        module: "proyectos", mode: "file", label: "📄 Documentos", type: "auto",
+        help: "Sube documentos (propuesta, TDR, bases, informes) y el sistema produce el entregable que corresponda.",
+        types: ["auto", "propuesta", "tdr", "legal_tecnico"],
+        dropzone: "required", urls: false, text: true, textRequired: false,
+        textLabel: "Instrucciones (opcional)",
+        textPlaceholder: "Qué quieres lograr con estos documentos (ej. convertirlos en una propuesta lista para enviar).",
+        dropLabel: "Documentos a analizar", dropHelp: "Sube los documentos base (PDF/Word/txt).",
+      },
+    };
+    const MODULE_ACTIONS = {
+      investigacion: ["inv_hacer", "inv_revisar"],
+      proyectos: ["proj_buscar", "proj_enlaces", "proj_docs"],
+    };
+    const actionCfg = () => ACTIONS[currentAction] || ACTIONS.inv_hacer;
     let lastInProgressIds = new Set();   // para detectar transiciones a aprobada/fallida
 
     const $ = id => document.getElementById(id);
@@ -580,14 +722,14 @@
     }
     function updateKeyStatus() {
       const ks = $("key-status");
-      if (getKey()) { ks.classList.add("ok"); ks.textContent = "API key activa"; }
-      else          { ks.classList.remove("ok"); ks.textContent = "Sin API key"; }
+      if (getKey()) { ks.classList.add("ok"); ks.textContent = "Clave de panel activa"; }
+      else          { ks.classList.remove("ok"); ks.textContent = "Sin clave de panel"; }
     }
 
     /* ─── API helpers ─── */
     async function api(path, opts={}) {
       const key = getKey();
-      if (!key) throw new Error("Falta API key — pégala arriba y guarda.");
+      if (!key) throw new Error("Falta la clave de acceso al panel — pégala en el header y guarda. (No es la clave de Claude/Mistral.)");
       const res = await fetch(path, {
         ...opts,
         headers: { "X-API-Key": key, "Content-Type": "application/json", ...(opts.headers||{}) },
@@ -600,64 +742,233 @@
       return res;
     }
 
+    async function apiUpload(path, formData) {
+      const key = getKey();
+      if (!key) throw new Error("Falta la clave de acceso al panel.");
+      const res = await fetch(path, { method: "POST", headers: { "X-API-Key": key }, body: formData });
+      if (!res.ok) {
+        let detail = res.statusText;
+        try { const j = await res.json(); detail = j.detail || detail; } catch {}
+        throw new Error(`${res.status}: ${detail}`);
+      }
+      return res;
+    }
+
     async function loadDocTypes() {
       try {
         const r = await api("/doc_types");
-        const types = await r.json();
-        const sel = $("doc_type");
-        sel.innerHTML = '<option value="auto" selected>Auto-detectar (recomendado)</option>';
-        types.forEach(t => {
-          const o = document.createElement("option");
-          o.value = t.key; o.textContent = t.name;
-          sel.appendChild(o);
-        });
+        docTypesAll = await r.json();
       } catch (e) { /* silent at boot */ }
     }
 
-    /* ─── Modal nueva propuesta ─── */
+    /* ─── Módulos / acciones ─── */
+    const moduleOfType = key => (docTypesAll.find(t => t.key === key) || {}).module || "";
+    const typeName = key => (docTypesAll.find(t => t.key === key) || {}).name || key;
+
+    function setModule(m) {
+      currentModule = m;
+      $("module-grid").querySelectorAll(".module-card").forEach(c =>
+        c.classList.toggle("active", c.dataset.module === m));
+      renderActions();
+      setAction(MODULE_ACTIONS[m][0]);
+    }
+    function renderActions() {
+      const acts = MODULE_ACTIONS[currentModule] || [];
+      const seg = $("action-seg");
+      seg.style.gridTemplateColumns = `repeat(${acts.length}, 1fr)`;
+      seg.innerHTML = acts.map(a =>
+        `<button type="button" data-action="${a}" onclick="setAction('${a}')">${ACTIONS[a].label}</button>`
+      ).join("");
+    }
+    function setAction(a) {
+      currentAction = a;
+      $("action-seg").querySelectorAll("button").forEach(b =>
+        b.classList.toggle("active", b.dataset.action === a));
+      applyActionConfig();
+    }
+    function applyActionConfig() {
+      const cfg = actionCfg();
+      $("action-help").textContent = cfg.help || "";
+
+      const showType = !!(cfg.types && cfg.types.length);
+      $("doctype-field").style.display = showType ? "" : "none";
+      if (showType) renderDocTypeOptions(cfg.types);
+
+      $("text-field").style.display = cfg.text ? "" : "none";
+      if (cfg.text) {
+        $("text-label").innerHTML = esc(cfg.textLabel || "Texto") +
+          (cfg.textRequired ? ' <span class="req-star">*</span>' : ' <span class="muted">(opcional)</span>');
+        $("user_input").placeholder = cfg.textPlaceholder || "";
+      }
+
+      $("urls-field").style.display = cfg.urls ? "" : "none";
+      if (cfg.urls && !$("urls-list").children.length) addUrlRow();
+
+      const showDrop = cfg.dropzone && cfg.dropzone !== "none";
+      $("drop-field").style.display = showDrop ? "" : "none";
+      if (showDrop) {
+        $("drop-label").innerHTML = esc(cfg.dropLabel || "Documentos") +
+          (cfg.dropzone === "required" ? ' <span class="req-star">*</span>' : ' <span class="muted">(opcional)</span>');
+      }
+    }
+    function renderDocTypeOptions(keys) {
+      const sel = $("doc_type");
+      const prev = sel.value;
+      sel.innerHTML = "";
+      keys.forEach(k => {
+        const o = document.createElement("option");
+        if (k === "auto") { o.value = "auto"; o.textContent = "Auto-detectar (recomendado)"; }
+        else { o.value = k; o.textContent = typeName(k); }
+        sel.appendChild(o);
+      });
+      if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+      renderDocTypeHelp();
+    }
+    function renderDocTypeHelp() {
+      const sel = $("doc_type");
+      if (!sel.value || sel.value === "auto") {
+        $("doc_type_help").textContent = "El sistema detecta el tipo dentro del módulo elegido.";
+        return;
+      }
+      const t = docTypesAll.find(x => x.key === sel.value);
+      $("doc_type_help").textContent = t ? t.description : "";
+    }
+    function setNavModule(m) {
+      navModule = m;
+      $("modules-nav").querySelectorAll(".mod-tab").forEach(b =>
+        b.classList.toggle("active", b.dataset.module === m));
+      renderList();
+    }
+
+    /* ─── Enlaces (multi) ─── */
+    function addUrlRow(value="") {
+      const row = document.createElement("div");
+      row.className = "url-row";
+      row.innerHTML = `<input type="url" placeholder="https://www.iadb.org/... o https://…/bases.pdf" value="${esc(value)}">
+        <button type="button" class="rm" title="Quitar" onclick="this.parentNode.remove()">✕</button>`;
+      $("urls-list").appendChild(row);
+    }
+    function collectUrls() {
+      return [...$("urls-list").querySelectorAll("input")]
+        .map(i => i.value.trim()).filter(Boolean);
+    }
+
+    /* ─── Dropzone / extracción ─── */
+    function onFilesPicked(e) { uploadFiles(e.target.files); e.target.value = ""; }
+    async function uploadFiles(fileList) {
+      const files = [...fileList];
+      if (!files.length) return;
+      const fd = new FormData();
+      files.forEach(f => fd.append("files", f, f.name));
+      const placeholder = files.map(f => f.name).join(", ");
+      $("dz-files").insertAdjacentHTML("beforeend",
+        `<div class="dz-chip" id="dz-loading"><span class="nm">⏳ Extrayendo: ${esc(placeholder)}</span></div>`);
+      try {
+        const r = await apiUpload("/extract", fd);
+        const docs = await r.json();
+        docs.forEach(d => uploadedDocs.push(d));
+        renderDzFiles();
+        const trunc = docs.filter(d => d.truncated).map(d => d.name);
+        if (trunc.length) toast(`Recortado por tamaño: ${trunc.join(", ")}`, "warn");
+      } catch (e) {
+        $("dz-loading")?.remove();
+        toast(e.message, "err");
+      }
+    }
+    function renderDzFiles() {
+      $("dz-files").innerHTML = uploadedDocs.map((d, i) =>
+        `<div class="dz-chip">
+           <span class="nm">📄 ${esc(d.name)}</span>
+           <span class="cz">${(d.chars||0).toLocaleString("es-EC")} car.</span>
+           <button type="button" class="rm" title="Quitar" onclick="removeDoc(${i})">✕</button>
+         </div>`).join("");
+    }
+    function removeDoc(i) { uploadedDocs.splice(i, 1); renderDzFiles(); }
+    function resetUploads() { uploadedDocs = []; renderDzFiles(); $("urls-list").innerHTML = ""; }
+
+    /* ─── Modal nuevo entregable ─── */
+    const DEFAULT_INPUT = {
+      inv_revisar: "Realiza una revisión por pares experta, exhaustiva y del más alto nivel del/los documento(s) adjunto(s): originalidad, rigor metodológico, validez, ética y citas, con recomendación editorial.",
+      proj_docs: "Analiza los documentos adjuntos y produce el entregable que corresponda, al más alto nivel profesional y académico.",
+      proj_enlaces: "Analiza y cruza los enlaces proporcionados y emite un dictamen riguroso.",
+    };
+
     function openNewModal() {
-      if (!getKey()) { toast("Pega tu API key primero.", "warn"); return; }
+      if (!getKey()) { toast("Pega la clave de acceso al panel primero.", "warn"); return; }
+      resetUploads();
+      $("user_input").value = "";
+      // Hereda el módulo de la pestaña activa (si es uno concreto)
+      setModule(navModule === "proyectos" ? "proyectos" : "investigacion");
       $("modal-backdrop").classList.add("show");
-      setTimeout(() => {
-        currentMode === "url" ? $("user_url").focus() : $("user_input").focus();
-      }, 200);
+      setTimeout(() => $("user_input").focus(), 200);
     }
     function closeNewModal() { $("modal-backdrop").classList.remove("show"); }
-    function setMode(m) {
-      currentMode = m;
-      $("mode-seg").querySelectorAll("button").forEach(b => {
-        b.classList.toggle("active", b.dataset.mode === m);
-      });
-      $("text-field").style.display = m === "url" ? "none" : "";
-      $("url-field").style.display  = m === "url" ? "" : "none";
-    }
     function validUrl(s) {
       try { const u = new URL(s); return u.protocol === "http:" || u.protocol === "https:"; }
       catch { return false; }
     }
 
     async function submitProposal() {
-      const doc_type_key = $("doc_type").value;
+      const cfg = actionCfg();
+      const mode = cfg.mode;
+      const doc_type_key = cfg.fixedType
+        || (cfg.types && cfg.types.length ? $("doc_type").value : (cfg.type || "auto"));
+      const textVal = $("user_input").value.trim();
+
       let user_input = "";
-      if (currentMode === "url") {
-        user_input = $("user_url").value.trim();
-        if (!validUrl(user_input)) { toast("Pega una URL válida (http/https).", "err"); return; }
+      if (cfg.urls) {
+        const urls = collectUrls();
+        if (!urls.length) { toast("Añade al menos un enlace.", "err"); return; }
+        const bad = urls.find(u => !validUrl(u));
+        if (bad) { toast(`Enlace no válido: ${bad}`, "err"); return; }
+        user_input = (textVal ? textVal + "\n\n" : "") + urls.join("\n");
+      } else if (cfg.text && cfg.textRequired) {
+        if (textVal.length < 10) { toast("Escribe al menos 10 caracteres.", "err"); return; }
+        user_input = textVal;
       } else {
-        user_input = $("user_input").value.trim();
-        if (user_input.length < 10) { toast("Escribe al menos 10 caracteres.", "err"); return; }
+        user_input = textVal;
       }
+
+      if (cfg.dropzone === "required" && !uploadedDocs.length) {
+        toast("Sube al menos un documento.", "err"); return;
+      }
+      if (user_input.length < 10) {
+        user_input = DEFAULT_INPUT[currentAction]
+          || "Procesa el material adjunto al más alto nivel profesional y académico.";
+      }
+
+      const support_docs = (cfg.dropzone && cfg.dropzone !== "none")
+        ? uploadedDocs.map(d => [d.name, d.text]) : [];
+
       $("submit-btn").disabled = true;
       try {
         const r = await api("/propuestas", { method: "POST",
-          body: JSON.stringify({ user_input, mode: currentMode, doc_type_key }) });
+          body: JSON.stringify({ user_input, mode, doc_type_key, support_docs }) });
         const j = await r.json();
-        toast(`Encolada · ${j.session_id}`, "ok");
-        if (currentMode === "url") $("user_url").value = ""; else $("user_input").value = "";
+        toast(`Encolado · ${j.session_id}`, "ok");
+        $("user_input").value = ""; resetUploads();
         closeNewModal();
         loadList();
         maybeRequestNotificationPermission();
       } catch (e) { toast(e.message, "err"); }
       finally { $("submit-btn").disabled = false; }
+    }
+
+    /* ─── Dropzone (drag & drop) ─── */
+    function initDropzone() {
+      const dz = $("dropzone");
+      if (!dz) return;
+      dz.addEventListener("click", () => $("file-input").click());
+      ["dragover", "dragenter"].forEach(ev => dz.addEventListener(ev, e => {
+        e.preventDefault(); dz.classList.add("drag");
+      }));
+      ["dragleave", "dragend"].forEach(ev => dz.addEventListener(ev, e => {
+        e.preventDefault(); dz.classList.remove("drag");
+      }));
+      dz.addEventListener("drop", e => {
+        e.preventDefault(); dz.classList.remove("drag");
+        if (e.dataTransfer && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+      });
     }
 
     /* ─── Browser notifications ─── */
@@ -709,6 +1020,10 @@
       const st = $("filter-status").value;
       const sortBy = $("sort-by").value;
       let r = rows.slice();
+      if (navModule !== "all") r = r.filter(x => {
+        const m = moduleOfType(x.doc_type_key);
+        return m === navModule || m === "ambos" || !m;  // !m: tipo desconocido → no ocultar
+      });
       if (q) r = r.filter(x =>
         (x.title||"").toLowerCase().includes(q) ||
         (x.funder||"").toLowerCase().includes(q) ||
@@ -1033,6 +1348,7 @@
     /* ─── Boot ─── */
     loadSavedKey();
     loadDocTypes();
+    initDropzone();
     loadList();
   </script>
 </body>

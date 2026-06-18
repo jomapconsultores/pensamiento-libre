@@ -15,6 +15,21 @@ services:
         sync: false        # configurar en el dashboard
       - key: ANTHROPIC_MODEL
         value: claude-sonnet-4-6
+      # ── Constructores no-Claude (redactor + financiero) ──
+      - key: MISTRAL_API_KEY
+        sync: false        # configurar en el dashboard
+      - key: CODESTRAL_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: MISTRAL_MODEL
+        value: mistral-large-latest
+      - key: CODESTRAL_MODEL
+        value: codestral-latest
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      - key: BUILDER_ROTATION
+        value: mistral,codestral,deepseek
       - key: SYSTEM_LANGUAGE
         value: es
       - key: SUPABASE_URL

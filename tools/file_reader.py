@@ -1,7 +1,31 @@
+import os
+import tempfile
 from pathlib import Path
 
 
 SUPPORTED_EXTENSIONS = {".txt", ".md", ".docx", ".pdf"}
+
+
+def read_upload(filename: str, data: bytes) -> str:
+    """Extrae el texto de un archivo subido (en memoria) reutilizando read_file.
+
+    Escribe los bytes a un temporal con la extensión original y lo lee con la
+    misma lógica que los archivos en disco (txt/md/docx/pdf)."""
+    ext = Path(filename or "").suffix.lower()
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise ValueError(
+            f"Formato no soportado: {ext or '(sin extensión)'}. "
+            f"Use: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+        )
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(data)
+            tmp_path = tmp.name
+        return read_file(tmp_path)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 def read_file(file_path: str) -> str:

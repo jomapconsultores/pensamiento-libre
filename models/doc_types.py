@@ -75,6 +75,7 @@ class DocType:
     needs_budget_excel: bool = False
     is_proposal: bool = False       # usa la ruta Analista (viabilidad/financiador)
     rigor_notes: str = ""           # exigencias de máximo nivel para el redactor
+    module: str = "proyectos"       # módulo principal: "investigacion" | "proyectos" | "ambos"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ DOC_TYPES: dict = {
             "Consultor senior en financiamiento internacional para el desarrollo (28 años)",
             "Especialista en Marco Lógico y Gestión por Resultados",
             "Economista de proyectos / presupuestación",
+            "Redactor experto de proyectos y editorialista profesional (claridad, persuasión y estilo)",
         ],
         sections=[
             "Resumen ejecutivo", "Antecedentes y contexto", "Justificación",
@@ -155,6 +157,7 @@ DOC_TYPES: dict = {
             "Especialista legal en contratación pública (LOSNCP, RGLOSNCP, SERCOP)",
             "Experto técnico del objeto de contratación",
             "Analista de presupuesto y estructura de costos referenciales",
+            "Redactor técnico-jurídico experto y editorialista profesional",
         ],
         sections=[
             "Antecedentes", "Objeto de la contratación", "Objetivos (general y específicos)",
@@ -285,12 +288,57 @@ DOC_TYPES: dict = {
 DEFAULT_DOC_TYPE = "generico"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  MÓDULOS PRINCIPALES (capa de organización sobre los tipos de documento)
+# ─────────────────────────────────────────────────────────────────────────────
+MODULES: dict = {
+    "investigacion": {
+        "key": "investigacion",
+        "name": "Investigación",
+        "icon": "🔬",
+        "description": "Producción científica y académica de alto nivel: artículos "
+                       "indexados, tesis y revisión por pares.",
+    },
+    "proyectos": {
+        "key": "proyectos",
+        "name": "Proyectos",
+        "icon": "📊",
+        "description": "Financiamiento no reembolsable, contratación pública (TDR) "
+                       "y documentos técnico-legales.",
+    },
+}
+
+# Módulo de cada tipo. 'ambos' = aparece en los dos módulos.
+_MODULE_OF = {
+    "articulo_cientifico": "investigacion",
+    "tesis": "investigacion",
+    "peer_review": "investigacion",
+    "propuesta": "proyectos",
+    "tdr": "proyectos",
+    "legal_tecnico": "proyectos",
+    "generico": "ambos",
+}
+for _key, _dt in DOC_TYPES.items():
+    _dt.module = _MODULE_OF.get(_key, "proyectos")
+
+
 def get_doc_type(key: str) -> DocType:
     return DOC_TYPES.get((key or "").strip().lower(), DOC_TYPES[DEFAULT_DOC_TYPE])
 
 
 def list_doc_types() -> list:
     return list(DOC_TYPES.values())
+
+
+def list_modules() -> list:
+    return list(MODULES.values())
+
+
+def doc_types_for_module(module: str) -> list:
+    """Tipos de un módulo (incluye los marcados como 'ambos')."""
+    module = (module or "").strip().lower()
+    return [d for d in DOC_TYPES.values()
+            if d.module == module or d.module == "ambos"]
 
 
 def all_criteria(doc_type: DocType) -> list:
