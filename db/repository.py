@@ -87,6 +87,25 @@ def _review_rows(session_uuid: str, s: ProjectSession) -> list[dict]:
     return rows
 
 
+def cancel_session(session_id: str) -> bool:
+    """Cancela un trabajo (lo marca como fallido/cancelado, conservando el registro).
+    Devuelve True si existía. Idempotente si Supabase está apagado."""
+    if not is_enabled():
+        return False
+    try:
+        sb = get_client(service_role=True)
+        sess = sb.table("sessions").select("id").eq("session_id", session_id).limit(1).execute()
+        if not sess.data:
+            return False
+        sb.table("sessions").update(
+            {"status": "failed", "error_message": "Cancelado por el usuario",
+             "completed_at": "now()"}
+        ).eq("session_id", session_id).execute()
+        return True
+    except Exception as e:  # noqa: BLE001
+        raise SupabaseSaveError(f"{type(e).__name__}: {e}") from e
+
+
 def delete_session(session_id: str) -> bool:
     """Borra una sesión y sus borradores/revisiones. Devuelve True si existía.
     Idempotente: si no existe o Supabase está apagado, devuelve False sin error."""

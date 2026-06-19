@@ -687,6 +687,20 @@ def retry_proposal(session_id: str, background: BackgroundTasks,
     return CreateProposalResponse(session_id=session_id, status="pending")
 
 
+@app.post("/propuestas/{session_id}/cancel", status_code=200)
+def cancel_proposal(session_id: str, p: Principal = Depends(get_principal)):
+    """Cancela un trabajo en cola/en curso (lo marca como cancelado; conserva el registro)."""
+    from db import repository
+    _owned_row(session_id, p)
+    try:
+        ok = repository.cancel_session(session_id)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"No se pudo cancelar: {type(e).__name__}: {e}")
+    if not ok:
+        raise HTTPException(404, "session_id no encontrado")
+    return {"ok": True, "status": "failed"}
+
+
 @app.delete("/propuestas/{session_id}", status_code=200)
 def delete_proposal(session_id: str, p: Principal = Depends(get_principal)):
     """Borra el entregable del usuario (inconcluso o no): sesión + borradores + revisiones."""

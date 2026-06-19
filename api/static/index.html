@@ -479,6 +479,7 @@
     <div class="drawer-header">
       <div class="title" id="drawer-title">Detalle</div>
       <div class="id mono" id="drawer-id"></div>
+      <button class="btn subtle btn-sm" id="cancel-btn" onclick="cancelSession()" style="display:none">⏹ Cancelar</button>
       <button class="btn subtle btn-sm" id="retry-btn" onclick="retrySession()" style="display:none">▶ Continuar</button>
       <button class="btn subtle btn-sm" id="del-btn" onclick="deleteSession()" style="display:none">🗑 Borrar</button>
       <button class="btn ghost btn-sm" onclick="closeDrawer()" title="Cerrar (Esc)">✕</button>
@@ -1182,6 +1183,7 @@
         const d = await r1.json(); const md = r2 ? await r2.text() : "";
         const ver = r3 ? await r3.json().catch(()=>null) : null;
         $("drawer-title").textContent = d.title || "(sin título)";
+        $("cancel-btn").style.display = (d.status === "pending" || d.status === "running") ? "" : "none";
         $("retry-btn").style.display = isIncon(d.status) ? "" : "none";
         $("del-btn").style.display = "";
         const error = parseError(d.error_message);
@@ -1285,6 +1287,13 @@
       $("retry-btn").disabled = true;
       try { await api(`/propuestas/${activeId}/retry`, { method:"POST" }); toast("Proceso reanudado · encolado.", "ok"); openDrawer(activeId); }
       catch (e) { toast(e.message, "err"); } finally { $("retry-btn").disabled = false; }
+    }
+    async function cancelSession() {
+      if (!activeId) return;
+      if (!confirm("¿Cancelar este trabajo en cola/en curso? Quedará marcado como cancelado.")) return;
+      $("cancel-btn").disabled = true;
+      try { await api(`/propuestas/${activeId}/cancel`, { method:"POST" }); toast("Trabajo cancelado.", "ok"); openDrawer(activeId); loadList(); }
+      catch (e) { toast(e.message, "err"); } finally { $("cancel-btn").disabled = false; }
     }
     async function deleteSession() {
       if (!activeId) return;
