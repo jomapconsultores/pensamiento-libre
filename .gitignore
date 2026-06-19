@@ -33,3 +33,6 @@ smoke_save_session.py
 # OS
 .DS_Store
 Thumbs.db
+
+# editor temp files
+*.tmp.*
