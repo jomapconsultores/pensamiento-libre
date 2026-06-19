@@ -8,12 +8,14 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+import config
 from config import MAX_REVIEW_CYCLES, ANTHROPIC_API_KEY
 from models.schemas import ProjectSession
 from models.doc_types import get_doc_type
 import agents.analyst as analyst
 import agents.classifier as classifier
 import agents.writer as writer
+import agents.peer as peer
 import agents.reviewer as reviewer
 import agents.financial as financial
 from utils.output import save_session
@@ -130,22 +132,38 @@ def run_pipeline(
         else:
             session.brief = classifier.build_brief(session, resolved_type, api_key)
 
-        # ── FASES 2 + 3: REDACCIÓN ↔ REVISIÓN ────────────────────────────
+        # ── FASES 2 + 3: CONSTRUCCIÓN + CONSENSO (1°,2°,3°) ↔ VEREDICTO (Claude) ──
+        # 1) Un constructor redacta. 2) Los 3 constructores revisan entre sí y solo
+        #    cuando coinciden en que TODO está cumplido (búsqueda + documento) pasa a
+        #    Claude. 3) Claude da el veredicto final: aprueba, o devuelve para que el
+        #    equipo lo mejore y se vuelva a someter.
         corrections: list = []
         approved = False
         for cycle in range(1, MAX_REVIEW_CYCLES + 1):
             session.current_cycle = cycle
             proposal = writer.run(session, corrections, api_key)
+
+            # Consenso del equipo constructor antes de Claude (resiliente: si falla, no bloquea)
+            try:
+                for _ in range(config.MAX_PEER_SUBCYCLES):
+                    ok, peer_corrections, _details = peer.consensus(session, proposal, api_key)
+                    if ok or not peer_corrections:
+                        break
+                    proposal = writer.run(session, peer_corrections, api_key)
+            except Exception:
+                pass
+
             session.proposal_versions.append(proposal)
             session.final_proposal = proposal
 
+            # Veredicto final de Claude (regla 90/90)
             review = reviewer.run(session, proposal, api_key)
             session.review_results.append(review)
 
             if review.approved:
                 approved = True
                 break
-            corrections = review.corrections
+            corrections = review.corrections  # devuelve al equipo para mejorar
 
         session.approved = approved
 
