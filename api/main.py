@@ -39,7 +39,7 @@ from models.schemas import DocumentBrief, FinancialPackage, ProjectSession
 app = FastAPI(
     title="agente_map API",
     description="Pipeline multiagente multiusuario de entregables de alto nivel.",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 API_KEY_ENV = "AGENTE_MAP_API_KEY"
