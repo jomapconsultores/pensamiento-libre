@@ -123,6 +123,9 @@ class DocumentBrief:
     evaluation_criteria: list = field(default_factory=list)  # ejes que evaluará el revisor
     rigor_notes: str = ""
     raw: str = ""
+    # Datos para hoja(s) de estadística en Excel (con fórmulas). {"datasets": [...]}.
+    # Se llena tras aprobar el documento (agents/statistics.py); persiste en el jsonb brief.
+    statistics: dict = field(default_factory=dict)
 
 
 @dataclass

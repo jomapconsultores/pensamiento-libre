@@ -612,10 +612,15 @@ def _build_and_stream(row: dict, kind: str):
             mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             ext = "docx"
         elif kind == "excel":
-            if not (sess.financial and sess.financial.budget_items):
-                raise HTTPException(409, "Este entregable no tiene presupuesto estructurado.")
+            has_budget = bool(sess.financial and sess.financial.budget_items)
+            has_stats = bool(sess.brief and (sess.brief.statistics or {}).get("datasets"))
+            if not (has_budget or has_stats):
+                raise HTTPException(409, "Este entregable no tiene presupuesto ni datos estadísticos.")
             out = tmp_path / f"CALCULOS_{session_id}.xlsx"
-            built = document_builder.build_excel(sess.brief, sess.financial, out)
+            if has_budget:
+                built = document_builder.build_excel(sess.brief, sess.financial, out)
+            else:
+                built = document_builder.build_excel_stats(sess.brief, out)
             mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             ext = "xlsx"
         elif kind == "pdf":

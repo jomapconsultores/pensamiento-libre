@@ -840,8 +840,6 @@ def _add_statistics_sheets(wb, brief) -> int:
                 ranges.append(f"{L}5:{L}{4+len(gvals)}")
             dR = 6 + maxlen
             ws.cell(row=dR, column=1, value="DESCRIPTIVA POR GRUPO").font = SUB
-            for gi, (gname, _) in enumerate(groups):
-                ws.cell(row=dR, column=gi + 2, value=str(gname)).font = BOLD
             stat_rows = [("N", "COUNT"), ("Media", "AVERAGE"), ("Desv. est.", "STDEV.S"),
                          ("Varianza", "VAR.S"), ("Mínimo", "MIN"), ("Máximo", "MAX")]
             for si, (lab, fn) in enumerate(stat_rows):

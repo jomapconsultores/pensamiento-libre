@@ -299,6 +299,15 @@ def run_pipeline(
                 f"Mejor puntaje: {best['score']:.0f}/100. Se entrega la mejor versión."
             )
 
+        # ── Estadística (descriptiva + avanzada) si el documento trae datos ──
+        if session.brief and session.final_proposal:
+            try:
+                import agents.statistics as statistics
+                session.brief.statistics = statistics.run(
+                    session, session.final_proposal, api_key)
+            except Exception:
+                pass
+
         save_session(session)
         _mark_completed(session_id, approved=approved)
         return session
