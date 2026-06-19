@@ -350,6 +350,14 @@ def make_admin(user_id: str, p: Principal = Depends(get_principal)):
 
 
 # ── Catálogo ─────────────────────────────────────────────────────────────────
+@app.get("/proveedores")
+def proveedores(p: Principal = Depends(get_principal)):
+    """Estado y saldo (cuando el proveedor lo expone) de las IAs. Solo admin."""
+    require_admin(p)
+    from utils.providers import provider_status
+    return provider_status()
+
+
 @app.get("/modules")
 def modules(p: Principal = Depends(get_principal)):
     return list_modules()
