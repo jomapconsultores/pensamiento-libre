@@ -986,9 +986,16 @@
 
       $("submit-btn").disabled = true;
       try {
-        const r = await api("/propuestas", { method:"POST", body: JSON.stringify({ user_input, mode, doc_type_key, support_docs }) });
-        const j = await r.json();
-        toast(`Encolado · ${j.session_id}`, "ok");
+        if (mode === "search") {
+          // Scouting: detecta oportunidades y arma el reporte (no genera la propuesta aún).
+          const r = await api("/buscar", { method:"POST", body: JSON.stringify({ user_input }) });
+          const j = await r.json();
+          toast(`Buscando oportunidades · ${j.session_id}`, "ok");
+        } else {
+          const r = await api("/propuestas", { method:"POST", body: JSON.stringify({ user_input, mode, doc_type_key, support_docs }) });
+          const j = await r.json();
+          toast(`Encolado · ${j.session_id}`, "ok");
+        }
         $("user_input").value = ""; resetUploads();
         closeNewModal(); loadList();
       } catch (e) { toast(e.message, "err"); }
@@ -1171,6 +1178,14 @@
           : (d.status==="running"||d.status==="pending") ? `<h3>Vista previa</h3><div class="muted" style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px">⏳ El pipeline está procesando. La vista previa aparecerá cuando el redactor termine el primer borrador.</div>` : "";
         const inputHtml = d.user_input ? `<h3>Input original</h3><div class="md-preview" style="max-height:140px">${esc(d.user_input)}</div>` : "";
         const verifHtml = renderVerification(ver);
+        // Sesión de scouting: muestra las oportunidades detectadas (no hay propuesta aún).
+        if (d.is_scouting) {
+          let opps = [];
+          try { const ro = await api(`/propuestas/${id}/oportunidades`); opps = (await ro.json()).opportunities || []; } catch (e) {}
+          $("drawer-title").textContent = "Oportunidades detectadas";
+          $("drawer-body").innerHTML = inconHtml + overviewHtml + renderScouting(id, opps) + errHtml + inputHtml;
+          renderList(); return;
+        }
         $("drawer-body").innerHTML = inconHtml + overviewHtml + scoresHtml + verifHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
         renderList();
       } catch (e) { $("drawer-body").innerHTML = `<div class="list-empty">${esc(e.message)}</div>`; }
@@ -1242,6 +1257,61 @@
         const url = URL.createObjectURL(blob); const a = document.createElement("a");
         a.href = url; a.download = `entregable_${id}.${kind==="word"?"docx":kind==="excel"?"xlsx":"md"}`;
         document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      } catch (e) { toast(e.message, "err"); }
+    }
+
+    /* ════════ Scouting: reporte + selección + generación ════════ */
+    function renderScouting(id, opps) {
+      if (!opps || !opps.length) return `<h3>Oportunidades</h3><div class="muted" style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px">⏳ Buscando oportunidades… aparecerán aquí cuando termine la detección.</div>`;
+      const cards = opps.map(o => {
+        const ws = Math.round(o.weighted_score || 0);
+        const col = ws>=80?"var(--ok)":ws>=60?"var(--accent-2)":"var(--warn)";
+        return `<div class="evid-item">
+          <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+            <input type="checkbox" class="scout-pick" value="${o.index}" style="margin-top:5px">
+            <div style="flex:1">
+              <div class="claim"><b>${o.index+1}. ${esc(o.title || o.funder || "Oportunidad")}</b>
+                <span class="pill" style="background:${col};color:#fff;margin-left:6px">${ws}/100</span></div>
+              <div class="src">${esc(o.funder || "")}${o.url?` <a href="${esc(o.url)}" target="_blank" rel="noopener">↗</a>`:""} · ${esc(o.deadline || "—")} · ${esc(o.amount || "—")}</div>
+              ${o.summary ? `<div class="quote">${esc(o.summary)}</div>` : ""}
+            </div>
+          </label></div>`;
+      }).join("");
+      return `<h3>Oportunidades detectadas (${opps.length})</h3>
+        <div class="muted" style="font-size:12px;margin-bottom:8px">Marca una o varias. Puedes descargar el reporte en Word o generar las propuestas completas de la selección.</div>
+        <div class="evid">${cards}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn subtle" onclick="downloadReport('${id}', false)">📄 Reporte (todas)</button>
+          <button class="btn subtle" onclick="downloadReport('${id}', true)">📄 Reporte (selección)</button>
+          <button class="btn" onclick="generateSelected('${id}')">⚙ Generar propuesta(s) de la selección</button>
+        </div>`;
+    }
+    function pickedScout() {
+      return [...document.querySelectorAll(".scout-pick:checked")].map(c => parseInt(c.value, 10));
+    }
+    async function downloadReport(id, onlySel) {
+      let path = `/propuestas/${id}/reporte`;
+      if (onlySel) {
+        const ids = pickedScout();
+        if (!ids.length) { toast("Marca al menos una oportunidad.", "err"); return; }
+        path += `?ids=${ids.join(",")}`;
+      }
+      try {
+        const r = await api(path); const blob = await r.blob();
+        const url = URL.createObjectURL(blob); const a = document.createElement("a");
+        a.href = url; a.download = `reporte_${id}.docx`;
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      } catch (e) { toast(e.message, "err"); }
+    }
+    async function generateSelected(id) {
+      const ids = pickedScout();
+      if (!ids.length) { toast("Marca al menos una oportunidad.", "err"); return; }
+      if (!confirm(`¿Generar ${ids.length} propuesta(s) completa(s) de la selección? Consumirá API.`)) return;
+      try {
+        const r = await api(`/propuestas/${id}/generar`, { method:"POST", body: JSON.stringify({ selected: ids }) });
+        const j = await r.json();
+        toast(`${(j.sessions||[]).length} propuesta(s) encolada(s).`, "ok");
+        loadList();
       } catch (e) { toast(e.message, "err"); }
     }
 

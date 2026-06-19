@@ -489,3 +489,161 @@ def build_excel(brief, financial, out_path: Path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     wb.save(str(out_path))
     return str(out_path)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  REPORTE DE SCOUTING (detección de oportunidades, con calificación ponderada)
+# ════════════════════════════════════════════════════════════════════════════
+def build_scouting_report(opportunities: list, topic: str, out_path: Path):
+    """Genera un .docx con el reporte de las oportunidades detectadas: tabla
+    comparativa por calificación ponderada + una ficha completa por oportunidad.
+    `opportunities` = lista de dicts (los del scout). Devuelve None si falta python-docx."""
+    try:
+        from docx import Document
+        from docx.shared import Pt, RGBColor, Cm
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.enum.table import WD_TABLE_ALIGNMENT
+    except ImportError:
+        return None
+
+    AZUL = RGBColor(0x1F, 0x3A, 0x5F)
+    GRIS = RGBColor(0x55, 0x55, 0x55)
+    VERDE = RGBColor(0x1B, 0x5E, 0x20)
+    AMBAR = RGBColor(0xB8, 0x6A, 0x00)
+    ROJO = RGBColor(0x9A, 0x2A, 0x2A)
+
+    def _score_color(s):
+        return VERDE if s >= 80 else (AMBAR if s >= 60 else ROJO)
+
+    def _g(d, *path, default=""):
+        cur = d
+        for p in path:
+            cur = (cur or {}).get(p) if isinstance(cur, dict) else None
+        return cur if cur not in (None, "") else default
+
+    doc = Document()
+    normal = doc.styles["Normal"]
+    normal.font.name = "Calibri"
+    normal.font.size = Pt(11)
+    for section in doc.sections:
+        section.left_margin = section.right_margin = Cm(2.2)
+
+    # ── Portada ─────────────────────────────────────────────────────────────
+    t = doc.add_paragraph(); t.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r = t.add_run("REPORTE DE OPORTUNIDADES DETECTADAS")
+    r.bold = True; r.font.size = Pt(22); r.font.color.rgb = AZUL
+    s = doc.add_paragraph(); s.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    r = s.add_run(f"Búsqueda: {topic}\nGenerado: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+                  f"  ·  {len(opportunities)} oportunidad(es)")
+    r.italic = True; r.font.size = Pt(11); r.font.color.rgb = GRIS
+
+    # ── Tabla comparativa (ranking por calificación ponderada) ──────────────
+    doc.add_heading("Resumen comparativo", level=1).runs[0].font.color.rgb = AZUL
+    tbl = doc.add_table(rows=1, cols=5)
+    tbl.style = "Light Grid Accent 1"
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    for i, h in enumerate(["#", "Financiador", "Deadline", "Monto", "Calif. ponderada"]):
+        c = tbl.rows[0].cells[i]; c.text = ""
+        rr = c.paragraphs[0].add_run(h); rr.bold = True; rr.font.size = Pt(10)
+        rr.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    for idx, o in enumerate(opportunities):
+        cells = tbl.add_row().cells
+        ws = float(o.get("weighted_score", 0) or 0)
+        vals = [str(idx + 1), _g(o, "funder", "name", default="—"),
+                _g(o, "funder", "deadline", default="—"),
+                o.get("total_amount") or _g(o, "funder", "amount_range", default="—"),
+                f"{ws:.0f}/100"]
+        for i, v in enumerate(vals):
+            cells[i].text = ""
+            rr = cells[i].paragraphs[0].add_run(str(v)); rr.font.size = Pt(9.5)
+            if i == 4:
+                rr.bold = True; rr.font.color.rgb = _score_color(ws)
+
+    # ── Ficha por oportunidad ───────────────────────────────────────────────
+    for idx, o in enumerate(opportunities):
+        doc.add_page_break()
+        ws = float(o.get("weighted_score", 0) or 0)
+        h = doc.add_heading(f"{idx + 1}. {o.get('title', 'Oportunidad')}", level=1)
+        h.runs[0].font.color.rgb = AZUL
+
+        p = doc.add_paragraph()
+        r = p.add_run(f"Calificación ponderada: {ws:.0f}/100")
+        r.bold = True; r.font.size = Pt(13); r.font.color.rgb = _score_color(ws)
+
+        # Datos básicos
+        info = [
+            ("Financiador", f"{_g(o, 'funder', 'name')} ({_g(o, 'funder', 'type')})"),
+            ("Convocatoria (URL)", _g(o, "funder", "url", default="—")),
+            ("Fecha límite", _g(o, "funder", "deadline", default="—")),
+            ("Monto", o.get("total_amount") or _g(o, "funder", "amount_range", default="—")),
+            ("Sector", o.get("sector", "—")),
+            ("Duración", f"{o.get('duration_months', '—')} meses"),
+            ("Idioma", o.get("language", "—")),
+            ("Beneficiarios", o.get("beneficiaries", "—")),
+            ("Viabilidad", f"{float(o.get('viability_score', 0) or 0):.0f}/100"),
+            ("Prob. de ganar", f"{float(o.get('winning_probability', 0) or 0):.0f}%"),
+        ]
+        it = doc.add_table(rows=0, cols=2); it.style = "Light List Accent 1"
+        for k, v in info:
+            cells = it.add_row().cells
+            cells[0].text = ""; rk = cells[0].paragraphs[0].add_run(k); rk.bold = True; rk.font.size = Pt(9.5)
+            cells[1].text = ""; cells[1].paragraphs[0].add_run(str(v)).font.size = Pt(9.5)
+
+        # Resumen ejecutivo
+        doc.add_heading("Resumen ejecutivo", level=2)
+        doc.add_paragraph(o.get("summary", "(sin resumen)"))
+
+        # Desglose de la calificación ponderada
+        fb = o.get("feasibility_breakdown") or {}
+        if fb:
+            doc.add_heading("Desglose de la calificación ponderada", level=2)
+            dt = doc.add_table(rows=1, cols=3); dt.style = "Light Grid Accent 1"
+            for i, hh in enumerate(["Dimensión", "Puntaje", "Razón"]):
+                c = dt.rows[0].cells[i]; c.text = ""
+                rr = c.paragraphs[0].add_run(hh); rr.bold = True; rr.font.size = Pt(9.5)
+                rr.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+            labels = {"funder_match": "Encaje con financiador",
+                      "geographic_eligibility": "Elegibilidad (Ecuador)",
+                      "institutional_fit": "Ajuste institucional",
+                      "budget_fit": "Ajuste de presupuesto",
+                      "deadline_feasibility": "Viabilidad de plazo"}
+            for key, label in labels.items():
+                d = fb.get(key) or {}
+                cells = dt.add_row().cells
+                cells[0].text = ""; cells[0].paragraphs[0].add_run(label).font.size = Pt(9)
+                sc = float(d.get("score", 0) or 0)
+                cells[1].text = ""; rs = cells[1].paragraphs[0].add_run(f"{sc:.0f}/100")
+                rs.font.size = Pt(9); rs.bold = True; rs.font.color.rgb = _score_color(sc)
+                cells[2].text = ""; cells[2].paragraphs[0].add_run(str(d.get("reason", ""))).font.size = Pt(8.5)
+
+        def _bullets(title, items):
+            items = [i for i in (items or []) if i]
+            if not items:
+                return
+            doc.add_heading(title, level=2)
+            for i in items:
+                doc.add_paragraph(str(i), style="List Bullet")
+
+        _bullets("Fortalezas", o.get("strengths"))
+        _bullets("Riesgos", o.get("risks"))
+        _bullets("Requisitos críticos", o.get("key_requirements"))
+        _bullets("Lineamientos nacionales (Ecuador)", o.get("national_guidelines"))
+        _bullets("Lineamientos internacionales / del financiador", o.get("international_guidelines"))
+
+        # Fuentes verificadas
+        ev = o.get("evidence_sources") or []
+        if ev:
+            doc.add_heading("Fuentes verificadas", level=2)
+            for s in ev:
+                if not isinstance(s, dict):
+                    continue
+                p = doc.add_paragraph(style="List Bullet")
+                p.add_run(f"{s.get('claim', '')} — ").font.size = Pt(9)
+                rr = p.add_run(s.get("source_url", "")); rr.font.size = Pt(9); rr.italic = True
+                vr = s.get("verification", "")
+                if vr:
+                    tag = p.add_run(f"  [{vr}]"); tag.font.size = Pt(8.5); tag.font.color.rgb = GRIS
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(out_path))
+    return str(out_path)

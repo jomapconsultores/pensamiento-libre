@@ -66,6 +66,55 @@ MAX_PIPELINE_RESTARTS = int(os.getenv("MAX_PIPELINE_RESTARTS", "5"))
 # Umbral mínimo (0-100) que debe alcanzar cada fase en su gate intermedio.
 PHASE_REVIEW_THRESHOLD = int(os.getenv("PHASE_REVIEW_THRESHOLD", "90"))
 
+# ── Scouting de oportunidades (búsqueda → reporte con calificación ponderada) ─
+# "Buscar proyectos" detecta varias convocatorias y entrega un reporte por cada
+# una (resumen + datos + calificación ponderada). Luego el usuario elige una o
+# varias y se generan las propuestas completas automáticamente.
+SCOUT_TOP_N = int(os.getenv("SCOUT_TOP_N", "5"))
+
+# Pesos de la CALIFICACIÓN PONDERADA (0-100). Deben sumar 1.0; configurable por
+# entorno (coma-separado: funder,geo,inst,budget,deadline,winprob).
+def _parse_weights() -> dict:
+    raw = os.getenv("SCORE_WEIGHTS", "")
+    keys = ["funder_match", "geographic_eligibility", "institutional_fit",
+            "budget_fit", "deadline_feasibility", "winning_probability"]
+    defaults = [0.25, 0.15, 0.20, 0.15, 0.10, 0.15]
+    if raw:
+        try:
+            vals = [float(x) for x in raw.split(",")]
+            if len(vals) == len(keys) and abs(sum(vals) - 1.0) < 0.01:
+                return dict(zip(keys, vals))
+        except ValueError:
+            pass
+    return dict(zip(keys, defaults))
+
+
+SCORE_WEIGHTS = _parse_weights()
+
+
+def weighted_score(feasibility_breakdown: dict, winning_probability: float) -> float:
+    """Calificación ponderada 0-100 a partir del desglose de viabilidad por dimensión
+    y la probabilidad de ganar. Los pesos están en SCORE_WEIGHTS (suman 1.0)."""
+    fb = feasibility_breakdown or {}
+
+    def _dim(name: str) -> float:
+        d = fb.get(name) or {}
+        try:
+            return float(d.get("score", 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    w = SCORE_WEIGHTS
+    total = (
+        w["funder_match"] * _dim("funder_match")
+        + w["geographic_eligibility"] * _dim("geographic_eligibility")
+        + w["institutional_fit"] * _dim("institutional_fit")
+        + w["budget_fit"] * _dim("budget_fit")
+        + w["deadline_feasibility"] * _dim("deadline_feasibility")
+        + w["winning_probability"] * float(winning_probability or 0)
+    )
+    return round(total, 1)
+
 # ── Auth multiusuario ───────────────────────────────────────────────────────
 # Secreto para firmar tokens de sesión. Si no se define, cae en AGENTE_MAP_API_KEY.
 AUTH_SECRET = os.getenv("AUTH_SECRET", "") or os.getenv("AGENTE_MAP_API_KEY", "")

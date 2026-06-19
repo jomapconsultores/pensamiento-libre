@@ -82,8 +82,13 @@ def _parse_json(raw: str) -> dict:
     return json.loads(raw)
 
 
-def _gather_evidence(session: ProjectSession) -> str:
-    """Ejecuta la búsqueda en web y devuelve la evidencia como texto para la IA."""
+def _gather_evidence(session: ProjectSession, seed: dict | None = None) -> str:
+    """Ejecuta la búsqueda en web y devuelve la evidencia como texto para la IA.
+
+    Si `seed` (una oportunidad ya elegida en el scouting) está presente, la búsqueda
+    se ENFOCA en ese financiador/convocatoria: descarga su URL y dirige las queries a
+    sus bases, requisitos, formato y elegibilidad.
+    """
     provider = config.ROLE_RESEARCH
     topic = (session.user_input or "").strip()
     mode = session.input_mode
@@ -96,6 +101,27 @@ def _gather_evidence(session: ProjectSession) -> str:
         for u in urls[:6]:
             page = execute_fetch_page(u)
             pieces.append(f"=== PÁGINA ENTREGADA: {u} ===\n{_clip(page, 6000)}")
+
+    # Oportunidad elegida (scouting → generación): foco en esa entidad.
+    if seed:
+        funder = (seed.get("funder") or {})
+        fname = funder.get("name", "")
+        furl = funder.get("url", "")
+        if furl and furl.startswith("http"):
+            page = execute_fetch_page(furl)
+            pieces.append(f"=== BASES DE LA CONVOCATORIA ELEGIDA: {furl} ===\n{_clip(page, 7000)}")
+        base = [
+            f"{fname} {topic} bases requisitos formato elegibilidad",
+            f"{fname} convocatoria {topic} presupuesto plantilla cofinanciamiento",
+            f"{fname} {topic} Ecuador criterios de evaluación deadline",
+        ] + opportunity_queries(topic)[:6]
+        queries = base[:12]
+        try:
+            evidence = execute_deep_search(queries, fetch_pages=SEARCH_FETCH_PAGES)
+        except Exception as ex:
+            evidence = json.dumps({"error": f"deep_search falló: {ex}"}, ensure_ascii=False)
+        pieces.append("=== EVIDENCIA DE BÚSQUEDA WEB (enfocada) ===\n" + _clip(evidence, 18000))
+        return "\n\n".join(pieces)
 
     # Búsqueda profunda (queries propuestas por la IA + paquete base).
     base = opportunity_queries(topic)
@@ -113,15 +139,27 @@ def _gather_evidence(session: ProjectSession) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 #  INVESTIGACIÓN DE PROPUESTAS  →  AnalysisResult
 # ════════════════════════════════════════════════════════════════════════════
-def run(session: ProjectSession, api_key: str | None = None) -> AnalysisResult:
-    """Investiga (web) y produce el análisis de viabilidad con la IA ROLE_RESEARCH."""
+def run(session: ProjectSession, api_key: str | None = None,
+        seed: dict | None = None) -> AnalysisResult:
+    """Investiga (web) y produce el análisis de viabilidad con la IA ROLE_RESEARCH.
+
+    Si `seed` (oportunidad elegida en el scouting) está presente, el análisis se
+    centra en ESA convocatoria con sus requisitos reales (no re-busca otra)."""
     provider = config.ROLE_RESEARCH
-    evidence = _gather_evidence(session)
+    evidence = _gather_evidence(session, seed=seed)
+
+    seed_block = ""
+    if seed:
+        seed_block = (
+            "\n\nOPORTUNIDAD ELEGIDA POR EL USUARIO (analízala a fondo; NO cambies de "
+            "financiador ni de convocatoria):\n" + json.dumps(seed, ensure_ascii=False)[:4000] + "\n"
+        )
 
     # Reutiliza el esquema JSON completo del analista (modo "analizar documento"),
     # entregándole la evidencia ya recolectada como material fuente.
     document = (
-        f"TEMA / SOLICITUD DEL USUARIO:\n{session.user_input}\n\n"
+        f"TEMA / SOLICITUD DEL USUARIO:\n{session.user_input}\n"
+        f"{seed_block}\n"
         f"{evidence}"
         f"{_support_block(session)}\n\n"
         "INSTRUCCIÓN: NO inventes datos. Usa SOLO la evidencia de arriba; cada dato "

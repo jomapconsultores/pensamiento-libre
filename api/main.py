@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 
 import config
 import api.auth as auth_lib
-from core.pipeline import run_pipeline
+from core.pipeline import run_pipeline, run_scouting
 from db import queries
 from db import users as users_repo
 from models.doc_types import list_doc_types, list_modules
@@ -130,6 +130,19 @@ class CreateProposalResponse(BaseModel):
     status: str
 
 
+class ScoutRequest(BaseModel):
+    user_input: str = Field(..., min_length=5, description="Tema o sector a buscar.")
+
+
+class GenerateRequest(BaseModel):
+    selected: list[int] = Field(..., min_length=1,
+                                description="Índices de las oportunidades elegidas (0 = la mejor).")
+
+
+class GenerateResponse(BaseModel):
+    sessions: list[CreateProposalResponse]
+
+
 class SessionSummary(BaseModel):
     session_id: str
     status: str
@@ -145,6 +158,9 @@ class SessionSummary(BaseModel):
     overall_score: Optional[float] = None
     viability_score: Optional[float] = None
     winning_probability: Optional[float] = None
+    weighted_score: Optional[float] = None
+    is_scouting: bool = False
+    opportunities_count: int = 0
     go_no_go: Optional[str] = None
     evidence_sources: list = []
     feasibility_breakdown: dict = {}
@@ -201,6 +217,7 @@ def _row_to_summary(row: dict) -> SessionSummary:
     funder_dict = analysis.get("funder") or {}
     last_review = (row.get("reviews") or [])[-1] if row.get("reviews") else None
     score = float(last_review["overall_score"]) if last_review else None
+    alts = analysis.get("alternatives") or []
     return SessionSummary(
         session_id=row["session_id"],
         status=row.get("status", "pending"),
@@ -216,6 +233,9 @@ def _row_to_summary(row: dict) -> SessionSummary:
         overall_score=score,
         viability_score=analysis.get("viability_score"),
         winning_probability=analysis.get("winning_probability"),
+        weighted_score=analysis.get("weighted_score"),
+        is_scouting=bool(alts),
+        opportunities_count=len(alts),
         go_no_go=analysis.get("go_no_go"),
         evidence_sources=analysis.get("evidence_sources") or [],
         feasibility_breakdown=analysis.get("feasibility_breakdown") or {},
@@ -396,6 +416,132 @@ def create_proposal(req: CreateProposalRequest, background: BackgroundTasks,
 
     background.add_task(_run)
     return CreateProposalResponse(session_id=session_id, status="pending")
+
+
+# ── Scouting: buscar → reporte con calificación → elegir → generar ───────────
+@app.post("/buscar", response_model=CreateProposalResponse, status_code=202)
+def buscar_oportunidades(req: ScoutRequest, background: BackgroundTasks,
+                         p: Principal = Depends(get_principal)):
+    """Detecta el TOP-N de oportunidades y arma un reporte con calificación
+    ponderada (NO genera propuestas). Luego se eligen con POST /generar."""
+    if not config.ANTHROPIC_API_KEY:
+        raise HTTPException(500, "ANTHROPIC_API_KEY no configurada en el servidor")
+    session_id = uuid.uuid4().hex[:8]
+    owner = p.user_id
+
+    def _run():
+        try:
+            run_scouting(user_input=req.user_input, session_id=session_id, owner_user_id=owner)
+        except Exception:
+            pass
+
+    background.add_task(_run)
+    return CreateProposalResponse(session_id=session_id, status="pending")
+
+
+@app.get("/propuestas/{session_id}/oportunidades")
+def listar_oportunidades(session_id: str, p: Principal = Depends(get_principal)):
+    """Lista las oportunidades detectadas (para mostrarlas en el programa)."""
+    row = _owned_row(session_id, p)
+    analysis = row.get("analysis") or {}
+    opps = analysis.get("alternatives") or []
+    out = []
+    for i, o in enumerate(opps):
+        funder = o.get("funder") or {}
+        out.append({
+            "index": i,
+            "title": o.get("title"),
+            "summary": o.get("summary"),
+            "funder": funder.get("name"),
+            "funder_type": funder.get("type"),
+            "url": funder.get("url"),
+            "deadline": funder.get("deadline"),
+            "amount": o.get("total_amount") or funder.get("amount_range"),
+            "sector": o.get("sector"),
+            "viability_score": o.get("viability_score"),
+            "winning_probability": o.get("winning_probability"),
+            "weighted_score": o.get("weighted_score"),
+            "feasibility_breakdown": o.get("feasibility_breakdown") or {},
+        })
+    return {"session_id": session_id, "count": len(out), "opportunities": out}
+
+
+@app.get("/propuestas/{session_id}/reporte")
+def descargar_reporte(session_id: str, ids: Optional[str] = Query(None,
+                      description="Índices separados por coma (ej. '0,2'); vacío = todas."),
+                      p: Principal = Depends(get_principal)):
+    """Descarga el reporte de detección en Word (una, varias o todas las oportunidades)."""
+    from tools import document_builder
+    row = _owned_row(session_id, p)
+    analysis = row.get("analysis") or {}
+    opps = analysis.get("alternatives") or []
+    if not opps:
+        raise HTTPException(409, "Esta sesión no tiene oportunidades detectadas.")
+    if ids:
+        try:
+            wanted = [int(x) for x in ids.split(",") if x.strip() != ""]
+        except ValueError:
+            raise HTTPException(400, "Parámetro 'ids' inválido (usa enteros separados por coma).")
+        selected = [opps[i] for i in wanted if 0 <= i < len(opps)]
+        if not selected:
+            raise HTTPException(404, "Ningún índice válido en 'ids'.")
+    else:
+        selected = opps
+    topic = row.get("user_input") or "Oportunidades"
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / f"REPORTE_{session_id}.docx"
+        built = document_builder.build_scouting_report(selected, topic, out)
+        if not built or not out.exists():
+            raise HTTPException(500, "No se pudo generar el reporte (revisa logs).")
+        data = out.read_bytes()
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="reporte_{session_id}.docx"'},
+    )
+
+
+@app.post("/propuestas/{session_id}/generar", response_model=GenerateResponse, status_code=202)
+def generar_desde_seleccion(session_id: str, req: GenerateRequest, background: BackgroundTasks,
+                            p: Principal = Depends(get_principal)):
+    """Con el visto bueno del usuario: por cada oportunidad elegida lanza la
+    generación de la propuesta completa (enfocada en esa entidad y sus requisitos)."""
+    if not config.ANTHROPIC_API_KEY:
+        raise HTTPException(500, "ANTHROPIC_API_KEY no configurada en el servidor")
+    row = _owned_row(session_id, p)
+    analysis = row.get("analysis") or {}
+    opps = analysis.get("alternatives") or []
+    if not opps:
+        raise HTTPException(409, "Esta sesión no tiene oportunidades para generar.")
+    owner = row.get("owner_user_id")
+
+    created: list[CreateProposalResponse] = []
+    for idx in req.selected:
+        if not (0 <= idx < len(opps)):
+            continue
+        opp = opps[idx]
+        funder = opp.get("funder") or {}
+        title = opp.get("title") or funder.get("name") or row.get("user_input")
+        url = funder.get("url") or ""
+        user_input = f"{title} — {funder.get('name', '')}".strip(" —")
+        mode = "url" if url.startswith("http") else "search"
+        if mode == "url":
+            user_input = f"{user_input}\n{url}"
+        new_id = uuid.uuid4().hex[:8]
+
+        def _run(new_id=new_id, user_input=user_input, mode=mode, opp=opp):
+            try:
+                run_pipeline(user_input=user_input, mode=mode, doc_type_key="propuesta",
+                             session_id=new_id, owner_user_id=owner, seed_opportunity=opp)
+            except Exception:
+                pass
+
+        background.add_task(_run)
+        created.append(CreateProposalResponse(session_id=new_id, status="pending"))
+
+    if not created:
+        raise HTTPException(400, "Ningún índice válido en 'selected'.")
+    return GenerateResponse(sessions=created)
 
 
 @app.get("/propuestas", response_model=list[SessionSummary])

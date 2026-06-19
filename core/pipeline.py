@@ -32,10 +32,12 @@ from models.schemas import ProjectSession
 from models.doc_types import get_doc_type
 import agents.classifier as classifier
 import agents.researcher as researcher
+import agents.scout as scout
 import agents.writer as writer
 import agents.reviewer as reviewer
 import agents.financial as financial
 import agents.phase_review as phase_review
+from agents.analyst import result_from_data
 from utils.output import save_session
 from db import repository
 
@@ -119,6 +121,55 @@ def _research_content(session: ProjectSession) -> str:
     return ""
 
 
+def run_scouting(
+    *,
+    user_input: str,
+    api_key: Optional[str] = None,
+    session_id: Optional[str] = None,
+    owner_user_id: Optional[str] = None,
+) -> ProjectSession:
+    """Detecta el TOP-N de oportunidades (modo búsqueda) y guarda un reporte con
+    calificación ponderada. NO genera propuestas: el usuario elige después.
+
+    Las oportunidades quedan en `session.analysis.alternatives` (índice 0 = la mejor),
+    serializadas dentro del jsonb `analysis`. La oportunidad #0 también puebla los
+    campos principales del AnalysisResult para la tarjeta-resumen de la UI.
+    """
+    api_key = api_key or ANTHROPIC_API_KEY
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY no configurada")
+    session_id = session_id or uuid.uuid4().hex[:8]
+
+    session = ProjectSession(
+        session_id=session_id, user_input=user_input, input_mode="search",
+        doc_type_key="propuesta", owner_user_id=owner_user_id,
+    )
+    _mark_running(session_id, owner_user_id)
+    try:
+        opportunities = scout.run(session, api_key)
+        if not opportunities:
+            session.approved = False
+            session.inconclusive_reason = "La búsqueda no devolvió oportunidades verificables."
+            save_session(session)
+            _mark_completed(session_id, approved=False)
+            return session
+
+        best = opportunities[0]
+        analysis = result_from_data(best, best.get("summary", ""))
+        analysis.summary = best.get("summary", "")
+        analysis.weighted_score = float(best.get("weighted_score", 0) or 0)
+        analysis.alternatives = opportunities      # lista completa ranqueada
+        session.analysis = analysis
+        session.approved = True                    # scouting completado con éxito
+
+        save_session(session)
+        _mark_completed(session_id, approved=True)
+        return session
+    except Exception as e:
+        _mark_failed(session_id, f"{type(e).__name__}: {e}")
+        raise
+
+
 def run_pipeline(
     *,
     user_input: str,
@@ -129,6 +180,7 @@ def run_pipeline(
     api_key: Optional[str] = None,
     session_id: Optional[str] = None,
     owner_user_id: Optional[str] = None,
+    seed_opportunity: Optional[dict] = None,
 ) -> ProjectSession:
     """Corre el pipeline por fases con gates ≥90 y reinicio al inicio. Devuelve la sesión.
 
@@ -173,7 +225,7 @@ def run_pipeline(
 
             # ── FASE 1 — INVESTIGACIÓN WEB + ANÁLISIS (IA investigadora) ──────
             if doc_type.is_proposal:
-                analysis = researcher.run(session, api_key)
+                analysis = researcher.run(session, api_key, seed=seed_opportunity)
                 session.analysis = analysis
                 if not analysis.viable:
                     # Oportunidad no viable: no tiene sentido reintentar.

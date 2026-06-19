@@ -65,6 +65,14 @@ class AnalysisResult:
     evidence_sources: list = field(default_factory=list)
     feasibility_breakdown: dict = field(default_factory=dict)
 
+    # ── Scouting / reporte ──────────────────────────────────────────────────
+    summary: str = ""              # resumen ejecutivo para el reporte
+    weighted_score: float = 0.0    # calificación ponderada 0-100 (config.weighted_score)
+    # Lista RANKeada de oportunidades detectadas en una búsqueda (cada item es un
+    # dict-oportunidad, índice 0 = la mejor). Vacía en sesiones de propuesta normales;
+    # poblada en sesiones de scouting (se serializa dentro del jsonb `analysis`).
+    alternatives: list = field(default_factory=list)
+
     @property
     def requires_excel(self) -> bool:
         return bool(self.format_requirements.get("requires_excel_budget", False))
