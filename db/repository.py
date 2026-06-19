@@ -87,6 +87,27 @@ def _review_rows(session_uuid: str, s: ProjectSession) -> list[dict]:
     return rows
 
 
+def delete_session(session_id: str) -> bool:
+    """Borra una sesión y sus borradores/revisiones. Devuelve True si existía.
+    Idempotente: si no existe o Supabase está apagado, devuelve False sin error."""
+    if not is_enabled():
+        return False
+    try:
+        sb = get_client(service_role=True)
+        sess = (
+            sb.table("sessions").select("id").eq("session_id", session_id).limit(1).execute()
+        )
+        if not sess.data:
+            return False
+        row_uuid = sess.data[0]["id"]
+        sb.table("proposal_versions").delete().eq("session_id", row_uuid).execute()
+        sb.table("reviews").delete().eq("session_id", row_uuid).execute()
+        sb.table("sessions").delete().eq("session_id", session_id).execute()
+        return True
+    except Exception as e:  # noqa: BLE001
+        raise SupabaseSaveError(f"{type(e).__name__}: {e}") from e
+
+
 def save_session(session: ProjectSession) -> str | None:
     """Persiste la sesión completa en Supabase. Devuelve el uuid de la sesión.
 

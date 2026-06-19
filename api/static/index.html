@@ -478,7 +478,8 @@
     <div class="drawer-header">
       <div class="title" id="drawer-title">Detalle</div>
       <div class="id mono" id="drawer-id"></div>
-      <button class="btn subtle btn-sm" id="retry-btn" onclick="retrySession()" style="display:none">Reintentar</button>
+      <button class="btn subtle btn-sm" id="retry-btn" onclick="retrySession()" style="display:none">▶ Continuar</button>
+      <button class="btn subtle btn-sm" id="del-btn" onclick="deleteSession()" style="display:none">🗑 Borrar</button>
       <button class="btn ghost btn-sm" onclick="closeDrawer()" title="Cerrar (Esc)">✕</button>
     </div>
     <div class="drawer-body" id="drawer-body"></div>
@@ -1149,7 +1150,8 @@
         const d = await r1.json(); const md = r2 ? await r2.text() : "";
         const ver = r3 ? await r3.json().catch(()=>null) : null;
         $("drawer-title").textContent = d.title || "(sin título)";
-        $("retry-btn").style.display = d.status === "failed" ? "" : "none";
+        $("retry-btn").style.display = isIncon(d.status) ? "" : "none";
+        $("del-btn").style.display = "";
         const error = parseError(d.error_message);
         const funderHtml = d.funder ? (d.funder_url ? `<b>${esc(d.funder)}</b> <a href="${esc(d.funder_url)}" target="_blank" rel="noopener" class="muted">↗</a>` : `<b>${esc(d.funder)}</b>`) : "<span class='muted'>—</span>";
         const inconHtml = isIncon(d.status) ? `<div class="err-banner" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.35);margin-bottom:14px"><div class="title" style="color:#fcd34d">⏳ Quedó inconcluso</div><div>Este entregable ${esc(reasonIncon(d))}. ${d.status==="failed"?"Puedes reintentarlo.":"Se actualizará solo mientras esté en curso."}</div></div>` : "";
@@ -1246,10 +1248,21 @@
 
     async function retrySession() {
       if (!activeId) return;
-      if (!confirm("¿Reintentar este entregable inconcluso? El pipeline correrá de nuevo y consumirá API.")) return;
+      if (!confirm("¿Continuar este entregable inconcluso? El proceso correrá de nuevo y consumirá API.")) return;
       $("retry-btn").disabled = true;
-      try { await api(`/propuestas/${activeId}/retry`, { method:"POST" }); toast("Reintento encolado.", "ok"); openDrawer(activeId); }
+      try { await api(`/propuestas/${activeId}/retry`, { method:"POST" }); toast("Proceso reanudado · encolado.", "ok"); openDrawer(activeId); }
       catch (e) { toast(e.message, "err"); } finally { $("retry-btn").disabled = false; }
+    }
+    async function deleteSession() {
+      if (!activeId) return;
+      if (!confirm("¿Borrar este entregable de forma permanente? Esta acción no se puede deshacer.")) return;
+      $("del-btn").disabled = true;
+      try {
+        await api(`/propuestas/${activeId}`, { method:"DELETE" });
+        toast("Entregable borrado.", "ok");
+        closeDrawer(); loadList();
+      } catch (e) { toast(e.message, "err"); }
+      finally { $("del-btn").disabled = false; }
     }
     async function downloadFile(id, kind) {
       try {

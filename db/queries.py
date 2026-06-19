@@ -21,6 +21,7 @@ def list_sessions(limit: int = 20, *, approved_only: bool = False,
         sb.table("sessions")
         .select(
             "id, session_id, doc_type_key, approved, current_cycle, "
+            "status, input_mode, user_input, completed_at, error_message, "
             "created_at, owner_user_id, brief, analysis"
         )
         .order("created_at", desc=True)
