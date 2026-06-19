@@ -469,8 +469,9 @@ def listar_oportunidades(session_id: str, p: Principal = Depends(get_principal))
 @app.get("/propuestas/{session_id}/reporte")
 def descargar_reporte(session_id: str, ids: Optional[str] = Query(None,
                       description="Índices separados por coma (ej. '0,2'); vacío = todas."),
+                      fmt: str = Query("word", pattern="^(word|pdf)$"),
                       p: Principal = Depends(get_principal)):
-    """Descarga el reporte de detección en Word (una, varias o todas las oportunidades)."""
+    """Descarga el reporte de detección en Word o PDF (una, varias o todas)."""
     from tools import document_builder
     row = _owned_row(session_id, p)
     analysis = row.get("analysis") or {}
@@ -489,15 +490,22 @@ def descargar_reporte(session_id: str, ids: Optional[str] = Query(None,
         selected = opps
     topic = row.get("user_input") or "Oportunidades"
     with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp) / f"REPORTE_{session_id}.docx"
-        built = document_builder.build_scouting_report(selected, topic, out)
+        if fmt == "pdf":
+            out = Path(tmp) / f"REPORTE_{session_id}.pdf"
+            md = document_builder.scouting_report_markdown(selected, topic)
+            built = document_builder.build_pdf(md, "Reporte de oportunidades", out, subtitle=topic)
+            mime, ext = "application/pdf", "pdf"
+        else:
+            out = Path(tmp) / f"REPORTE_{session_id}.docx"
+            built = document_builder.build_scouting_report(selected, topic, out)
+            mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ext = "docx"
         if not built or not out.exists():
-            raise HTTPException(500, "No se pudo generar el reporte (revisa logs).")
+            raise HTTPException(500, "No se pudo generar el reporte (¿falta fpdf2 para PDF?).")
         data = out.read_bytes()
     return StreamingResponse(
-        io.BytesIO(data),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="reporte_{session_id}.docx"'},
+        io.BytesIO(data), media_type=mime,
+        headers={"Content-Disposition": f'attachment; filename="reporte_{session_id}.{ext}"'},
     )
 
 
@@ -610,6 +618,11 @@ def _build_and_stream(row: dict, kind: str):
             built = document_builder.build_excel(sess.brief, sess.financial, out)
             mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             ext = "xlsx"
+        elif kind == "pdf":
+            out = tmp_path / f"ENTREGABLE_{session_id}.pdf"
+            title = sess.brief.title if sess.brief else "Entregable"
+            built = document_builder.build_pdf(sess.final_proposal, title, out)
+            mime, ext = "application/pdf", "pdf"
         else:
             raise HTTPException(400, f"kind inválido: {kind}")
         if not built or not out.exists():
@@ -629,6 +642,11 @@ def get_proposal_word(session_id: str, p: Principal = Depends(get_principal)):
 @app.get("/propuestas/{session_id}/excel")
 def get_proposal_excel(session_id: str, p: Principal = Depends(get_principal)):
     return _build_and_stream(_owned_row(session_id, p), "excel")
+
+
+@app.get("/propuestas/{session_id}/pdf")
+def get_proposal_pdf(session_id: str, p: Principal = Depends(get_principal)):
+    return _build_and_stream(_owned_row(session_id, p), "pdf")
 
 
 @app.post("/propuestas/{session_id}/retry", response_model=CreateProposalResponse, status_code=202)

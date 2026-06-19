@@ -1172,9 +1172,10 @@
         const feasHtml = renderFeasibility(d.feasibility_breakdown);
         const errHtml = error ? `<h3>Error</h3><div class="err-banner"><div class="title">${esc(error.title)}</div><div>${esc(error.msg)}</div><div style="margin-top:6px"><b>Cómo resolver:</b> ${esc(error.fix)}</div>${d.error_message ? `<details><summary>Mostrar error técnico</summary><pre>${esc(d.error_message)}</pre></details>` : ""}</div>` : "";
         const dlHtml = `<h3>Descargas</h3><div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn subtle" onclick="downloadFile('${id}','markdown')">📝 Markdown</button>
             <button class="btn subtle" onclick="downloadFile('${id}','word')">📄 Word</button>
-            <button class="btn subtle" onclick="downloadFile('${id}','excel')">📊 Excel</button></div>`;
+            <button class="btn subtle" onclick="downloadFile('${id}','pdf')">📕 PDF</button>
+            <button class="btn subtle" onclick="downloadFile('${id}','excel')">📊 Excel</button>
+            <button class="btn subtle" onclick="downloadFile('${id}','markdown')">📝 Markdown</button></div>`;
         const evHtml = renderEvidence(d.evidence_sources);
         const previewHtml = md ? `<h3>Vista previa</h3><div class="md-preview">${esc(md.length>6000 ? md.slice(0,6000)+"\n\n[… truncado para preview, descarga el archivo para ver completo …]" : md)}</div>`
           : (d.status==="running"||d.status==="pending") ? `<h3>Vista previa</h3><div class="muted" style="padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px">⏳ El pipeline está procesando. La vista previa aparecerá cuando el redactor termine el primer borrador.</div>` : "";
@@ -1268,7 +1269,8 @@
       try {
         const r = await api(`/propuestas/${id}/${kind}`); const blob = await r.blob();
         const url = URL.createObjectURL(blob); const a = document.createElement("a");
-        a.href = url; a.download = `entregable_${id}.${kind==="word"?"docx":kind==="excel"?"xlsx":"md"}`;
+        const ext = {word:"docx", pdf:"pdf", excel:"xlsx", markdown:"md"}[kind] || "txt";
+        a.href = url; a.download = `entregable_${id}.${ext}`;
         document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       } catch (e) { toast(e.message, "err"); }
     }
@@ -1294,25 +1296,29 @@
         <div class="muted" style="font-size:12px;margin-bottom:8px">Marca una o varias. Puedes descargar el reporte en Word o generar las propuestas completas de la selección.</div>
         <div class="evid">${cards}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-          <button class="btn subtle" onclick="downloadReport('${id}', false)">📄 Reporte (todas)</button>
-          <button class="btn subtle" onclick="downloadReport('${id}', true)">📄 Reporte (selección)</button>
-          <button class="btn" onclick="generateSelected('${id}')">⚙ Generar propuesta(s) de la selección</button>
+          <button class="btn subtle" onclick="downloadReport('${id}', false, 'word')">📄 Word (todas)</button>
+          <button class="btn subtle" onclick="downloadReport('${id}', false, 'pdf')">📕 PDF (todas)</button>
+          <button class="btn subtle" onclick="downloadReport('${id}', true, 'word')">📄 Word (selección)</button>
+          <button class="btn subtle" onclick="downloadReport('${id}', true, 'pdf')">📕 PDF (selección)</button>
+          <button class="btn" onclick="generateSelected('${id}')">⚙ Generar propuesta(s)</button>
         </div>`;
     }
     function pickedScout() {
       return [...document.querySelectorAll(".scout-pick:checked")].map(c => parseInt(c.value, 10));
     }
-    async function downloadReport(id, onlySel) {
-      let path = `/propuestas/${id}/reporte`;
+    async function downloadReport(id, onlySel, fmt) {
+      fmt = fmt || "word";
+      const qs = [];
       if (onlySel) {
         const ids = pickedScout();
         if (!ids.length) { toast("Marca al menos una oportunidad.", "err"); return; }
-        path += `?ids=${ids.join(",")}`;
+        qs.push("ids=" + ids.join(","));
       }
+      qs.push("fmt=" + fmt);
       try {
-        const r = await api(path); const blob = await r.blob();
+        const r = await api(`/propuestas/${id}/reporte?` + qs.join("&")); const blob = await r.blob();
         const url = URL.createObjectURL(blob); const a = document.createElement("a");
-        a.href = url; a.download = `reporte_${id}.docx`;
+        a.href = url; a.download = `reporte_${id}.${fmt === "pdf" ? "pdf" : "docx"}`;
         document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       } catch (e) { toast(e.message, "err"); }
     }

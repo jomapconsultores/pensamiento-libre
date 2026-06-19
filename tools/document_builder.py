@@ -647,3 +647,123 @@ def build_scouting_report(opportunities: list, topic: str, out_path: Path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(out_path))
     return str(out_path)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  PDF (desde Markdown) — alternativa de descarga al Word
+# ════════════════════════════════════════════════════════════════════════════
+_PDF_REPL = {"—": "-", "–": "-", "•": "-", "“": '"', "”": '"', "‘": "'", "’": "'",
+             "…": "...", "→": "->", "≥": ">=", "≤": "<=", "✅": "[OK]", "❌": "[X]",
+             "✓": "[v]", "·": "-", "​": "", "️": ""}
+
+
+def _pdf_text(s: str) -> str:
+    s = s or ""
+    for a, b in _PDF_REPL.items():
+        s = s.replace(a, b)
+    s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
+    s = re.sub(r"\*(.+?)\*", r"\1", s)
+    s = re.sub(r"`(.+?)`", r"\1", s)
+    return s.encode("latin-1", "replace").decode("latin-1")
+
+
+def build_pdf(content_md: str, title: str, out_path: Path, subtitle: str = ""):
+    """Convierte el Markdown del entregable/reporte en un .pdf legible (encabezados,
+    párrafos, listas y tablas). Devuelve None si falta fpdf2."""
+    try:
+        from fpdf import FPDF
+        from fpdf.enums import XPos, YPos
+    except ImportError:
+        return None
+
+    pdf = FPDF(format="A4")
+    pdf.set_auto_page_break(True, margin=18)
+    pdf.set_margins(20, 18, 18)
+    pdf.add_page()
+
+    def mc(h, txt):  # multi_cell que SIEMPRE vuelve al margen izq. y baja una línea
+        pdf.multi_cell(0, h, txt, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.set_font("Helvetica", "B", 16)
+    mc(8, _pdf_text(title))
+    if subtitle:
+        pdf.ln(1); pdf.set_font("Helvetica", "I", 10); pdf.set_text_color(90, 90, 90)
+        mc(5, _pdf_text(subtitle)); pdf.set_text_color(0, 0, 0)
+    pdf.ln(3)
+
+    table_block: list[str] = []
+
+    def _flush_table():
+        if not table_block:
+            return
+        rows = [[c.strip() for c in r.strip().strip("|").split("|")] for r in table_block]
+        rows = [r for r in rows if r and not all(set(c) <= set("-: ") for c in r)]
+        table_block.clear()
+        if not rows:
+            return
+        ncol = max(len(r) for r in rows)
+        avail = pdf.w - pdf.l_margin - pdf.r_margin
+        w = avail / ncol
+        for ri, r in enumerate(rows):
+            pdf.set_font("Helvetica", "B" if ri == 0 else "", 8.5)
+            for ci in range(ncol):
+                txt = _pdf_text(r[ci] if ci < len(r) else "")
+                pdf.cell(w, 6, txt[: max(8, int(w / 1.7))], 1)
+            pdf.ln(6)
+        pdf.ln(2)
+
+    for raw in (content_md or "").split("\n"):
+        line = raw.rstrip()
+        if line.count("|") >= 2:
+            table_block.append(line); continue
+        _flush_table()
+        s = line.strip()
+        if not s:
+            pdf.ln(2); continue
+        if s.startswith("### "):
+            pdf.set_font("Helvetica", "B", 11.5); pdf.ln(1); mc(6, _pdf_text(s[4:]))
+        elif s.startswith("## "):
+            pdf.set_font("Helvetica", "B", 13); pdf.ln(1.5); mc(6.5, _pdf_text(s[3:]))
+        elif s.startswith("# "):
+            pdf.set_font("Helvetica", "B", 15); pdf.ln(2); mc(7, _pdf_text(s[2:]))
+        elif s.startswith(("- ", "* ")):
+            pdf.set_font("Helvetica", "", 10.5); mc(5.4, "   -  " + _pdf_text(s[2:]))
+        else:
+            pdf.set_font("Helvetica", "", 10.5); mc(5.4, _pdf_text(s))
+
+    _flush_table()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    pdf.output(str(out_path))
+    return str(out_path)
+
+
+def scouting_report_markdown(opportunities: list, topic: str) -> str:
+    """Genera el reporte de oportunidades en Markdown (para PDF u otros usos)."""
+    out = ["# Reporte de oportunidades detectadas", f"Búsqueda: {topic}", ""]
+    out.append("| # | Financiador | Deadline | Monto | Calif. ponderada |")
+    out.append("|---|---|---|---|---|")
+    for i, o in enumerate(opportunities):
+        f = o.get("funder") or {}
+        out.append(f"| {i+1} | {f.get('name','—')} | {f.get('deadline','—')} | "
+                   f"{o.get('total_amount') or f.get('amount_range','—')} | "
+                   f"{float(o.get('weighted_score',0) or 0):.0f}/100 |")
+    out.append("")
+    for i, o in enumerate(opportunities):
+        f = o.get("funder") or {}
+        out.append(f"## {i+1}. {o.get('title','Oportunidad')}  ({float(o.get('weighted_score',0) or 0):.0f}/100)")
+        out.append(f"Financiador: {f.get('name','—')} ({f.get('type','')}) — {f.get('url','')}")
+        out.append(f"Deadline: {f.get('deadline','—')}  ·  Monto: {o.get('total_amount') or f.get('amount_range','—')}  ·  Sector: {o.get('sector','—')}")
+        out.append("")
+        out.append(o.get("summary", ""))
+        out.append("")
+        fb = o.get("feasibility_breakdown") or {}
+        if fb:
+            out.append("### Desglose de la calificación")
+            labels = {"funder_match": "Encaje financiador", "geographic_eligibility": "Elegibilidad (Ecuador)",
+                      "institutional_fit": "Ajuste institucional", "budget_fit": "Ajuste de presupuesto",
+                      "deadline_feasibility": "Viabilidad de plazo"}
+            for k, lab in labels.items():
+                d = fb.get(k) or {}
+                out.append(f"- {lab}: {float(d.get('score',0) or 0):.0f}/100 — {d.get('reason','')}")
+            out.append("")
+    return "\n".join(out)
