@@ -47,6 +47,25 @@ def builder_for_cycle(cycle: int) -> str:
         return "anthropic"
     return BUILDER_ROTATION[(max(1, cycle) - 1) % len(BUILDER_ROTATION)]
 
+# ── Asignación de IA por ROL (flujo por fases) ───────────────────────────────
+# Cada fase la produce una IA y la revisa OTRA distinta. Si un gate da <90, el
+# pipeline vuelve al inicio (reinvestiga). Todo es configurable por entorno.
+#   Investigación web + análisis  → DeepSeek   (revisa Mistral)
+#   Redacción del documento       → DeepSeek   (revisa Mistral)  ← económico
+#   Estructuración financiera     → Codestral  (entra en el veredicto final)
+#   Clasificación + veredicto 90/90 → Claude (Anthropic)
+ROLE_RESEARCH        = os.getenv("ROLE_RESEARCH",        "deepseek")
+ROLE_REVIEW_RESEARCH = os.getenv("ROLE_REVIEW_RESEARCH", "mistral")
+ROLE_WRITER          = os.getenv("ROLE_WRITER",          "deepseek")
+ROLE_REVIEW_WRITER   = os.getenv("ROLE_REVIEW_WRITER",   "mistral")
+ROLE_FINANCIAL       = os.getenv("ROLE_FINANCIAL",       "codestral")
+
+# Reinicios del ciclo completo cuando un gate reprueba (<90). Tras agotarlos se
+# entrega la mejor versión lograda marcada como inconclusa.
+MAX_PIPELINE_RESTARTS = int(os.getenv("MAX_PIPELINE_RESTARTS", "5"))
+# Umbral mínimo (0-100) que debe alcanzar cada fase en su gate intermedio.
+PHASE_REVIEW_THRESHOLD = int(os.getenv("PHASE_REVIEW_THRESHOLD", "90"))
+
 # ── Auth multiusuario ───────────────────────────────────────────────────────
 # Secreto para firmar tokens de sesión. Si no se define, cae en AGENTE_MAP_API_KEY.
 AUTH_SECRET = os.getenv("AUTH_SECRET", "") or os.getenv("AGENTE_MAP_API_KEY", "")

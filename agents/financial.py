@@ -109,13 +109,14 @@ def _num(v) -> float:
         return 0.0
 
 
-def run(session, proposal: str, api_key: str) -> FinancialPackage:
+def run(session, proposal: str, api_key: str,
+        provider: str | None = None) -> FinancialPackage:
     from agents import llm
     brief: DocumentBrief = session.brief
     prompt = _build_prompt(brief, proposal)
 
-    # Constructor (no-Claude) siguiendo la misma rotación por ciclo; con fallback.
-    provider = config.builder_for_cycle(session.current_cycle)
+    # Constructor (no-Claude): rol fijo si se indica, si no rota por ciclo. Con fallback.
+    provider = provider or config.builder_for_cycle(session.current_cycle)
     raw, used = llm.complete_builder(
         provider, system=SYSTEM_PROMPT, prompt=prompt,
         max_tokens=MAX_TOKENS_FINANCIAL, anthropic_key=api_key,

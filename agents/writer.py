@@ -149,16 +149,17 @@ incluyendo cumplimiento de formato y de lineamientos nacionales e internacionale
 """
 
 
-def run(session: ProjectSession, corrections: list, api_key: str) -> str:
-    """Construye el documento. El proveedor rota por ciclo (Mistral→Codestral→
-    DeepSeek→…); el revisor (Claude) dirá qué corregir y el ciclo siguiente lo
-    aplica con el siguiente constructor. `api_key` (Anthropic) solo se usa como
-    fallback si todos los constructores no-Claude están caídos.
+def run(session: ProjectSession, corrections: list, api_key: str,
+        provider: str | None = None) -> str:
+    """Construye el documento. Si se pasa `provider` (rol fijo, p.ej. ROLE_WRITER)
+    se usa ese; si no, rota por ciclo (Mistral→Codestral→DeepSeek…). El revisor
+    (Claude) dirá qué corregir. `api_key` (Anthropic) solo se usa como fallback si
+    todos los constructores no-Claude están caídos.
     """
     from agents import llm
     brief = session.brief
     cycle = session.current_cycle
-    provider = config.builder_for_cycle(cycle)
+    provider = provider or config.builder_for_cycle(cycle)
     prompt = _build_prompt(brief, session, corrections, cycle)
     text, used = llm.complete_builder(
         provider, system=SYSTEM_PROMPT, prompt=prompt,

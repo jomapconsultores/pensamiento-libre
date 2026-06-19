@@ -159,6 +159,14 @@ class ProjectSession:
     # Consenso del equipo constructor (1°,2°,3°) por ciclo: [{cycle, verdicts:[...]}]
     peer_log: list = field(default_factory=list)
 
+    # ── Flujo por fases con gates ≥90 y reinicio al inicio ──────────────────
+    # Intento actual del ciclo completo (1..MAX_PIPELINE_RESTARTS).
+    attempts: int = 0
+    # Auditoría de los gates intermedios: [{attempt, phase, provider, score, passed, issues, strengths}]
+    phase_reviews: list = field(default_factory=list)
+    # Razón si se entrega inconcluso (no alcanzó 90 tras agotar los intentos).
+    inconclusive_reason: str = ""
+
     # Dueño (usuario que lo creó). None = creado por la clave maestra/admin.
     owner_user_id: Optional[str] = None
 

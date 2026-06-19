@@ -274,6 +274,9 @@ def _save_summary(folder: Path, session: ProjectSession):
         "timestamp": datetime.now().isoformat(),
         "input_mode": session.input_mode,
         "approved": session.approved,
+        "attempts": session.attempts,
+        "inconclusive_reason": session.inconclusive_reason or None,
+        "phase_reviews": session.phase_reviews or None,
         "total_cycles": session.current_cycle,
         "final_score": session.review_results[-1].overall_score if session.review_results else None,
         "final_scores_by_criterion": (

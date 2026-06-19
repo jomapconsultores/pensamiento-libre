@@ -30,6 +30,21 @@ services:
         value: deepseek-chat
       - key: BUILDER_ROTATION
         value: mistral,codestral,deepseek
+      # ── Flujo por fases (cada fase la revisa otra IA; gate <90 reinicia) ──
+      - key: ROLE_RESEARCH
+        value: deepseek
+      - key: ROLE_REVIEW_RESEARCH
+        value: mistral
+      - key: ROLE_WRITER
+        value: deepseek
+      - key: ROLE_REVIEW_WRITER
+        value: mistral
+      - key: ROLE_FINANCIAL
+        value: codestral
+      - key: MAX_PIPELINE_RESTARTS
+        value: "5"
+      - key: PHASE_REVIEW_THRESHOLD
+        value: "90"
       - key: SYSTEM_LANGUAGE
         value: es
       - key: SUPABASE_URL

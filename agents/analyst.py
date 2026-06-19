@@ -429,7 +429,12 @@ def run(session: ProjectSession, api_key: str) -> AnalysisResult:
 
     raw = _run_agent_loop(client, prompt)
     data = _parse_result(raw)
+    return result_from_data(data, raw)
 
+
+def result_from_data(data: dict, raw: str = "") -> AnalysisResult:
+    """Convierte el JSON de análisis (lo produzca Claude o cualquier otra IA) en
+    un AnalysisResult tipado. Reutilizado por agents/researcher.py."""
     funder = FunderInfo(
         name=data["funder"]["name"],
         type=data["funder"].get("type", "internacional"),
