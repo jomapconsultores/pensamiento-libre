@@ -78,12 +78,8 @@
     .lhero::after { content:""; position:absolute; bottom:-60px; left:40px; width:320px; height:320px;
       background:radial-gradient(circle,rgba(14,165,233,.10) 0%,transparent 70%); pointer-events:none; }
     .lhero-brand { display:flex; align-items:center; gap:14px; }
-    .lhero-logo { width:46px; height:46px; border-radius:14px; flex-shrink:0;
-      background:linear-gradient(145deg,#2563eb,#1e3a8a 55%,#0369a1);
-      display:grid; place-items:center; font-size:22px;
-      box-shadow:0 0 0 1px rgba(64,128,255,.4),0 8px 24px rgba(37,99,235,.4); }
-    .lhero-brand .lbname { font-size:22px; font-weight:800; color:#f8fafc; letter-spacing:-.03em; }
-    .lhero-brand .lbtag { font-size:11px; color:#64748b; letter-spacing:.02em; margin-top:2px; }
+    .lhero-logo-img { width:220px; height:auto; border-radius:8px; object-fit:contain; display:block; box-shadow:0 4px 24px rgba(0,0,0,.35); }
+    .lhero-brand .lbtag { font-size:11px; color:#64748b; letter-spacing:.02em; margin-top:6px; }
     .lhero-body { position:relative; z-index:1; }
     .lhero-body h2 { font-size:38px; font-weight:800; color:#f8fafc; line-height:1.15;
       letter-spacing:-.03em; margin-bottom:18px; }
@@ -174,13 +170,10 @@
       display:flex; flex-direction:column;
       position:sticky; top:0; height:100vh; overflow-y:auto;
     }
-    .sb-brand { display:flex; align-items:center; gap:12px; padding:17px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
-    .sb-logo { width:36px; height:36px; border-radius:10px; flex-shrink:0;
-      background:linear-gradient(145deg,#2563eb,#1e3a8a 55%,#0369a1);
-      display:grid; place-items:center; font-size:18px;
-      box-shadow:0 0 0 1px rgba(64,128,255,.3),0 4px 12px rgba(37,99,235,.25); }
-    .sb-brand .nm { font-size:15px; font-weight:700; letter-spacing:-.02em; color:#f1f5f9; }
-    .sb-brand .tag { font-size:10px; color:#94a3b8; letter-spacing:.01em; }
+    .sb-brand { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:12px 16px 10px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .sb-brand-logo { width:130px; height:auto; border-radius:5px; object-fit:contain; display:block; }
+    .sb-brand .tag { font-size:9.5px; color:#64748b; letter-spacing:.01em; }
+    .sb-credit { font-size:9px; color:#334155; text-align:center; padding:6px 8px 8px; line-height:1.45; border-top:1px solid rgba(255,255,255,.05); }
     .sb-nav { padding:8px 10px; flex:1; }
     .sb-section { font-size:10px; text-transform:uppercase; letter-spacing:.08em;
       color:#475569; padding:16px 10px 6px; font-weight:700; }
@@ -488,12 +481,9 @@
 
       <!-- Hero izquierdo -->
       <div class="lhero">
-        <div class="lhero-brand">
-          <div class="lhero-logo">🌐</div>
-          <div>
-            <div class="lbname">Proyectos MAP</div>
-            <div class="lbtag">FUNDACION JOMAP · CMAJ ASOCIADOS · Cuenca, Ecuador</div>
-          </div>
+        <div class="lhero-brand" style="flex-direction:column;align-items:flex-start;gap:0">
+          <img src="/logo.png" alt="MAP Proyectos" class="lhero-logo-img">
+          <div class="lbtag">FUNDACION JOMAP · CMAJ ASOCIADOS · Cuenca, Ecuador</div>
         </div>
 
         <div class="lhero-body">
@@ -523,11 +513,14 @@
           </div>
         </div>
 
-        <div class="lhero-foot">© 2026 CMAJ ASOCIADOS · FUNDACION JOMAP · Cuenca, Azuay, Ecuador</div>
+        <div class="lhero-foot">© 2026 CMAJ ASOCIADOS · FUNDACION JOMAP · Cuenca, Azuay, Ecuador<br><span style="opacity:.55;font-size:10.5px">Desarrollado por Marco Antonio Posligua San Martín</span></div>
       </div>
 
       <!-- Panel de login derecho -->
       <div class="lpanel">
+        <div style="text-align:center;margin-bottom:28px">
+          <img src="/logo.png" alt="MAP Proyectos" style="width:190px;height:auto;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.12)">
+        </div>
         <div class="lpanel-head">
           <h3 id="lock-title">Bienvenido de nuevo</h3>
           <p>Ingresa a tu cuenta para continuar</p>
@@ -588,6 +581,9 @@
         <div class="lock-hint">
           <a href="#" onclick="masterLogin();return false">Acceso de administrador con clave maestra</a>
         </div>
+        <div style="margin-top:24px;text-align:center;font-size:10.5px;color:#94a3b8;line-height:1.5">
+          Desarrollado por<br><span style="color:#64748b;font-weight:500">Marco Antonio Posligua San Martín</span>
+        </div>
       </div>
 
     </div>
@@ -598,11 +594,8 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sb-brand">
-        <div class="sb-logo">🌐</div>
-        <div>
-          <div class="nm">Proyectos MAP</div>
-          <div class="tag">JOMAP · CMAJ · Cuenca</div>
-        </div>
+        <img src="/logo.png" alt="MAP Proyectos" class="sb-brand-logo">
+        <div class="tag">JOMAP · CMAJ · Cuenca, Ecuador</div>
       </div>
       <nav class="sb-nav" id="sb-nav">
         <button class="sb-item active" data-nav="all" onclick="navTo('all')"><span class="ic">🏠</span> Inicio</button>
@@ -651,6 +644,7 @@
         <button class="btn subtle btn-sm btn-block" style="margin-bottom:6px" onclick="openBioModal()">🔐 Autenticación biométrica</button>
         <button class="btn subtle btn-sm btn-block" onclick="lockNow()">🔒 Bloquear / salir</button>
       </div>
+      <div class="sb-credit">Desarrollado por<br><span style="color:#475569">Marco Antonio Posligua San Martín</span></div>
     </aside>
 
     <!-- Content -->
