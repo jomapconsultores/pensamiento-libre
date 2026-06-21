@@ -192,6 +192,38 @@
     .sb-item.sub:hover { color:#cbd5e1; }
     .sb-item .add { margin-left:auto; opacity:0; color:#64748b; font-size:14px; }
     .sb-item.sub:hover .add { opacity:1; }
+
+    /* ── Oficios cards ── */
+    .oficio-page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+    .oficio-page-left { display:flex; align-items:center; gap:14px; }
+    .oficio-page-icon { width:42px; height:42px; background:linear-gradient(135deg,#7c3aed,#4f46e5); border-radius:11px; display:grid; place-items:center; font-size:20px; flex-shrink:0; box-shadow:0 3px 10px rgba(124,58,237,.3); }
+    .oficio-page-left h2 { font-size:17px; font-weight:700; color:var(--fg); margin-bottom:1px; }
+    .oficio-page-left p { font-size:11.5px; color:var(--muted); margin:0; }
+    .oficio-card { display:flex; align-items:stretch; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); margin-bottom:9px; overflow:hidden; cursor:pointer; transition:box-shadow .15s,border-color .15s; }
+    .oficio-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.09); border-color:var(--line-2); }
+    .of-stripe { width:4px; flex-shrink:0; }
+    .of-stripe.peticion    { background:#2563eb; }
+    .of-stripe.oficio      { background:#7c3aed; }
+    .of-stripe.recurso_reposicion { background:#d97706; }
+    .of-stripe.recurso_apelacion  { background:#b07d1a; }
+    .of-stripe.queja       { background:#dc2626; }
+    .of-stripe.memorando   { background:#059669; }
+    .of-stripe.default     { background:#94a3b8; }
+    .oficio-card-body { flex:1; min-width:0; padding:12px 14px; }
+    .oficio-card-top { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+    .of-type-pill { font-size:10px; font-weight:700; letter-spacing:.04em; padding:2px 9px; border-radius:20px; text-transform:uppercase; flex-shrink:0; }
+    .of-type-pill.peticion    { background:rgba(37,99,235,.1);  color:#2563eb; }
+    .of-type-pill.oficio      { background:rgba(124,58,237,.1); color:#7c3aed; }
+    .of-type-pill.recurso_reposicion { background:rgba(217,119,6,.12); color:#d97706; }
+    .of-type-pill.recurso_apelacion  { background:rgba(176,125,26,.12); color:#b07d1a; }
+    .of-type-pill.queja       { background:rgba(220,38,38,.1);  color:#dc2626; }
+    .of-type-pill.memorando   { background:rgba(5,150,105,.1);  color:#059669; }
+    .of-type-pill.default     { background:var(--bg-2); color:var(--muted); }
+    .oficio-card-date { font-size:11px; color:var(--muted); margin-left:auto; flex-shrink:0; }
+    .oficio-card-title { font-size:13.5px; font-weight:600; color:var(--fg); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .oficio-card-meta { display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--muted); }
+    .oficio-card-meta strong { color:var(--fg-2); font-weight:600; }
+    .oficio-del-btn { align-self:center; margin-right:12px; flex-shrink:0; }
     .sb-badge { margin-left:auto; background:var(--warn); color:#fff;
       font-size:10px; font-weight:700; border-radius:99px; padding:2px 7px; min-width:18px; text-align:center; }
     .sb-foot { border-top:1px solid rgba(255,255,255,.08); padding:12px; }
@@ -793,9 +825,18 @@
 
       <!-- Vista de oficios y peticiones -->
       <div id="oficios-view" style="display:none;padding:20px 24px">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
-          <button class="btn" onclick="openOficioModal()" style="background:var(--accent);color:#fff">✉️ Nuevo oficio</button>
-          <button class="btn subtle btn-sm" onclick="loadOficioList()">↻ Refrescar</button>
+        <div class="oficio-page-header">
+          <div class="oficio-page-left">
+            <div class="oficio-page-icon">📋</div>
+            <div>
+              <h2>Oficios y Peticiones</h2>
+              <p>Documentos legales y administrativos redactados con IA</p>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn subtle btn-sm" onclick="loadOficioList()" title="Actualizar lista">↻</button>
+            <button class="btn" onclick="openOficioModal()" style="gap:6px"><span>✉️</span> Nuevo documento</button>
+          </div>
         </div>
         <div id="oficios-list-container">
           <div class="empty-state">Cargando…</div>
@@ -3069,24 +3110,33 @@
           return;
         }
         const _DOC_LABELS_OF = { oficio:"Oficio", peticion:"Petición", recurso_reposicion:"Recurso de Reposición",
-          recurso_apelacion:"Recurso de Apelación", queja:"Queja", memorando:"Memorando" };
-        cont.innerHTML = rows.map(r => `
-          <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="viewOficio('${esc(r.oficio_id)}')">
-            <div style="display:flex;align-items:flex-start;gap:10px">
-              <div style="font-size:22px;line-height:1">✉️</div>
-              <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:14px;margin-bottom:3px">${esc(r.subject || "(sin asunto)")}</div>
-                <div style="font-size:12px;color:var(--muted)">
-                  <span style="font-weight:600;color:var(--fg-2)">${esc(r.entity || "")}</span>
-                  ${r.doc_type ? ` · <span style="color:var(--accent)">${esc(_DOC_LABELS_OF[r.doc_type] || r.doc_type)}</span>` : ""}
-                  ${r.city ? ` · ${esc(r.city)}` : ""}
-                  ${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString("es-EC",{day:"2-digit",month:"short",year:"numeric"})}` : ""}
-                </div>
-                ${r.requester_name ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">Por: ${esc(r.requester_name)}${r.doc_number ? " · Nro. "+esc(r.doc_number) : ""}</div>` : ""}
+          recurso_apelacion:"Recurso de Apelación", queja:"Queja Formal", memorando:"Memorando" };
+        const _DOC_ICONS_OF  = { oficio:"📜", peticion:"📝", recurso_reposicion:"⚖️",
+          recurso_apelacion:"🏛️", queja:"📣", memorando:"📎" };
+        cont.innerHTML = rows.map(r => {
+          const dtype = r.doc_type || "default";
+          const dlabel = _DOC_LABELS_OF[dtype] || dtype;
+          const dicon  = _DOC_ICONS_OF[dtype] || "📋";
+          const dateStr = r.created_at
+            ? new Date(r.created_at).toLocaleDateString("es-EC",{day:"2-digit",month:"short",year:"numeric"})
+            : "";
+          return `
+          <div class="oficio-card" onclick="viewOficio('${esc(r.oficio_id)}')">
+            <div class="of-stripe ${esc(dtype)}"></div>
+            <div class="oficio-card-body">
+              <div class="oficio-card-top">
+                <span class="of-type-pill ${esc(dtype)}">${dicon} ${esc(dlabel)}</span>
+                ${dateStr ? `<span class="oficio-card-date">${dateStr}</span>` : ""}
               </div>
-              <button class="btn ghost btn-sm" onclick="event.stopPropagation();deleteOficio('${esc(r.oficio_id)}')" style="flex-shrink:0;color:var(--err)">🗑</button>
+              <div class="oficio-card-title">${esc(r.subject || "(sin asunto)")}</div>
+              <div class="oficio-card-meta">
+                ${r.entity ? `<span><strong>${esc(r.entity)}</strong>${r.city ? " · "+esc(r.city) : ""}</span>` : ""}
+                ${r.requester_name ? `<span>Por: ${esc(r.requester_name)}${r.doc_number ? " · Nro.&nbsp;"+esc(r.doc_number) : ""}</span>` : ""}
+              </div>
             </div>
-          </div>`).join("");
+            <button class="btn ghost btn-sm oficio-del-btn" onclick="event.stopPropagation();deleteOficio('${esc(r.oficio_id)}')" style="color:var(--err)" title="Eliminar">🗑</button>
+          </div>`;
+        }).join("");
       } catch(e) {
         cont.innerHTML = `<div class="empty-state" style="color:var(--err)">Error: ${esc(e.message)}</div>`;
       }
@@ -3110,6 +3160,31 @@
 
     /* ════════ Boot ════════ */
     initLock();
+
+    /* Auto-restore session on page refresh */
+    (async () => {
+      const t = localStorage.getItem(TOKEN_LS);
+      const m = localStorage.getItem(MASTER_LS);
+      if (t) {
+        try {
+          const r = await fetch("/auth/me", { headers: { "Authorization": "Bearer " + t } });
+          if (r.ok) {
+            authToken = t; currentUser = await r.json();
+            await doUnlock(); return;
+          }
+        } catch {}
+        localStorage.removeItem(TOKEN_LS); localStorage.removeItem(USER_LS);
+      } else if (m) {
+        try {
+          const r = await fetch("/auth/me", { headers: { "X-API-Key": m } });
+          if (r.ok) {
+            masterKey = m; currentUser = await r.json();
+            await doUnlock(); return;
+          }
+        } catch {}
+        localStorage.removeItem(MASTER_LS); localStorage.removeItem(USER_LS);
+      }
+    })();
 
     /* Register service worker for PWA */
     if ("serviceWorker" in navigator) {
