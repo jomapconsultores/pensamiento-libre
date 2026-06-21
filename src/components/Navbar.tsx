@@ -25,11 +25,12 @@ export function Navbar() {
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-3 flex-shrink-0" aria-label="Inicio">
           <Image
-            src="/logo-transparent.png"
+            src="/logo-navbar.png"
             alt="Fundación Pensamiento Libre"
-            width={56}
-            height={56}
+            width={192}
+            height={79}
             priority
+            quality={90}
             className="h-12 w-auto"
           />
           <span className="hidden sm:block font-display font-bold text-brand-navy leading-tight">

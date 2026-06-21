@@ -101,12 +101,13 @@ export function AliadosPreview() {
                 />
                 <div className={`absolute inset-0 bg-gradient-to-br ${p.bg} opacity-60`} />
                 {/* Logo on photo */}
-                <div className="absolute top-4 left-4 w-14 h-14 rounded-xl overflow-hidden bg-white/90 shadow-lg p-1.5">
+                <div className="absolute top-4 left-4 w-14 h-14 rounded-xl overflow-hidden bg-white shadow-lg p-1.5">
                   <Image
                     src={p.logo}
                     alt={p.name}
-                    width={56}
-                    height={56}
+                    width={112}
+                    height={112}
+                    quality={90}
                     className="w-full h-full object-contain"
                   />
                 </div>

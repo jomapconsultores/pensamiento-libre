@@ -134,14 +134,16 @@ export function Hero() {
             <div className="w-60 h-60 bg-brand-sky/10 rounded-full blur-2xl" />
           </div>
 
-          {/* Logo — horizontal version, no animation that delays render */}
+          {/* Logo — horizontal version */}
           <div className="relative z-10">
             <Image
               src="/logo-horizontal.png"
               alt="Fundación Pensamiento Libre"
-              width={560}
-              height={210}
+              width={900}
+              height={368}
               priority
+              quality={90}
+              sizes="(max-width: 640px) 320px, (max-width: 1024px) 480px, 560px"
               className="w-full max-w-xs md:max-w-sm lg:max-w-md h-auto drop-shadow-2xl rounded-2xl"
             />
           </div>

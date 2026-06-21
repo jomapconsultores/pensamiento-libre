@@ -75,8 +75,10 @@ export default function SobreNosotrosPage() {
               <Image
                 src="/logo-horizontal.png"
                 alt="Logo Fundación Pensamiento Libre"
-                width={600}
-                height={225}
+                width={900}
+                height={368}
+                quality={90}
+                sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 600px"
                 className="w-full h-auto"
                 priority
               />

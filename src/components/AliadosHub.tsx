@@ -289,8 +289,9 @@ function PlatformsBar() {
                   <Image
                     src={p.logo}
                     alt={p.label}
-                    width={40}
-                    height={40}
+                    width={80}
+                    height={80}
+                    quality={90}
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -332,8 +333,9 @@ function CompanyCard({ company }: { company: Company }) {
           <Image
             src={company.logo}
             alt={company.name}
-            width={64}
-            height={64}
+            width={128}
+            height={128}
+            quality={90}
             className="w-full h-full object-contain"
           />
         </div>
