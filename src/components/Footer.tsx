@@ -1,65 +1,115 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { SocialLinks } from './SocialLinks';
-import { NewsletterForm } from './NewsletterForm';
+import { FooterContact } from './FooterContact';
 
 export function Footer() {
   return (
     <footer className="bg-brand-navy text-white mt-16">
       <div className="container-page py-12 grid gap-10 md:grid-cols-4">
+        {/* Brand + contact form */}
         <div className="md:col-span-2">
-          <div className="flex items-center gap-3 mb-4">
-            <Image
-              src="/logo-transparent.png"
-              alt="Fundación Pensamiento Libre"
-              width={64}
-              height={64}
-              className="h-16 w-auto"
-            />
-            <div>
-              <p className="font-display text-xl font-bold">Fundación</p>
-              <p className="font-display text-brand-gold-light">Pensamiento Libre</p>
-            </div>
+          <div className="mb-5">
+            <p className="font-display text-2xl font-bold text-white">Fundación</p>
+            <p className="font-display text-brand-gold-light text-lg font-semibold">Pensamiento Libre</p>
           </div>
-          <p className="text-white/70 max-w-md leading-relaxed">
-            Persona jurídica de derecho privado sin fines de lucro. Promovemos el
-            desarrollo humano integral en educación, salud mental y cultura física.
-            Resolución MINEDEC-CZ6-2025-01466-R · Cuenca, Azuay, Ecuador.
+          <p className="text-white/70 max-w-md leading-relaxed text-sm">
+            Persona jurídica de derecho privado sin fines de lucro. Promovemos el desarrollo
+            humano integral en educación, salud mental y cultura física.
+            <br />
+            <span className="text-white/40 text-xs mt-1 block">
+              Resolución MINEDEC-CZ6-2025-01466-R · Cuenca, Azuay, Ecuador.
+            </span>
           </p>
-          <div className="mt-6">
+          <div className="mt-4">
             <SocialLinks />
           </div>
+
+          {/* Contact form */}
           <div className="mt-8 max-w-md">
-            <p className="font-bold text-brand-gold-light mb-3">Recibe inspiración</p>
-            <NewsletterForm />
+            <p className="font-bold text-brand-gold-light mb-1">Conecta con nosotros</p>
+            <p className="text-white/50 text-xs mb-4">
+              Escríbenos directamente — te respondemos a la brevedad.
+            </p>
+            <FooterContact />
           </div>
         </div>
 
+        {/* Navigation */}
         <div>
           <h3 className="font-bold text-brand-gold-light mb-4">Navegación</h3>
           <ul className="space-y-2 text-white/80 text-sm">
-            <li><Link href="/sobre-nosotros" className="hover:text-brand-gold-light transition-colors">Sobre nosotros</Link></li>
-            <li><Link href="/programas" className="hover:text-brand-gold-light transition-colors">Programas</Link></li>
-            <li><Link href="/servicios" className="hover:text-brand-gold-light transition-colors">Servicios</Link></li>
-            <li><Link href="/aliados" className="hover:text-brand-gold-light transition-colors">Aliados</Link></li>
-            <li><Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">CMAJ</Link></li>
-            <li><Link href="/golden-gate" className="hover:text-brand-gold-light transition-colors">Golden Gate</Link></li>
-            <li><Link href="/membresias" className="hover:text-brand-gold-light transition-colors">Membresías</Link></li>
-            <li><Link href="/donar" className="text-brand-gold-light font-semibold hover:text-brand-gold transition-colors">💛 Donar ahora</Link></li>
-            <li><Link href="/contacto" className="hover:text-brand-gold-light transition-colors">Contacto</Link></li>
+            <li>
+              <Link href="/sobre-nosotros" className="hover:text-brand-gold-light transition-colors">
+                Sobre nosotros
+              </Link>
+            </li>
+            <li>
+              <Link href="/programas" className="hover:text-brand-gold-light transition-colors">
+                Programas
+              </Link>
+            </li>
+            <li>
+              <Link href="/servicios" className="hover:text-brand-gold-light transition-colors">
+                Servicios
+              </Link>
+            </li>
+            <li>
+              <Link href="/aliados" className="hover:text-brand-gold-light transition-colors">
+                Aliados
+              </Link>
+            </li>
+            <li>
+              <Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">
+                CMAJ
+              </Link>
+            </li>
+            <li>
+              <Link href="/golden-gate" className="hover:text-brand-gold-light transition-colors">
+                Golden Gate
+              </Link>
+            </li>
+            <li>
+              <Link href="/membresias" className="hover:text-brand-gold-light transition-colors">
+                Membresías
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/donar"
+                className="text-brand-gold-light font-semibold hover:text-brand-gold transition-colors"
+              >
+                💛 Donar ahora
+              </Link>
+            </li>
+            <li>
+              <Link href="/contacto" className="hover:text-brand-gold-light transition-colors">
+                Contacto
+              </Link>
+            </li>
           </ul>
         </div>
 
+        {/* Plataformas aliadas */}
         <div>
           <h3 className="font-bold text-brand-gold-light mb-4">Plataformas aliadas</h3>
           <ul className="space-y-2 text-white/80 text-sm">
             <li>
-              <a href="https://atlas-sistema.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+              <a
+                href="https://atlas-sistema.onrender.com"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="hover:text-brand-gold-light transition-colors"
+              >
                 Atlas Centro de Estudios
               </a>
             </li>
             <li>
-              <a href="https://jomap-sistema.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+              <a
+                href="https://jomap-sistema.onrender.com"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="hover:text-brand-gold-light transition-colors"
+              >
                 CAPSA Consultoría
               </a>
             </li>
@@ -74,18 +124,39 @@ export function Footer() {
               </Link>
             </li>
             <li>
-              <a href="https://tributos-web.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+              <a
+                href="https://tributos-web.onrender.com"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="hover:text-brand-gold-light transition-colors"
+              >
                 Tributos Web
               </a>
             </li>
             <li>
-              <a href="https://calendarios-map.onrender.com" target="_blank" rel="noreferrer noopener" className="hover:text-brand-gold-light transition-colors">
+              <a
+                href="https://calendarios-map.onrender.com"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="hover:text-brand-gold-light transition-colors"
+              >
                 Calendarios MAP
               </a>
             </li>
-            <li className="pt-3">
-              <a href="mailto:jomapconsultores@gmail.com" className="hover:text-brand-gold-light transition-colors">
+            <li className="pt-3 space-y-1">
+              <a
+                href="mailto:jomapconsultores@gmail.com"
+                className="block hover:text-brand-gold-light transition-colors text-xs"
+              >
                 jomapconsultores@gmail.com
+              </a>
+              <a
+                href="https://wa.me/593963511411"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="block hover:text-brand-gold-light transition-colors text-xs"
+              >
+                WhatsApp +593 96 351 1411
               </a>
             </li>
           </ul>
@@ -96,7 +167,10 @@ export function Footer() {
         <div className="container-page py-6 flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-white/60">
           <p>© {new Date().getFullYear()} Fundación Pensamiento Libre. Todos los derechos reservados.</p>
           <p>
-            <Link href="/politica-privacidad" className="hover:text-brand-gold-light transition-colors">
+            <Link
+              href="/politica-privacidad"
+              className="hover:text-brand-gold-light transition-colors"
+            >
               Política de privacidad
             </Link>
             <span className="mx-2">·</span>

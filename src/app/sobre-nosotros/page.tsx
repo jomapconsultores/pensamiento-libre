@@ -32,17 +32,6 @@ const EJES = [
   },
 ];
 
-const DIRECTIVA = [
-  {
-    cargo: 'Presidente',
-    nombre: 'Marco Antonio Posligua San Martín',
-  },
-  {
-    cargo: 'Secretaria / Tesorera',
-    nombre: 'Johanna Maricela Nievecela Lema',
-  },
-];
-
 export default function SobreNosotrosPage() {
   return (
     <>
@@ -139,35 +128,6 @@ export default function SobreNosotrosPage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── DIRECTIVA ── */}
-      <section className="py-16 bg-brand-cream/40">
-        <div className="container-page">
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1 rounded-full bg-brand-gold/10 text-brand-gold text-xs font-bold uppercase tracking-widest mb-4 border border-brand-gold/20">
-              Directiva 2025 – 2029
-            </span>
-            <h2 className="section-title font-display">Quiénes nos lideran</h2>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6 max-w-2xl mx-auto">
-            {DIRECTIVA.map((d) => (
-              <div
-                key={d.cargo}
-                className="bg-white rounded-2xl px-10 py-8 shadow border border-brand-navy/5 text-center flex-1 min-w-[220px]"
-              >
-                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-brand-navy/10 flex items-center justify-center">
-                  <span className="text-2xl">👤</span>
-                </div>
-                <p className="font-display font-bold text-brand-navy text-lg leading-tight">{d.nombre}</p>
-                <p className="text-brand-gold font-semibold text-sm mt-1">{d.cargo}</p>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-brand-navy/40 text-xs mt-8">
-            Registrado mediante Oficio Nro. MINEDEC-CZ6-2026-00029-OF · Período 29/12/2025 — 29/12/2029
-          </p>
         </div>
       </section>
 
