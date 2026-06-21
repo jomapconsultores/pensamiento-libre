@@ -1299,6 +1299,80 @@ def eliminar_oficio(oficio_id: str, p: Principal = Depends(get_principal)):
     return {"ok": True}
 
 
+# ── Migración administrativa ─────────────────────────────────────────────────
+_MIGRATION_SQL = """
+CREATE TABLE IF NOT EXISTS public.oficios (
+    id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+    oficio_id      text        NOT NULL UNIQUE,
+    owner_user_id  uuid        REFERENCES public.users(id) ON DELETE SET NULL,
+    entity         text        NOT NULL,
+    doc_type       text        NOT NULL DEFAULT 'peticion',
+    subject        text        NOT NULL,
+    requester_name text        NOT NULL,
+    requester_id   text        NOT NULL DEFAULT '',
+    requester_role text        NOT NULL DEFAULT '',
+    requester_address text     NOT NULL DEFAULT '',
+    requester_phone   text     NOT NULL DEFAULT '',
+    request_detail text        NOT NULL,
+    extra_legal    text        NOT NULL DEFAULT '',
+    extra_facts    text        NOT NULL DEFAULT '',
+    doc_number     text        NOT NULL DEFAULT '',
+    city           text        NOT NULL DEFAULT 'Cuenca',
+    content        text        NOT NULL DEFAULT '',
+    created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_oficios_owner ON public.oficios(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_oficios_created ON public.oficios(created_at DESC);
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS current_phase text DEFAULT '';
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS progress_steps jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS pause_requested boolean NOT NULL DEFAULT false;
+"""
+
+
+@app.post("/admin/migrate")
+def run_migrations(db_password: str = Query(..., description="Contraseña de BD de Supabase"),
+                   p: Principal = Depends(get_principal)):
+    """Aplica migraciones pendientes (solo admin). Requiere db_password=<contraseña de BD>."""
+    if not p.is_admin:
+        raise HTTPException(403, "Solo administradores.")
+    try:
+        import psycopg2
+    except ImportError:
+        raise HTTPException(500, "psycopg2 no disponible en este entorno.")
+
+    ref = "rzdpfhflkzwylaaplgml"
+    errors = []
+    conn = None
+    for host, port, user in [
+        (f"db.{ref}.supabase.co", 5432, "postgres"),
+        (f"aws-1-us-west-2.pooler.supabase.com", 6543, f"postgres.{ref}"),
+    ]:
+        try:
+            conn = psycopg2.connect(host=host, port=port, dbname="postgres",
+                                    user=user, password=db_password,
+                                    sslmode="require", connect_timeout=10)
+            break
+        except Exception as e:
+            errors.append(f"{host}:{port} → {e}")
+
+    if not conn:
+        raise HTTPException(502, f"No se pudo conectar a la BD: {' | '.join(errors)}")
+
+    try:
+        conn.autocommit = True
+        cur = conn.cursor()
+        for stmt in [s.strip() for s in _MIGRATION_SQL.split(";") if s.strip()]:
+            try:
+                cur.execute(stmt)
+            except Exception as e:
+                errors.append(f"SQL error: {e}")
+        conn.close()
+    except Exception as e:
+        raise HTTPException(500, f"Error aplicando migración: {e}")
+
+    return {"ok": True, "applied": True, "errors": errors or None}
+
+
 # ── Captación activa / Prospección / Clientes ────────────────────────────────
 class BuscarMercadoRequest(BaseModel):
     producto: str = Field(..., min_length=3, description="Producto o servicio a promocionar")
