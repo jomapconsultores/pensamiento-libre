@@ -6,7 +6,8 @@ const programs = [
     title: 'Salud mental comunitaria',
     description:
       'Consultas psicológicas, grupos de apoyo y talleres preventivos accesibles para personas de bajos recursos.',
-    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500&h=280&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-center object-top',
     photoAlt: 'Profesional de salud mental atendiendo a una persona',
     accent: 'bg-brand-sky',
     accentText: 'text-brand-sky',
@@ -16,7 +17,8 @@ const programs = [
     title: 'Educación consciente',
     description:
       'Talleres, conferencias y formación continua en pensamiento crítico, neurodesarrollo y aprendizaje significativo.',
-    photo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=280&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-center',
     photoAlt: 'Estudiantes en un taller de educación consciente',
     accent: 'bg-brand-gold',
     accentText: 'text-brand-gold',
@@ -26,7 +28,8 @@ const programs = [
     title: 'Desarrollo personal',
     description:
       'Coaching, mentoría y programas de transformación para potenciar tu propósito de vida y bienestar integral.',
-    photo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=280&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-center object-top',
     photoAlt: 'Persona en sesión de coaching y desarrollo personal',
     accent: 'bg-brand-green',
     accentText: 'text-brand-green',
@@ -36,7 +39,8 @@ const programs = [
     title: 'Voluntariado social',
     description:
       'Acompañamos a comunidades vulnerables con voluntarios formados que multiplican el impacto en territorio.',
-    photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&h=280&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-center',
     photoAlt: 'Voluntarios trabajando juntos en la comunidad',
     accent: 'bg-brand-navy',
     accentText: 'text-brand-navy',
@@ -66,8 +70,9 @@ export function Programs() {
                   src={p.photo}
                   alt={p.photoAlt}
                   fill
-                  className="object-cover"
+                  className={`object-cover ${p.photoPos}`}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  quality={85}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/70 via-brand-navy/10 to-transparent" />
                 <span className={`absolute bottom-3 left-4 w-2.5 h-2.5 rounded-full ${p.accent} ring-2 ring-white`} />

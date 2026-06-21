@@ -9,7 +9,8 @@ const PARTNERS = [
     name: 'Atlas Centro de Estudios',
     tagline: 'Educación · Psicología · Nivelación',
     logo: '/logos/atlas.png',
-    photo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=320&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-cover object-center',
     photoAlt: 'Estudiantes en clases en Atlas Centro de Estudios',
     bg: 'from-[#1e3a8a] to-[#1e3a6d]',
     accent: '#d4a017',
@@ -19,7 +20,8 @@ const PARTNERS = [
     name: 'CAPSA Consultoría',
     tagline: 'Capacitaciones · Asesoría · Resultados',
     logo: '/logos/capsa.png',
-    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500&h=320&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-cover object-top',
     photoAlt: 'Consultoría profesional CAPSA — asesoría a clientes',
     bg: 'from-[#1a1a1a] to-[#2d2d2d]',
     accent: '#f59e0b',
@@ -29,7 +31,8 @@ const PARTNERS = [
     name: 'CMAJ Asociados',
     tagline: 'Tributos · Firma Electrónica · Consultoría',
     logo: '/logos/cmaj.png',
-    photo: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=320&fit=crop&q=80',
+    photo: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=600&q=85',
+    photoPos: 'object-cover object-center',
     photoAlt: 'Asesor tributario trabajando con cliente en CMAJ Asociados',
     bg: 'from-[#1e2d40] to-[#2d3e56]',
     accent: '#c9a84c',
@@ -96,8 +99,9 @@ export function AliadosPreview() {
                   src={p.photo}
                   alt={p.photoAlt}
                   fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  className={`${p.photoPos} group-hover:scale-105 transition-transform duration-500`}
                   sizes="(max-width: 768px) 100vw, 33vw"
+                  quality={85}
                 />
                 <div className={`absolute inset-0 bg-gradient-to-br ${p.bg} opacity-60`} />
                 {/* Logo on photo */}

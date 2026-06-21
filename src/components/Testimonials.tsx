@@ -61,8 +61,9 @@ export function Testimonials() {
                   src={t.photo}
                   alt={t.name}
                   fill
-                  className="object-cover object-top"
+                  className="object-cover object-[center_15%]"
                   sizes="(max-width: 768px) 100vw, 33vw"
+                  quality={85}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/80 via-brand-navy/20 to-transparent" />
                 <span className={`absolute bottom-3 left-4 text-xs font-semibold px-2.5 py-1 rounded-full ${t.metricColor}`}>

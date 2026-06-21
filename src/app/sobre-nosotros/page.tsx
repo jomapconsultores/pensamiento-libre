@@ -70,27 +70,28 @@ export default function SobreNosotrosPage() {
             </p>
           </div>
           <div className="relative flex flex-col items-center gap-6">
-            {/* Horizontal logo */}
-            <div className="relative w-full rounded-3xl overflow-hidden bg-white shadow-2xl p-8 border border-brand-navy/8">
+            {/* Square logo — transparent, centered on light bg card */}
+            <div className="relative w-full rounded-3xl bg-brand-cream/60 shadow-xl border border-brand-navy/8 p-10 flex items-center justify-center">
               <Image
-                src="/logo-horizontal.png"
+                src="/logo-hero.png"
                 alt="Logo Fundación Pensamiento Libre"
                 width={900}
-                height={368}
+                height={873}
                 quality={90}
-                sizes="(max-width: 640px) 90vw, (max-width: 1024px) 50vw, 600px"
-                className="w-full h-auto"
+                sizes="(max-width: 640px) 70vw, (max-width: 1024px) 40vw, 380px"
+                className="w-full max-w-xs h-auto"
                 priority
               />
             </div>
-            {/* Community photo below */}
+            {/* Community photo */}
             <div className="relative w-full rounded-2xl overflow-hidden shadow-xl aspect-video">
               <Image
-                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=700&h=400&fit=crop&q=80"
+                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=700&q=85"
                 alt="Comunidad Fundación Pensamiento Libre"
                 fill
-                className="object-cover"
+                className="object-cover object-[center_30%]"
                 sizes="(max-width: 1024px) 100vw, 50vw"
+                quality={85}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/60 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4">

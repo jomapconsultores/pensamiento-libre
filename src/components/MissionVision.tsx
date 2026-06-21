@@ -104,11 +104,12 @@ export function MissionVision() {
         {/* Community photo banner */}
         <div className="mt-16 relative rounded-3xl overflow-hidden h-64 md:h-80 shadow-2xl">
           <Image
-            src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=500&fit=crop&q=80"
+            src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1400&q=85"
             alt="Comunidad Fundación Pensamiento Libre — personas unidas por el desarrollo humano"
             fill
-            className="object-cover"
+            className="object-cover object-[center_30%]"
             sizes="(max-width: 1280px) 100vw, 1280px"
+            quality={85}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-brand-navy/80 via-brand-navy/40 to-transparent" />
           <div className="absolute inset-0 flex items-center px-10 md:px-16">

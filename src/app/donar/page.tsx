@@ -178,8 +178,9 @@ export default function DonarPage() {
                     src={story.photo}
                     alt={story.author}
                     fill
-                    className="object-cover object-top"
+                    className="object-cover object-[center_15%]"
                     sizes="(max-width: 768px) 100vw, 33vw"
+                    quality={85}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/60 to-transparent" />
                   <span className={`absolute bottom-3 left-4 text-xs font-semibold px-2.5 py-1 rounded-full ${story.programColor}`}>
