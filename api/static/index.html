@@ -2092,16 +2092,32 @@
 
     function renderEvidence(sources) {
       if (!sources || !sources.length) return "";
+      const _vBadge = v => {
+        switch((v||"inferido").toLowerCase()) {
+          case "verificado":          return '<span class="pill approved" title="URL comprobada HTTP 200">✅ URL activa</span>';
+          case "restringido":         return '<span class="pill conditional" title="La URL existe pero requiere acceso/login">🔒 acceso restringido</span>';
+          case "url_muerta":          return '<span class="pill failed" title="La URL devuelve 404 o no existe">❌ URL muerta</span>';
+          case "no_responde":         return '<span class="pill failed" title="No se pudo conectar al servidor">⚠️ no responde</span>';
+          case "no_verificado":       return '<span class="pill failed" title="No fue posible verificar">⚠️ no verificado</span>';
+          default:                    return '<span class="pill conditional" title="No se comprobó en tiempo real">🔗 inferido</span>';
+        }
+      };
       const items = sources.map(s => {
-        const v = (s.verification || "inferido").toLowerCase();
-        const badge = v==="verificado" ? '<span class="pill approved">verificado</span>' : v==="no_verificado" ? '<span class="pill failed">no verificado</span>' : '<span class="pill conditional">inferido</span>';
+        const badge = _vBadge(s.verification);
+        const deadUrl = s.verification === "url_muerta" || s.verification === "no_responde";
         const link = s.source_url
-          ? `${s.source_title ? `<div style="font-size:12px;color:var(--fg-2);margin-bottom:2px">${esc(s.source_title)}</div>` : ""}<a href="${esc(s.source_url)}" target="_blank" rel="noopener" style="font-size:12px;word-break:break-all;user-select:all">${esc(s.source_url)}</a>`
-          : esc(s.source_title || "(sin fuente)");
+          ? `${s.source_title ? `<div style="font-size:12px;color:var(--fg-2);margin-bottom:2px">${esc(s.source_title)}</div>` : ""}` +
+            (deadUrl
+              ? `<span style="font-size:12px;color:var(--err);word-break:break-all;text-decoration:line-through" title="Esta URL no respondió">${esc(s.source_url)}</span>`
+              : `<a href="${esc(s.source_url)}" target="_blank" rel="noopener" style="font-size:12px;word-break:break-all;user-select:all">${esc(s.source_url)}</a>`)
+          : `<span style="color:var(--muted);font-size:12px">${esc(s.source_title || "(sin fuente)")}</span>`;
         const quote = s.source_quote ? `<div class="quote">"${esc(s.source_quote)}"</div>` : "";
         return `<div class="evid-item"><div class="claim">${esc(s.claim || "(claim sin texto)")} ${badge}</div><div class="src">${link}</div>${quote}</div>`;
       }).join("");
-      return `<h3>Evidencias citadas (${sources.length})</h3><div class="evid">${items}</div>`;
+      const nOk = sources.filter(s => s.verification === "verificado").length;
+      const nDead = sources.filter(s => s.verification === "url_muerta" || s.verification === "no_responde").length;
+      const summary = `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">✅ ${nOk} URL activa${nOk!==1?"s":""} · ❌ ${nDead} URL${nDead!==1?"s":""} sin respuesta · ${sources.length} total</div>`;
+      return `<h3>Evidencias citadas (${sources.length})</h3>${summary}<div class="evid">${items}</div>`;
     }
     function renderNoGo(d) {
       const gng = d.go_no_go;
@@ -2159,15 +2175,19 @@
         strengthsArr.map(s => `<li style="color:var(--fg-2);font-size:13px">${esc(typeof s === "string" ? s : (s.description||s.strength||JSON.stringify(s)))}</li>`).join("")
       }</ul>` : "";
 
-      // Verification links
+      // Verification links — solo activas o restringidas (las muertas se muestran tachadas)
+      const _deadStatus = s => s.verification === "url_muerta" || s.verification === "no_responde";
       const linkItems = [];
-      if (d.funder_url) linkItems.push({ url: d.funder_url, label: d.funder ? `Sitio oficial de ${d.funder}` : "Sitio oficial del financiador" });
+      if (d.funder_url) linkItems.push({ url: d.funder_url, label: d.funder ? `Sitio oficial de ${d.funder}` : "Sitio oficial del financiador", dead: false });
       (d.evidence_sources || []).forEach(s => {
-        if (s.source_url && s.verification !== "verificado")
-          linkItems.push({ url: s.source_url, label: s.source_title || s.source_url });
+        if (s.source_url)
+          linkItems.push({ url: s.source_url, label: s.source_title || s.source_url, dead: _deadStatus(s) });
       });
       const linksHtml = linkItems.length ? `<div style="margin:10px 0 4px;font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Verificar directamente</div><div style="display:flex;flex-direction:column;gap:8px">${
-        linkItems.map(l => `<div><div style="font-size:12px;color:var(--fg-2);margin-bottom:2px">↗ ${esc(l.label)}</div><a href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);word-break:break-all;user-select:all">${esc(l.url)}</a></div>`).join("")
+        linkItems.map(l => l.dead
+          ? `<div><div style="font-size:12px;color:var(--muted);margin-bottom:2px">❌ ${esc(l.label)} <span style="font-size:10px">(URL no responde)</span></div><span style="font-size:12px;color:var(--err);word-break:break-all;text-decoration:line-through">${esc(l.url)}</span></div>`
+          : `<div><div style="font-size:12px;color:var(--fg-2);margin-bottom:2px">↗ ${esc(l.label)}</div><a href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);word-break:break-all;user-select:all">${esc(l.url)}</a></div>`
+        ).join("")
       }</div>` : "";
 
       const actionsHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">

@@ -12,6 +12,7 @@ class FunderInfo:
     language: str       # idioma requerido de la propuesta
     sector: str
     country_focus: str
+    url_status: str = ""  # resultado de verificación HTTP: activo|acceso_restringido|url_muerta|no_responde
 
 
 @dataclass

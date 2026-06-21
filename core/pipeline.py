@@ -312,6 +312,31 @@ def run_pipeline(
                 session.brief = classifier.analysis_to_brief(analysis, resolved_type)
             else:
                 session.brief = researcher.build_brief(session, resolved_type, api_key)
+
+            # ── VERIFICACIÓN FEHACIENTE DE URLS ──────────────────────────────
+            # Comprueba HTTP real de cada fuente citada y del funder_url.
+            # No bloquea el pipeline si falla: es best-effort.
+            try:
+                from utils.url_verifier import enrich_evidence_sources, verify_single
+                if session.analysis and session.analysis.evidence_sources:
+                    session.analysis.evidence_sources = enrich_evidence_sources(
+                        session.analysis.evidence_sources)
+                if session.analysis and getattr(session.analysis, "funder", None):
+                    funder = session.analysis.funder
+                    if funder and getattr(funder, "url", None):
+                        funder_status = verify_single(funder.url)
+                        session.analysis.funder.url_status = funder_status
+                        if funder_status not in ("activo", "acceso_restringido"):
+                            session.analysis.funder.url = None  # no mostrar URL muerta
+                n_verified = sum(
+                    1 for s in (session.analysis.evidence_sources or [])
+                    if s.get("verification") == "verificado")
+                _log(session_id, "fase1",
+                     f"URLs verificadas: {n_verified}/{len(session.analysis.evidence_sources or [])} activas",
+                     "🔗", "done")
+            except Exception:
+                pass  # verificación es best-effort
+
             _log(session_id, "fase1", f"Investigación completada{cycle_label}", "🌐", "done",
                  f"Viabilidad: {getattr(session.analysis, 'viability_score', '—')}/100" if session.analysis else "")
 
