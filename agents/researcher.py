@@ -2,16 +2,17 @@
 AGENTE 1' — INVESTIGADOR WEB (proveedor-agnóstico, NO-Claude)
 ─────────────────────────────────────────────────────────────
 Hace la búsqueda en web y la investigación que antes hacía Claude, pero con una
-IA constructora (por defecto DeepSeek, configurable con ROLE_RESEARCH).
+IA constructora (por defecto Mistral, configurable con ROLE_RESEARCH).
 
 Como Mistral/Codestral/DeepSeek exponen una API tipo chat/completions sin el
 tool-use propio del SDK de Anthropic, la búsqueda se orquesta en código:
-  1) La IA propone consultas dirigidas (o se usa el paquete de queries base).
-  2) `deep_search` (DuckDuckGo, GRATIS) ejecuta las queries y DESCARGA páginas reales.
-  3) La IA lee esa evidencia y produce el JSON de análisis / brief.
+  1) `deep_search` (DuckDuckGo, GRATIS) ejecuta las queries y DESCARGA páginas reales.
+  2) La evidencia se entrega como texto al LLM.
+  3) El LLM lee esa evidencia y produce el JSON de análisis / brief.
 
-Reutiliza el esquema y el system-prompt de agents/analyst.py para mantener
-idéntico el formato que consumen el redactor y el revisor.
+IMPORTANTE: usa RESEARCHER_SYSTEM_PROMPT en lugar de analyst.SYSTEM_PROMPT para
+evitar que los LLMs no-Claude intenten "llamar herramientas" que no existen en
+esta ruta de API (el tool-use es exclusivo del SDK de Anthropic).
 """
 from __future__ import annotations
 
@@ -29,6 +30,117 @@ from tools.search import (
 from config import (
     MAX_TOKENS_ANALYST, SEARCH_FETCH_PAGES, VIABILITY_THRESHOLD,
 )
+
+# ── System prompt para LLMs no-Claude ────────────────────────────────────────
+# No menciona herramientas (deep_search/fetch_page/web_search) porque este
+# proveedor recibe la evidencia ya recolectada como texto, no a través de
+# tool-use. Usar analyst.SYSTEM_PROMPT aquí confunde a Mistral/Codestral y
+# los hace intentar "llamar herramientas" en vez de devolver el JSON pedido.
+RESEARCHER_SYSTEM_PROMPT = """
+Eres el consultor de financiamiento internacional no reembolsable de mayor calibre en América
+Latina: más de 30 años de carrera dedicados exclusivamente a Ecuador y la región, con más de 340
+propuestas ganadoras por un valor total superior a $850 millones USD.
+
+Tu tarea es analizar la evidencia de búsqueda web que ya fue recolectada y entregada a continuación,
+y producir un análisis de viabilidad riguroso con el JSON exacto que se te pide.
+
+CONTEXTO ECUADOR:
+- Constitución 2008: arts. 275-284 (régimen de desarrollo), arts. 395-415 (derechos naturaleza)
+- Plan Nacional de Desarrollo vigente (Ejes: Derechos, Economía, Soberanía)
+- Ecuador: ODS prioritarios 1, 2, 4, 6, 8, 13, 15 — firmó Agenda 2030
+- SENESCYT (cooperación técnica), MAATE (GEF/GCF), elegible para BID/CAF/BM/PNUD/casi toda bilateral
+
+REGLAS DE RIGOR (NO NEGOCIABLES):
+1. Usa ÚNICAMENTE los datos de la evidencia entregada. No inventes URLs ni fechas.
+2. Cada dato concreto debe estar respaldado por una URL real presente en la evidencia.
+3. Si un dato no aparece en la evidencia, márcalo como "no verificado".
+4. Nunca inventes fechas límite — escribe "A determinar" si no aparece en la evidencia.
+5. Sin fuentes verificables → declara CONDITIONAL o NO-GO con explicación.
+
+Responde ÚNICAMENTE con el JSON pedido. Sin texto adicional antes ni después del JSON.
+Sin bloque de código Markdown, sin comentarios, sin texto extra.
+"""
+
+# JSON schema idéntico al de analyst._build_analysis_prompt pero sin "usa web_search"
+_ANALYSIS_JSON_SCHEMA = """{
+  "viable": true/false,
+  "go_no_go": "GO" | "NO-GO" | "CONDITIONAL",
+  "viability_score": <número 0-100>,
+  "winning_probability": <número 0-100>,
+  "project_title": "<título mejorado del proyecto>",
+  "funder": {
+    "name": "<financiador más adecuado>",
+    "type": "<multilateral|bilateral|UN|EU|fundacion|nacional>",
+    "url": "<URL convocatoria o web del financiador>",
+    "deadline": "<fecha límite EXACTA — ISO YYYY-MM-DD (ej: 2026-09-30) o 'A determinar'>",
+    "amount_range": "<rango típico de montos>",
+    "language": "<idioma requerido>",
+    "sector": "<sector>",
+    "country_focus": "<países elegibles>"
+  },
+  "sector": "<sector principal>",
+  "total_amount": "<monto sugerido a solicitar>",
+  "duration_months": <meses recomendados>,
+  "beneficiaries": "<beneficiarios directos e indirectos>",
+  "language": "<idioma de la propuesta>",
+  "ecuador_alignment": {
+    "legal_framework": "<leyes ecuatorianas aplicables>",
+    "plan_nacional": "<alineación Plan Nacional>",
+    "ods_aligned": ["ODS X", "ODS Y"],
+    "institutional_capacity": "<evaluación capacidad>",
+    "national_priority": true/false
+  },
+  "strengths": ["<fortaleza 1>", "<fortaleza 2>", "<fortaleza 3>"],
+  "risks": ["<riesgo 1>", "<riesgo 2>"],
+  "critical_success_factors": ["<factor 1>", "<factor 2>"],
+  "comparable_projects": ["<referencia 1>", "<referencia 2>"],
+  "format_requirements": {
+    "sections": ["Resumen ejecutivo", "Antecedentes", "Justificación",
+                 "Objetivos", "Metodología", "Marco lógico", "Presupuesto",
+                 "Sostenibilidad", "Equipo", "Anexos"],
+    "max_pages": null,
+    "font_size": "12pt",
+    "language": "<idioma>",
+    "requires_excel_budget": true/false,
+    "budget_template": "<plantilla exigida o null>",
+    "special_requirements": "<requisitos especiales>"
+  },
+  "national_guidelines": ["<lineamiento nacional Ecuador 1>"],
+  "international_guidelines": ["<lineamiento del financiador 1>"],
+  "key_requirements": ["<requisito 1>"],
+  "differentiators": ["<diferenciador 1>"],
+  "recommendations": "<instrucciones detalladas para el redactor, mínimo 200 palabras>",
+  "raw_analysis": "<análisis completo en prosa, mínimo 400 palabras>",
+  "evidence_sources": [
+    {
+      "claim": "<dato concreto verificado>",
+      "source_url": "<URL exacta>",
+      "source_title": "<título de la página>",
+      "source_quote": "<fragmento textual breve que respalda el claim>",
+      "verification": "verificado|inferido|no_verificado"
+    }
+  ],
+  "feasibility_breakdown": {
+    "funder_match":           {"score": <0-100>, "reason": "<por qué el tema encaja>"},
+    "geographic_eligibility": {"score": <0-100>, "reason": "<Ecuador elegible?>"},
+    "deadline_feasibility":   {"score": <0-100>, "reason": "<tiempo suficiente?>"},
+    "institutional_fit":      {"score": <0-100>, "reason": "<perfil del proponente>"},
+    "budget_fit":             {"score": <0-100>, "reason": "<monto en rango del financiador>"}
+  }
+}"""
+
+
+def _build_researcher_prompt(document: str) -> str:
+    """Prompt para LLMs no-Claude: la evidencia ya viene incluida, sin tool-use."""
+    return (
+        "La evidencia de búsqueda web ya fue recolectada y está incluida a continuación.\n"
+        "Analiza EXCLUSIVAMENTE esa evidencia para producir el análisis de viabilidad.\n"
+        "No intentes buscar más información — todo lo que necesitas está abajo.\n\n"
+        "---\n" + document + "\n---\n\n"
+        "Con base ÚNICAMENTE en la evidencia anterior, responde con este JSON exacto "
+        "(sin texto extra, sin Markdown, sin comentarios):\n\n"
+        + _ANALYSIS_JSON_SCHEMA
+    )
 
 
 # ── Utilidades ───────────────────────────────────────────────────────────────
@@ -168,23 +280,22 @@ def run(session: ProjectSession, api_key: str | None = None,
         f"{evidence}"
         f"{_support_block(session)}"
         f"{empresas_block}\n\n"
-        "INSTRUCCIÓN: NO inventes datos. Usa SOLO la evidencia de arriba; cada dato "
+        "REGLA: NO inventes datos. Usa SOLO la evidencia de arriba; cada dato "
         "concreto (financiador, deadline, monto, elegibilidad, criterios) debe estar "
         "respaldado por una URL real presente en la evidencia. Si un dato no aparece, "
         "márcalo como 'no verificado' y baja viability_score en consecuencia.\n"
         "Al identificar la organización ejecutora/proponente, usa los datos REALES de "
         "la sección ORGANIZACIONES E INDIVIDUOS DISPONIBLES (si existe arriba)."
     )
-    prompt = analyst._build_analysis_prompt(document)
+    # RESEARCHER_SYSTEM_PROMPT es el correcto aquí: no menciona herramientas de tool-use
+    # (deep_search/fetch_page/web_search) que confunden a Mistral/Codestral/DeepSeek.
+    prompt = _build_researcher_prompt(document)
 
-    # Retry: si el JSON parse falla tras el primer intento (respuesta no-JSON del proveedor),
-    # complete_builder ya intentó la cadena completa; aquí damos un segundo intento con
-    # temperatura ligeramente mayor para evitar que el modelo repita la misma respuesta vacía.
     last_err: Exception | None = None
     for attempt in range(2):
         try:
             raw, used = llm.complete_builder(
-                provider, system=analyst.SYSTEM_PROMPT, prompt=prompt,
+                provider, system=RESEARCHER_SYSTEM_PROMPT, prompt=prompt,
                 max_tokens=MAX_TOKENS_ANALYST, anthropic_key=api_key,
                 temperature=0.3 + attempt * 0.15)
             data = analyst._parse_result(raw)
