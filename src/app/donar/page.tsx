@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { DonationTabs } from '@/components/DonationTabs';
 
@@ -17,22 +18,31 @@ const STATS = [
 
 const IMPACT_STORIES = [
   {
-    emoji: '🧠',
+    photo: 'https://randomuser.me/api/portraits/women/22.jpg',
+    program: 'Salud Mental',
+    programColor: 'bg-brand-sky/15 text-brand-sky',
     quote:
       '"Gracias al programa psicológico pude superar la ansiedad que me tenía paralizada. Hoy vivo con libertad y acompaño a otros."',
-    author: 'María F. — beneficiaria del programa de salud mental',
+    author: 'María F.',
+    role: 'Beneficiaria — programa de salud mental',
   },
   {
-    emoji: '📚',
+    photo: 'https://randomuser.me/api/portraits/men/15.jpg',
+    program: 'Becas Educativas',
+    programColor: 'bg-brand-gold/15 text-brand-gold',
     quote:
       '"La beca de la Fundación me permitió terminar mis estudios cuando pensé que no podía. Hoy tengo trabajo y una carrera."',
-    author: 'Carlos M. — beneficiario de beca estudiantil',
+    author: 'Carlos M.',
+    role: 'Beneficiario — beca estudiantil',
   },
   {
-    emoji: '💙',
+    photo: 'https://randomuser.me/api/portraits/women/56.jpg',
+    program: 'Talleres',
+    programColor: 'bg-brand-green/15 text-brand-green',
     quote:
       '"Los talleres de inteligencia emocional cambiaron la forma en que me relaciono con mi familia y conmigo misma."',
-    author: 'Ana L. — participante de talleres',
+    author: 'Ana L.',
+    role: 'Participante de talleres comunitarios',
   },
 ];
 
@@ -160,15 +170,36 @@ export default function DonarPage() {
             {IMPACT_STORIES.map((story, i) => (
               <blockquote
                 key={i}
-                className="bg-white rounded-2xl p-8 shadow-md border border-brand-navy/5 hover:shadow-xl transition-shadow"
+                className="bg-white rounded-2xl shadow-md border border-brand-navy/5 hover:shadow-xl transition-shadow overflow-hidden flex flex-col"
               >
-                <div className="text-3xl mb-4">{story.emoji}</div>
-                <p className="text-brand-navy/80 leading-relaxed mb-6 italic text-sm">
-                  {story.quote}
-                </p>
-                <footer className="text-xs font-semibold text-brand-gold border-t border-brand-navy/8 pt-4">
-                  {story.author}
-                </footer>
+                {/* Photo */}
+                <div className="relative h-44 flex-shrink-0">
+                  <Image
+                    src={story.photo}
+                    alt={story.author}
+                    fill
+                    className="object-cover object-top"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/60 to-transparent" />
+                  <span className={`absolute bottom-3 left-4 text-xs font-semibold px-2.5 py-1 rounded-full ${story.programColor}`}>
+                    {story.program}
+                  </span>
+                </div>
+                <div className="p-6 flex flex-col flex-1">
+                  <p className="text-brand-navy/80 leading-relaxed mb-5 italic text-sm flex-1">
+                    {story.quote}
+                  </p>
+                  <footer className="border-t border-brand-navy/8 pt-4 flex items-center gap-3">
+                    <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 border-2 border-brand-gold/30">
+                      <Image src={story.photo} alt={story.author} fill className="object-cover" sizes="36px" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-brand-navy">{story.author}</p>
+                      <p className="text-xs text-brand-navy/50">{story.role}</p>
+                    </div>
+                  </footer>
+                </div>
               </blockquote>
             ))}
           </div>

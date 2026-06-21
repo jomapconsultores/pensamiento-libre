@@ -70,14 +70,21 @@ export default function SobreNosotrosPage() {
             </p>
           </div>
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-brand-sky/20 to-brand-gold/20 rounded-3xl blur-2xl" />
-            <Image
-              src="/logo.png"
-              alt="Logo Fundación Pensamiento Libre"
-              width={500}
-              height={500}
-              className="relative w-full max-w-md mx-auto"
-            />
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+              <Image
+                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=700&h=525&fit=crop&q=80"
+                alt="Equipo Fundación Pensamiento Libre — personas trabajando juntas por el desarrollo humano"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/50 via-transparent to-transparent" />
+              <div className="absolute bottom-5 left-5 right-5">
+                <span className="inline-block px-3 py-1.5 rounded-full bg-brand-gold text-brand-navy text-xs font-bold">
+                  Personería jurídica · Ministerio de Educación 2025
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

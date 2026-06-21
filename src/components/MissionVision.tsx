@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 const VALUES = [
@@ -100,11 +101,32 @@ export function MissionVision() {
           </ul>
         </div>
 
-        {/* CTA */}
-        <div className="mt-12 text-center">
-          <Link href="/sobre-nosotros" className="btn-outline">
-            Conocer nuestra historia
-          </Link>
+        {/* Community photo banner */}
+        <div className="mt-16 relative rounded-3xl overflow-hidden h-64 md:h-80 shadow-2xl">
+          <Image
+            src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=500&fit=crop&q=80"
+            alt="Comunidad Fundación Pensamiento Libre — personas unidas por el desarrollo humano"
+            fill
+            className="object-cover"
+            sizes="(max-width: 1280px) 100vw, 1280px"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-brand-navy/80 via-brand-navy/40 to-transparent" />
+          <div className="absolute inset-0 flex items-center px-10 md:px-16">
+            <div className="max-w-lg">
+              <p className="text-brand-gold-light text-xs font-bold uppercase tracking-widest mb-3">
+                Juntos somos más
+              </p>
+              <h3 className="text-2xl md:text-3xl font-display font-bold text-white leading-snug">
+                Más de 2.500 personas ya<br className="hidden md:block" /> forman parte del cambio.
+              </h3>
+              <Link href="/sobre-nosotros" className="mt-6 inline-flex items-center gap-2 text-white/80 hover:text-white font-semibold text-sm transition-colors">
+                Conocer nuestra historia
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12h14m-6-6l6 6-6 6" />
+                </svg>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </section>

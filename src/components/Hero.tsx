@@ -39,11 +39,15 @@ export function Hero() {
         <div>
           {/* Social proof pill */}
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/10 border border-white/20 mb-6 backdrop-blur-sm">
-            <div className="flex -space-x-1.5">
-              {['🧑‍🎓', '👩‍💼', '👨‍🏫'].map((e, i) => (
-                <span key={i} className="w-6 h-6 rounded-full bg-brand-gold/30 border border-white/30 flex items-center justify-center text-xs">
-                  {e}
-                </span>
+            <div className="flex -space-x-2">
+              {[
+                'https://randomuser.me/api/portraits/women/44.jpg',
+                'https://randomuser.me/api/portraits/men/32.jpg',
+                'https://randomuser.me/api/portraits/women/68.jpg',
+              ].map((src, i) => (
+                <div key={i} className="relative w-7 h-7 rounded-full overflow-hidden border-2 border-white/30 flex-shrink-0">
+                  <Image src={src} alt="Beneficiario" fill className="object-cover" sizes="28px" />
+                </div>
               ))}
             </div>
             <span className="text-white/90 text-sm font-medium">
