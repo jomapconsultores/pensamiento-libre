@@ -177,13 +177,24 @@ def run(session: ProjectSession, api_key: str | None = None,
     )
     prompt = analyst._build_analysis_prompt(document)
 
-    raw, used = llm.complete_builder(
-        provider, system=analyst.SYSTEM_PROMPT, prompt=prompt,
-        max_tokens=MAX_TOKENS_ANALYST, anthropic_key=api_key, temperature=0.3)
-    data = analyst._parse_result(raw)
-    result = analyst.result_from_data(data, raw)
-    session.builder_log.append({"phase": "research", "requested": provider, "used": used})
-    return result
+    # Retry: si el JSON parse falla tras el primer intento (respuesta no-JSON del proveedor),
+    # complete_builder ya intentó la cadena completa; aquí damos un segundo intento con
+    # temperatura ligeramente mayor para evitar que el modelo repita la misma respuesta vacía.
+    last_err: Exception | None = None
+    for attempt in range(2):
+        try:
+            raw, used = llm.complete_builder(
+                provider, system=analyst.SYSTEM_PROMPT, prompt=prompt,
+                max_tokens=MAX_TOKENS_ANALYST, anthropic_key=api_key,
+                temperature=0.3 + attempt * 0.15)
+            data = analyst._parse_result(raw)
+            result = analyst.result_from_data(data, raw)
+            session.builder_log.append({"phase": "research", "requested": provider, "used": used})
+            return result
+        except Exception as e:
+            last_err = e
+            continue
+    raise last_err
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -263,10 +274,21 @@ Con base en la evidencia anterior, responde ÚNICAMENTE con este JSON (sin texto
   "source_notes": "<fuentes y referencias reales encontradas, con datos verificables>"
 }}
 """
-    raw, used = llm.complete_builder(
-        provider, system=_BRIEF_SYSTEM, prompt=prompt,
-        max_tokens=MAX_TOKENS_ANALYST, anthropic_key=api_key, temperature=0.3)
-    data = _parse_json(raw)
+    last_err2: Exception | None = None
+    raw, used, data = "", "", {}
+    for _att in range(2):
+        try:
+            raw, used = llm.complete_builder(
+                provider, system=_BRIEF_SYSTEM, prompt=prompt,
+                max_tokens=MAX_TOKENS_ANALYST, anthropic_key=api_key,
+                temperature=0.3 + _att * 0.15)
+            data = _parse_json(raw)
+            last_err2 = None
+            break
+        except Exception as e:
+            last_err2 = e
+    if last_err2:
+        raise last_err2
 
     fmt = FormatSpec.from_dict({**default_fmt, **(data.get("format_spec") or {})})
     session.builder_log.append({"phase": "research_brief", "requested": provider, "used": used})

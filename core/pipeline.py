@@ -299,19 +299,27 @@ def run_pipeline(
             # ── FASE 1 — INVESTIGACIÓN WEB + ANÁLISIS (IA investigadora) ──────
             _log(session_id, "fase1", f"Investigando fuentes y analizando{cycle_label}",
                  "🌐", "running", "Mistral busca convocatorias y verifica elegibilidad")
-            if doc_type.is_proposal:
-                analysis = researcher.run(session, api_key, seed=seed_opportunity)
-                session.analysis = analysis
-                if not analysis.viable:
-                    _log(session_id, "fase1", "Análisis: oportunidad no viable", "🚫", "done")
-                    session.approved = False
-                    session.inconclusive_reason = "Análisis de viabilidad: NO-GO."
-                    save_session(session)
-                    _mark_completed(session_id, approved=False)
-                    return session
-                session.brief = classifier.analysis_to_brief(analysis, resolved_type)
-            else:
-                session.brief = researcher.build_brief(session, resolved_type, api_key)
+            try:
+                if doc_type.is_proposal:
+                    analysis = researcher.run(session, api_key, seed=seed_opportunity)
+                    session.analysis = analysis
+                    if not analysis.viable:
+                        _log(session_id, "fase1", "Análisis: oportunidad no viable", "🚫", "done")
+                        session.approved = False
+                        session.inconclusive_reason = "Análisis de viabilidad: NO-GO."
+                        save_session(session)
+                        _mark_completed(session_id, approved=False)
+                        return session
+                    session.brief = classifier.analysis_to_brief(analysis, resolved_type)
+                else:
+                    session.brief = researcher.build_brief(session, resolved_type, api_key)
+            except Exception as research_err:
+                _log(session_id, "fase1",
+                     f"Error en investigación (ciclo {attempt}) — reintentando",
+                     "⚠️", "warning", str(research_err)[:200])
+                if attempt >= MAX_PIPELINE_RESTARTS:
+                    raise
+                continue  # reintenta el ciclo completo
 
             # ── VERIFICACIÓN FEHACIENTE DE URLS ──────────────────────────────
             # Comprueba HTTP real de cada fuente citada y del funder_url.

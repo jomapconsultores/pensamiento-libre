@@ -73,7 +73,11 @@ def _post_openai(base_url: str, model: str, api_key: str, system: str,
             choices = data.get("choices") or []
             if not choices:
                 raise LLMError(f"Respuesta sin 'choices' desde {url}: {str(data)[:300]}")
-            return choices[0]["message"]["content"] or ""
+            content = choices[0]["message"]["content"]
+            if not content:
+                finish = choices[0].get("finish_reason", "?")
+                raise LLMError(f"Contenido vacío desde {url} (finish_reason={finish!r})")
+            return content
         except urllib.error.HTTPError as e:
             detail = e.read().decode("utf-8", "replace")[:500]
             last_err = LLMError(f"HTTP {e.code} desde {url}: {detail}")

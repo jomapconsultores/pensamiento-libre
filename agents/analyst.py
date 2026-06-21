@@ -346,7 +346,7 @@ def _run_agent_loop(client: anthropic.Anthropic, prompt: str) -> str:
         else:
             break
 
-    return ""
+    raise RuntimeError("Claude completó el loop de herramientas sin devolver texto final (respuesta vacía)")
 
 
 def _parse_result(raw: str) -> dict:
