@@ -354,8 +354,8 @@ def _parse_result(raw: str) -> dict:
     try:
         return robust_json_loads(raw)
     except Exception as e:
-        preview = repr(raw[:200]) if raw else "(vacío)"
-        raise type(e)(f"{e} | LLM devolvió: {preview}") from e
+        preview = repr(raw[:300]) if raw else "(vacío)"
+        raise RuntimeError(f"JSON parse failed ({type(e).__name__}): {e} | LLM devolvió: {preview}") from e
 
 
 def _support_block(session: ProjectSession) -> str:
