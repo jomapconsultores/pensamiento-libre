@@ -1123,3 +1123,167 @@ def delete_proposal(session_id: str, p: Principal = Depends(get_principal)):
     if not ok:
         raise HTTPException(404, "session_id no encontrado")
     return {"ok": True, "deleted": session_id}
+
+
+# ── Oficios y peticiones ──────────────────────────────────────────────────────
+class OficioRequest(BaseModel):
+    entity: str = Field(..., min_length=2, description="Entidad destinataria (SRI, IESS, etc.)")
+    entity_authority: str = Field("", description="Cargo y nombre de la autoridad")
+    entity_city: str = Field("", description="Ciudad de la entidad")
+    doc_type: str = Field("peticion", pattern="^(oficio|peticion|recurso_reposicion|recurso_apelacion|queja|memorando)$")
+    subject: str = Field(..., min_length=5, description="Asunto del documento")
+    requester_name: str = Field(..., min_length=3, description="Nombre del solicitante")
+    requester_id: str = Field("", description="Cédula o RUC del solicitante")
+    requester_role: str = Field("", description="Calidad o cargo del solicitante")
+    requester_address: str = Field("", description="Dirección del solicitante")
+    requester_phone: str = Field("", description="Teléfono o email del solicitante")
+    request_detail: str = Field(..., min_length=10, description="Detalle de la petición o solicitud")
+    extra_legal: str = Field("", description="Fundamento legal adicional")
+    extra_facts: str = Field("", description="Antecedentes o hechos relevantes")
+    doc_number: str = Field("", description="Número de oficio")
+    city: str = Field("Cuenca", description="Ciudad de emisión")
+    date_str: str = Field("", description="Fecha (auto si vacío)")
+
+
+@app.get("/oficios/entidades")
+def oficios_entidades(p: Principal = Depends(get_principal)):
+    """Lista de entidades disponibles con indicador de base legal integrada."""
+    from agents.oficio import list_entities
+    return list_entities()
+
+
+@app.get("/oficios/tipos")
+def oficios_tipos(p: Principal = Depends(get_principal)):
+    """Tipos de documentos disponibles."""
+    from agents.oficio import list_doc_types_oficio
+    return list_doc_types_oficio()
+
+
+@app.post("/oficios", status_code=201)
+def crear_oficio(req: OficioRequest, p: Principal = Depends(get_principal)):
+    """Genera un oficio/petición y lo guarda en la base de datos."""
+    _require_supabase()
+    from agents.oficio import generate
+    from db import oficio_repo
+
+    try:
+        content = generate(
+            entity=req.entity,
+            entity_authority=req.entity_authority,
+            entity_city=req.entity_city,
+            doc_type=req.doc_type,
+            subject=req.subject,
+            requester_name=req.requester_name,
+            requester_id=req.requester_id,
+            requester_role=req.requester_role,
+            requester_address=req.requester_address,
+            requester_phone=req.requester_phone,
+            request_detail=req.request_detail,
+            extra_legal=req.extra_legal,
+            extra_facts=req.extra_facts,
+            doc_number=req.doc_number,
+            city=req.city,
+            date_str=req.date_str,
+        )
+    except Exception as e:
+        raise HTTPException(500, f"Error al generar el documento: {e}")
+
+    try:
+        oficio_id = oficio_repo.save(
+            owner_user_id=p.user_id or "",
+            entity=req.entity,
+            doc_type=req.doc_type,
+            subject=req.subject,
+            requester_name=req.requester_name,
+            requester_id=req.requester_id,
+            requester_role=req.requester_role,
+            requester_address=req.requester_address,
+            requester_phone=req.requester_phone,
+            request_detail=req.request_detail,
+            extra_legal=req.extra_legal,
+            extra_facts=req.extra_facts,
+            doc_number=req.doc_number,
+            city=req.city,
+            content=content,
+        )
+    except Exception:
+        oficio_id = None
+
+    return {"oficio_id": oficio_id, "content": content}
+
+
+@app.get("/oficios")
+def listar_oficios(limit: int = Query(50, ge=1, le=200), p: Principal = Depends(get_principal)):
+    """Lista los oficios del usuario."""
+    _require_supabase()
+    from db import oficio_repo
+    owner = p.owner_filter()
+    return oficio_repo.list_oficios(owner_user_id=owner, limit=limit)
+
+
+@app.get("/oficios/{oficio_id}")
+def get_oficio(oficio_id: str, p: Principal = Depends(get_principal)):
+    """Devuelve un oficio completo."""
+    _require_supabase()
+    from db import oficio_repo
+    row = oficio_repo.get_oficio(oficio_id)
+    if not row:
+        raise HTTPException(404, "Oficio no encontrado.")
+    if not p.is_admin and row.get("owner_user_id") != p.user_id:
+        raise HTTPException(403, "Sin acceso.")
+    return row
+
+
+@app.get("/oficios/{oficio_id}/word")
+def descargar_oficio_word(oficio_id: str, p: Principal = Depends(get_principal)):
+    """Descarga el oficio en formato Word (.docx)."""
+    _require_supabase()
+    from db import oficio_repo
+    row = oficio_repo.get_oficio(oficio_id)
+    if not row:
+        raise HTTPException(404, "Oficio no encontrado.")
+    if not p.is_admin and row.get("owner_user_id") != p.user_id:
+        raise HTTPException(403, "Sin acceso.")
+
+    from exporters.word_exporter import oficio_to_docx
+    buf = oficio_to_docx(row)
+    filename = f"oficio_{row.get('doc_number') or oficio_id[:8]}.docx"
+    return StreamingResponse(
+        io.BytesIO(buf),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.get("/oficios/{oficio_id}/pdf")
+def descargar_oficio_pdf(oficio_id: str, p: Principal = Depends(get_principal)):
+    """Descarga el oficio en PDF."""
+    _require_supabase()
+    from db import oficio_repo
+    row = oficio_repo.get_oficio(oficio_id)
+    if not row:
+        raise HTTPException(404, "Oficio no encontrado.")
+    if not p.is_admin and row.get("owner_user_id") != p.user_id:
+        raise HTTPException(403, "Sin acceso.")
+
+    from exporters.pdf_exporter import oficio_to_pdf
+    buf = oficio_to_pdf(row)
+    filename = f"oficio_{row.get('doc_number') or oficio_id[:8]}.pdf"
+    return StreamingResponse(
+        io.BytesIO(buf),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.delete("/oficios/{oficio_id}", status_code=200)
+def eliminar_oficio(oficio_id: str, p: Principal = Depends(get_principal)):
+    """Elimina un oficio del usuario."""
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import oficio_repo
+    ok = oficio_repo.delete_oficio(oficio_id=oficio_id, owner_user_id=p.user_id)
+    if not ok and not p.is_admin:
+        raise HTTPException(404, "Oficio no encontrado.")
+    return {"ok": True}

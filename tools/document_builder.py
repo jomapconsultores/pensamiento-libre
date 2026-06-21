@@ -936,3 +936,62 @@ def scouting_report_markdown(opportunities: list, topic: str) -> str:
                 out.append(f"- {lab}: {float(d.get('score',0) or 0):.0f}/100 — {d.get('reason','')}")
             out.append("")
     return "\n".join(out)
+
+
+def build_word_plain(content: str, title: str, out_path: Path) -> str | None:
+    """Genera un .docx simple (sin portada de proyecto) para oficios y peticiones."""
+    try:
+        from docx import Document
+        from docx.shared import Pt, Cm, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+    except ImportError:
+        return None
+
+    doc = Document()
+    normal = doc.styles["Normal"]
+    normal.font.name = "Times New Roman"
+    normal.font.size = Pt(12)
+    pf = normal.paragraph_format
+    pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
+    pf.line_spacing = 1.5
+    pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    for section in doc.sections:
+        section.top_margin = Cm(2.5)
+        section.bottom_margin = Cm(2.5)
+        section.left_margin = Cm(3.5)
+        section.right_margin = Cm(2.5)
+
+    for line in content.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("# "):
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(stripped[2:])
+            run.bold = True
+            run.font.size = Pt(14)
+            run.font.color.rgb = RGBColor(0x1F, 0x3B, 0x73)
+        elif stripped.startswith("## "):
+            p = doc.add_paragraph()
+            run = p.add_run(stripped[3:])
+            run.bold = True
+            run.font.size = Pt(12)
+            run.font.color.rgb = RGBColor(0x1F, 0x3B, 0x73)
+        elif not stripped:
+            doc.add_paragraph()
+        else:
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            # Bold spans **...**
+            import re as _re
+            parts = _re.split(r"(\*\*[^*]+\*\*)", stripped)
+            for part in parts:
+                if part.startswith("**") and part.endswith("**"):
+                    r = p.add_run(part[2:-2])
+                    r.bold = True
+                else:
+                    p.add_run(part)
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(out_path))
+    return str(out_path)

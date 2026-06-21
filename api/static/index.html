@@ -412,6 +412,7 @@
     .module-card .mc-name { font-weight:600; font-size:14px; color:var(--fg); }
     .module-card .mc-desc { color:var(--muted); font-size:11.5px; margin-top:5px; line-height:1.45; }
     .req-star { color:var(--accent-2); }
+    .field-label { display:block; font-size:12px; font-weight:600; color:var(--fg-2); margin-bottom:5px; }
 
     /* Dropzone */
     .dropzone { border:1.5px dashed var(--line-2); border-radius:var(--radius-sm); padding:18px;
@@ -617,6 +618,10 @@
         <button class="sb-item sub" onclick="launchAction('proj_enlaces')"><span class="ic">🔗</span> Subir enlaces <span class="add">＋</span></button>
         <button class="sb-item sub" onclick="launchAction('proj_docs')"><span class="ic">📄</span> Documentos <span class="add">＋</span></button>
 
+        <div class="sb-section">📝 Oficios y Peticiones</div>
+        <button class="sb-item" data-nav="oficios" onclick="navTo('oficios')"><span class="ic">📂</span> Ver todo</button>
+        <button class="sb-item sub" onclick="openOficioModal()"><span class="ic">✉️</span> Nuevo oficio <span class="add">＋</span></button>
+
         <div class="sb-section">Estado</div>
         <button class="sb-item" data-nav="incon" onclick="navTo('incon')"><span class="ic">⏳</span> Inconclusos <span class="sb-badge" id="sb-incon" style="display:none">0</span></button>
 
@@ -691,6 +696,17 @@
 
         <div class="list" id="list"></div>
       </main>
+
+      <!-- Vista de oficios y peticiones -->
+      <div id="oficios-view" style="display:none;padding:20px 24px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px">
+          <button class="btn" onclick="openOficioModal()" style="background:var(--accent);color:#fff">✉️ Nuevo oficio</button>
+          <button class="btn subtle btn-sm" onclick="loadOficioList()">↻ Refrescar</button>
+        </div>
+        <div id="oficios-list-container">
+          <div class="empty-state">Cargando…</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -860,6 +876,145 @@
         <div class="lock-msg" id="bio-modal-msg" style="margin-top:10px"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Modal: Nuevo oficio / petición -->
+  <div class="modal-backdrop" id="oficio-modal" onclick="if(event.target===this)closeOficioModal()">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <h2>✉️ Nuevo oficio / petición</h2>
+        <button class="btn ghost btn-sm" onclick="closeOficioModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:14px">
+
+        <!-- Fila 1: entidad + tipo -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="field-label">Entidad destinataria <span class="req-star">*</span></label>
+            <select id="of-entity" onchange="onOficioEntityChange()" style="width:100%">
+              <option value="">Cargando…</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Tipo de documento <span class="req-star">*</span></label>
+            <select id="of-doctype" style="width:100%">
+              <option value="peticion">Petición / Solicitud</option>
+              <option value="oficio">Oficio</option>
+              <option value="recurso_reposicion">Recurso de Reposición</option>
+              <option value="recurso_apelacion">Recurso de Apelación</option>
+              <option value="queja">Queja Formal</option>
+              <option value="memorando">Memorando</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Fila 2: autoridad + ciudad entidad -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label class="field-label">Cargo / Autoridad</label>
+            <input id="of-authority" type="text" placeholder="Ej: Director Provincial del SRI" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Ciudad de la entidad</label>
+            <input id="of-entity-city" type="text" placeholder="Cuenca" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Asunto -->
+        <div>
+          <label class="field-label">Asunto <span class="req-star">*</span></label>
+          <input id="of-subject" type="text" placeholder="Ej: Solicitud de devolución del IVA período enero-2025" style="width:100%">
+        </div>
+
+        <!-- Datos del solicitante -->
+        <div style="border-top:1px solid var(--border);padding-top:12px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">Datos del solicitante / remitente</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="field-label">Nombre completo <span class="req-star">*</span></label>
+              <input id="of-name" type="text" placeholder="Nombre del solicitante" style="width:100%">
+            </div>
+            <div>
+              <label class="field-label">Cédula / RUC</label>
+              <input id="of-rid" type="text" placeholder="0102030405 / 0190123456001" style="width:100%">
+            </div>
+            <div>
+              <label class="field-label">Calidad / Cargo</label>
+              <input id="of-role" type="text" placeholder="Ej: Representante legal, Contribuyente" style="width:100%">
+            </div>
+            <div>
+              <label class="field-label">Teléfono / Email</label>
+              <input id="of-phone" type="text" placeholder="099 000 0000 / correo@ejemplo.com" style="width:100%">
+            </div>
+          </div>
+          <div style="margin-top:10px">
+            <label class="field-label">Dirección</label>
+            <input id="of-address" type="text" placeholder="Calle, número, parroquia, cantón" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Petición -->
+        <div>
+          <label class="field-label">Petición / Contenido principal <span class="req-star">*</span></label>
+          <textarea id="of-detail" rows="5" placeholder="Describa claramente qué solicita, el período o acto que impugna, los montos involucrados, etc." style="width:100%;resize:vertical"></textarea>
+        </div>
+
+        <!-- Antecedentes (opcional) -->
+        <div>
+          <label class="field-label">Antecedentes y hechos relevantes <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+          <textarea id="of-facts" rows="3" placeholder="Breve descripción de los hechos previos, actos administrativos recibidos, fechas importantes…" style="width:100%;resize:vertical"></textarea>
+        </div>
+
+        <!-- Fundamento legal adicional (opcional) -->
+        <div>
+          <label class="field-label">Fundamento legal adicional <span style="color:var(--muted);font-weight:400">(opcional — el agente ya incluye la base según la entidad)</span></label>
+          <textarea id="of-legal" rows="2" placeholder="Ej: Art. 45 Ley de Compañías, Resolución NAC-DGERCGC21-00000XXX…" style="width:100%;resize:vertical"></textarea>
+        </div>
+
+        <!-- Fila final: número oficio + ciudad + fecha -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div>
+            <label class="field-label">Número de oficio</label>
+            <input id="of-num" type="text" placeholder="001-2025" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Ciudad de emisión</label>
+            <input id="of-city" type="text" value="Cuenca" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Fecha</label>
+            <input id="of-date" type="text" placeholder="(auto si se deja vacío)" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Base legal detectada -->
+        <div id="of-legal-info" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--fg-2);line-height:1.55">
+          <div style="font-weight:700;color:var(--fg);margin-bottom:4px">⚖️ Base legal que se aplicará</div>
+          <div id="of-legal-text"></div>
+        </div>
+
+        <div id="of-msg" class="lock-msg" style="margin:0"></div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px">
+          <button class="btn subtle" onclick="closeOficioModal()">Cancelar</button>
+          <button class="btn" id="of-submit-btn" onclick="submitOficio()" style="background:var(--accent);color:#fff">✉️ Generar documento</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel lateral: resultado del oficio -->
+  <div class="drawer-backdrop" id="oficio-drawer-backdrop" onclick="closeOficioDrawer()" style="display:none"></div>
+  <div class="drawer" id="oficio-drawer" style="display:none">
+    <div class="drawer-header">
+      <h3 id="oficio-drawer-title">Oficio generado</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn subtle btn-sm" id="oficio-dl-word" onclick="downloadOficioWord()" style="display:none">⬇ Word</button>
+        <button class="btn subtle btn-sm" id="oficio-dl-pdf" onclick="downloadOficioPdf()" style="display:none">⬇ PDF</button>
+        <button class="btn ghost btn-sm" onclick="closeOficioDrawer()">✕</button>
+      </div>
+    </div>
+    <div class="drawer-body" id="oficio-drawer-body" style="padding:20px;white-space:pre-wrap;font-family:'Times New Roman',serif;font-size:13px;line-height:1.7;color:var(--fg)"></div>
   </div>
 
   <!-- Banner de instalación PWA -->
@@ -1370,14 +1525,19 @@
     async function loadDocTypes() { try { const r = await api("/doc_types"); docTypesAll = await r.json(); } catch (e) {} }
 
     /* ════════ Navegación lateral ════════ */
-    const PAGE_TITLES = { all:"Inicio", investigacion:"🔬 Investigación", proyectos:"📊 Proyectos", incon:"⏳ Trabajo inconcluso" };
+    const PAGE_TITLES = { all:"Inicio", investigacion:"🔬 Investigación", proyectos:"📊 Proyectos", incon:"⏳ Trabajo inconcluso", oficios:"✉️ Oficios y Peticiones" };
     function navTo(target) {
       navModule = target;
       $("sb-nav").querySelectorAll(".sb-item[data-nav]").forEach(b =>
         b.classList.toggle("active", b.dataset.nav === target));
       $("page-title").textContent = PAGE_TITLES[target] || "Inicio";
       $("app").classList.remove("sb-open");
-      renderList();
+      if (target === "oficios") {
+        showOficiosView();
+      } else {
+        hideOficiosView();
+        renderList();
+      }
       renderGuide();
     }
 
@@ -2229,6 +2389,201 @@
       if (!$("guide-wrap") || !$("guide-panel").classList.contains("show")) return;
       if (!e.target.closest(".guide-wrap")) closeGuide();
     });
+
+    /* ════════ Oficios y Peticiones ════════ */
+    let _ofEntities = [];
+    let _ofLegalBases = {};
+    let _activeOficioId = null;
+
+    async function openOficioModal() {
+      $("of-msg").textContent = "";
+      $("oficio-modal").classList.add("show");
+      if (!_ofEntities.length) {
+        try {
+          const r = await (await api("/oficios/entidades")).json();
+          _ofEntities = r;
+          const sel = $("of-entity");
+          sel.innerHTML = '<option value="">— Seleccionar entidad —</option>' +
+            r.map(e => `<option value="${esc(e.name)}">${esc(e.name)}</option>`).join("") +
+            '<option value="__otra__">Otra entidad…</option>';
+        } catch(e) { /* silencioso */ }
+      }
+    }
+
+    function closeOficioModal() {
+      $("oficio-modal").classList.remove("show");
+    }
+
+    function onOficioEntityChange() {
+      const val = $("of-entity").value;
+      const info = $("of-legal-info");
+      if (val && val !== "__otra__" && _ofLegalBases[val]) {
+        $("of-legal-text").textContent = _ofLegalBases[val];
+        info.style.display = "";
+      } else {
+        info.style.display = "none";
+      }
+    }
+
+    async function submitOficio() {
+      const entity = $("of-entity").value === "__otra__"
+        ? prompt("Escribe el nombre de la entidad:") || ""
+        : $("of-entity").value;
+      const subject = $("of-subject").value.trim();
+      const name = $("of-name").value.trim();
+      const detail = $("of-detail").value.trim();
+
+      if (!entity) { showOfMsg("Selecciona o ingresa la entidad destinataria.", "error"); return; }
+      if (!subject) { showOfMsg("Escribe el asunto.", "error"); return; }
+      if (!name) { showOfMsg("Ingresa el nombre del solicitante.", "error"); return; }
+      if (!detail) { showOfMsg("Describe la petición o contenido principal.", "error"); return; }
+
+      const btn = $("of-submit-btn");
+      btn.disabled = true;
+      btn.textContent = "Generando…";
+      showOfMsg("Redactando documento con base legal aplicable…", "info");
+
+      try {
+        const data = await (await api("/oficios", {
+          method: "POST",
+          body: JSON.stringify({
+            entity,
+            entity_authority: $("of-authority").value.trim(),
+            entity_city: $("of-entity-city").value.trim(),
+            doc_type: $("of-doctype").value,
+            subject,
+            requester_name: name,
+            requester_id: $("of-rid").value.trim(),
+            requester_role: $("of-role").value.trim(),
+            requester_address: $("of-address").value.trim(),
+            requester_phone: $("of-phone").value.trim(),
+            request_detail: detail,
+            extra_legal: $("of-legal").value.trim(),
+            extra_facts: $("of-facts").value.trim(),
+            doc_number: $("of-num").value.trim(),
+            city: $("of-city").value.trim() || "Cuenca",
+            date_str: $("of-date").value.trim(),
+          })
+        })).json();
+        closeOficioModal();
+        _activeOficioId = data.oficio_id;
+        openOficioDrawer(data.content, subject, data.oficio_id);
+        if (navModule === "oficios") loadOficioList();
+        toast("Documento generado correctamente.");
+      } catch(e) {
+        showOfMsg("Error al generar: " + e.message, "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✉️ Generar documento";
+      }
+    }
+
+    function showOfMsg(msg, type) {
+      const el = $("of-msg");
+      el.textContent = msg;
+      el.style.color = type === "error" ? "var(--err)" : type === "ok" ? "var(--ok)" : "var(--muted)";
+    }
+
+    function openOficioDrawer(content, title, oficioId) {
+      $("oficio-drawer-title").textContent = title || "Oficio generado";
+      $("oficio-drawer-body").textContent = content;
+      $("oficio-dl-word").style.display = oficioId ? "" : "none";
+      $("oficio-dl-pdf").style.display = oficioId ? "" : "none";
+      _activeOficioId = oficioId;
+      $("oficio-drawer").style.display = "";
+      $("oficio-drawer-backdrop").style.display = "";
+    }
+
+    function closeOficioDrawer() {
+      $("oficio-drawer").style.display = "none";
+      $("oficio-drawer-backdrop").style.display = "none";
+    }
+
+    async function downloadOficioWord() {
+      if (!_activeOficioId) return;
+      await _downloadOficio(_activeOficioId, "word");
+    }
+
+    async function downloadOficioPdf() {
+      if (!_activeOficioId) return;
+      await _downloadOficio(_activeOficioId, "pdf");
+    }
+
+    async function _downloadOficio(id, kind) {
+      try {
+        const resp = await fetch(`/oficios/${id}/${kind}`, { headers: authHeaders() });
+        if (!resp.ok) { toast("Error al descargar."); return; }
+        const blob = await resp.blob();
+        const ext = kind === "word" ? "docx" : "pdf";
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = `oficio_${id.slice(0,8)}.${ext}`; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch(e) { toast("Error: " + e.message); }
+    }
+
+    
+    function showOficiosView() {
+      const main = document.querySelector("main");
+      if (main) main.style.display = "none";
+      $("oficios-view").style.display = "";
+      loadOficioList();
+    }
+
+    function hideOficiosView() {
+      const main = document.querySelector("main");
+      if (main) main.style.display = "";
+      $("oficios-view").style.display = "none";
+    }
+
+    async function loadOficioList() {
+      const cont = $("oficios-list-container");
+      cont.innerHTML = '<div class="empty-state">Cargando…</div>';
+      try {
+        const rows = await (await api("/oficios?limit=100")).json();
+        if (!rows.length) {
+          cont.innerHTML = '<div class="empty-state">No hay oficios generados. Crea el primero con "Nuevo oficio".</div>';
+          return;
+        }
+        const _DOC_LABELS_OF = { oficio:"Oficio", peticion:"Petición", recurso_reposicion:"Recurso de Reposición",
+          recurso_apelacion:"Recurso de Apelación", queja:"Queja", memorando:"Memorando" };
+        cont.innerHTML = rows.map(r => `
+          <div class="card" style="cursor:pointer;margin-bottom:10px" onclick="viewOficio('${esc(r.oficio_id)}')">
+            <div style="display:flex;align-items:flex-start;gap:10px">
+              <div style="font-size:22px;line-height:1">✉️</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:600;font-size:14px;margin-bottom:3px">${esc(r.subject || "(sin asunto)")}</div>
+                <div style="font-size:12px;color:var(--muted)">
+                  <span style="font-weight:600;color:var(--fg-2)">${esc(r.entity || "")}</span>
+                  ${r.doc_type ? ` · <span style="color:var(--accent)">${esc(_DOC_LABELS_OF[r.doc_type] || r.doc_type)}</span>` : ""}
+                  ${r.city ? ` · ${esc(r.city)}` : ""}
+                  ${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString("es-EC",{day:"2-digit",month:"short",year:"numeric"})}` : ""}
+                </div>
+                ${r.requester_name ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">Por: ${esc(r.requester_name)}${r.doc_number ? " · Nro. "+esc(r.doc_number) : ""}</div>` : ""}
+              </div>
+              <button class="btn ghost btn-sm" onclick="event.stopPropagation();deleteOficio('${esc(r.oficio_id)}')" style="flex-shrink:0;color:var(--err)">🗑</button>
+            </div>
+          </div>`).join("");
+      } catch(e) {
+        cont.innerHTML = `<div class="empty-state" style="color:var(--err)">Error: ${esc(e.message)}</div>`;
+      }
+    }
+
+    async function viewOficio(oficioId) {
+      try {
+        const row = await (await api(`/oficios/${oficioId}`)).json();
+        openOficioDrawer(row.content, row.subject, oficioId);
+      } catch(e) { toast("Error al cargar el oficio."); }
+    }
+
+    async function deleteOficio(oficioId) {
+      if (!confirm("¿Eliminar este oficio? La acción no se puede deshacer.")) return;
+      try {
+        await api(`/oficios/${oficioId}`, { method: "DELETE" });
+        toast("Oficio eliminado.");
+        if (navModule === "oficios") loadOficioList();
+      } catch(e) { toast("Error al eliminar: " + e.message); }
+    }
 
     /* ════════ Boot ════════ */
     initLock();
