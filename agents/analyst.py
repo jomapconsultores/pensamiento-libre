@@ -351,7 +351,11 @@ def _run_agent_loop(client: anthropic.Anthropic, prompt: str) -> str:
 
 def _parse_result(raw: str) -> dict:
     from utils.json_utils import robust_json_loads
-    return robust_json_loads(raw)
+    try:
+        return robust_json_loads(raw)
+    except Exception as e:
+        preview = repr(raw[:200]) if raw else "(vacío)"
+        raise type(e)(f"{e} | LLM devolvió: {preview}") from e
 
 
 def _support_block(session: ProjectSession) -> str:
