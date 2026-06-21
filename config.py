@@ -139,7 +139,7 @@ SUPABASE_PUBLISHABLE_KEY = os.getenv("SUPABASE_PUBLISHABLE_KEY", "")
 SUPABASE_SECRET_KEY = os.getenv("SUPABASE_SECRET_KEY", "")
 SUPABASE_SERVICE_ROLE_JWT = os.getenv("SUPABASE_SERVICE_ROLE_JWT", "")
 
-MAX_TOKENS_ANALYST = 8000
+MAX_TOKENS_ANALYST = 14000   # subido 8000→14000: análisis complejos no se truncan
 MAX_TOKENS_WRITER = 16000
 MAX_TOKENS_REVIEWER = 8000
 MAX_TOKENS_FINANCIAL = 8000
@@ -158,8 +158,8 @@ VIABILITY_THRESHOLD = 55      # Score mínimo de viabilidad para continuar (0-10
 SEARCH_MAX_RESULTS = 12       # resultados por query individual
 SEARCH_SAFE = "moderate"
 SEARCH_MAX_QUERIES = 14       # nº máximo de queries en una búsqueda profunda
-SEARCH_FETCH_PAGES = 6        # nº de páginas cuyo contenido se descarga y analiza
-SEARCH_FETCH_CHARS = 6000     # caracteres máx. extraídos por página descargada
+SEARCH_FETCH_PAGES = 10       # subido 6→10: con descarga paralela no penaliza tiempo
+SEARCH_FETCH_CHARS = 10000    # subido 6000→10000: lee requisitos completos del financiador
 SEARCH_TIMEOUT = 12           # timeout (s) al descargar una página
 
 # ── Documentos de salida ─────────────────────────────────────────────────────

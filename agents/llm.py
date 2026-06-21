@@ -32,6 +32,7 @@ _OPENAI_COMPAT = {
 
 _MAX_RETRIES = 6
 _BACKOFF_BASE = 4.0  # segundos
+_BACKOFF_CAP = 30.0  # máximo 30s por reintento (antes llegaba a 128s)
 _RETRYABLE = (429, 500, 502, 503, 504)
 
 
@@ -79,13 +80,13 @@ def _post_openai(base_url: str, model: str, api_key: str, system: str,
             if e.code in _RETRYABLE and attempt < _MAX_RETRIES - 1:
                 ra = e.headers.get("Retry-After")
                 wait = float(ra) if (ra and ra.isdigit()) else _BACKOFF_BASE * (2 ** attempt)
-                time.sleep(min(wait, 60))
+                time.sleep(min(wait, _BACKOFF_CAP))
                 continue
             raise last_err
         except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
             last_err = LLMError(f"Error de red hacia {url}: {e}")
             if attempt < _MAX_RETRIES - 1:
-                time.sleep(_BACKOFF_BASE * (2 ** attempt))
+                time.sleep(min(_BACKOFF_BASE * (2 ** attempt), _BACKOFF_CAP))
                 continue
             raise last_err
     raise last_err or LLMError(f"Fallo desconocido contra {url}")

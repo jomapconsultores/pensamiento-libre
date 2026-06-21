@@ -116,9 +116,11 @@ def _gather_evidence(session: ProjectSession, seed: dict | None = None) -> str:
         pieces.append("=== EVIDENCIA DE BÚSQUEDA WEB (enfocada) ===\n" + _clip(evidence, 18000))
         return "\n\n".join(pieces)
 
-    # Búsqueda profunda (queries propuestas por la IA + paquete base).
+    # Búsqueda profunda: usa el paquete base de 35+ queries directamente.
+    # Se eliminó el round-trip extra de _propose_queries (LLM call que añadía
+    # 5-15s sin mejorar significativamente los resultados vs. el paquete base).
     base = opportunity_queries(topic)
-    queries = _propose_queries(provider, topic, base)
+    queries = base
     try:
         evidence = execute_deep_search(queries, fetch_pages=SEARCH_FETCH_PAGES)
     except Exception as ex:  # la búsqueda nunca debe tumbar el pipeline

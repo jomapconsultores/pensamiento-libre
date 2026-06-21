@@ -318,9 +318,12 @@ def _run_agent_loop(client: anthropic.Anthropic, prompt: str) -> str:
 
         if response.stop_reason == "end_turn":
             for block in response.content:
-                if hasattr(block, "text"):
+                if hasattr(block, "text") and block.text.strip():
                     return block.text
-            return ""
+            # Claude terminó sin texto — puede pasar si el prompt fue demasiado corto
+            # o si el modelo devolvió solo tool_use blocks. Reintentar no ayuda.
+            raise RuntimeError("El analista (Claude) terminó sin producir texto. "
+                               "Revisa el prompt o el modelo configurado.")
 
         if response.stop_reason == "tool_use":
             tool_calls = [b for b in response.content if b.type == "tool_use"]
