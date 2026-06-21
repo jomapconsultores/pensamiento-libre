@@ -1933,7 +1933,7 @@
             <div class="title">${esc(autoTitle(r))}</div>
             <div class="sub">
               <span class="mono">${r.session_id}</span><span>·</span>${statusPill(r.status)}
-              ${r.funder ? `<span>· <b>${esc(r.funder)}</b></span>` : ""}
+              ${r.funder ? `<span>· <b>${esc(r.funder)}</b>${r.funder_url ? ` <a href="${esc(r.funder_url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:10px;color:var(--accent);word-break:break-all">${esc(r.funder_url)}</a>` : ""}</span>` : ""}
               ${r.go_no_go ? `<span>· ${goNoGoPill(r.go_no_go)}</span>` : ""}
               <span>· ${esc(timeAgo(r.created_at))}</span>
             </div>
@@ -1997,7 +1997,11 @@
         $("refine-btn").style.display = isIncon(d.status) ? "" : "none";
         $("del-btn").style.display = "";
         const error = parseError(d.error_message);
-        const funderHtml = d.funder ? (d.funder_url ? `<b>${esc(d.funder)}</b> <a href="${esc(d.funder_url)}" target="_blank" rel="noopener" class="muted">↗</a>` : `<b>${esc(d.funder)}</b>`) : "<span class='muted'>—</span>";
+        const funderHtml = d.funder
+          ? (d.funder_url
+            ? `<div><b>${esc(d.funder)}</b></div><div><a href="${esc(d.funder_url)}" target="_blank" rel="noopener" style="font-size:11px;word-break:break-all;user-select:all">${esc(d.funder_url)}</a></div>`
+            : `<b>${esc(d.funder)}</b>`)
+          : "<span class='muted'>—</span>";
         const inconHtml = isIncon(d.status) ? `<div class="err-banner" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.35);margin-bottom:14px"><div class="title" style="color:#fcd34d">⏳ Quedó inconcluso</div><div>Este entregable ${esc(reasonIncon(d))}. ${d.status==="failed"?"Puedes reintentarlo.":"Se actualizará solo mientras esté en curso."}</div></div>` : "";
         const progressHtml = renderProgress(d.progress_steps, d.status);
         const phaseLabel = (inProgress && d.current_phase) ? `<div style="font-size:11px;color:var(--accent-2);margin-top:4px;opacity:.85">${esc(d.current_phase)}</div>` : "";
@@ -2318,7 +2322,7 @@
                 ${fitBadge(o.best_fit_org || o.funder_type)}
               </div>
               <div style="font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap">
-                <span><b style="color:var(--fg-2)">${esc(o.funder||"")}</b>${o.url?` <a href="${esc(o.url)}" target="_blank" rel="noopener" style="font-size:11px">↗</a>`:""}</span>
+                <span><b style="color:var(--fg-2)">${esc(o.funder||"")}</b>${o.url?` <a href="${esc(o.url)}" target="_blank" rel="noopener" style="font-size:11px;word-break:break-all;user-select:all">${esc(o.url)}</a>`:""}</span>
                 ${o.deadline?`<span>⏰ ${esc(o.deadline)}</span>`:""}
                 ${o.amount?`<span>💰 ${esc(o.amount)}</span>`:""}
               </div>
