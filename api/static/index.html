@@ -158,6 +158,41 @@
     .topbar .search .ic { position:absolute; left:11px; top:50%; transform:translateY(-50%);
       color:var(--muted); font-size:12px; pointer-events:none; }
     .topbar .spacer { flex:1; }
+    /* ── Guía contextual ── */
+    .guide-wrap { position:relative; }
+    .guide-btn { background:var(--panel); border:1px solid var(--line); color:var(--fg-2);
+      border-radius:var(--radius-sm); padding:6px 13px; font-size:13px; font-weight:600;
+      cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap;
+      transition:border-color .15s, color .15s; }
+    .guide-btn:hover { border-color:var(--accent); color:var(--accent); }
+    .guide-btn .gbadge { background:var(--accent); color:#fff; border-radius:99px;
+      font-size:10px; font-weight:700; padding:1px 6px; min-width:16px; text-align:center; }
+    .guide-panel { display:none; position:absolute; top:calc(100% + 8px); right:0;
+      width:320px; background:var(--panel); border:1px solid var(--line);
+      border-radius:var(--radius); box-shadow:var(--shadow); z-index:200; overflow:hidden; }
+    .guide-panel.show { display:block; }
+    .guide-head { padding:12px 16px 8px; border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; }
+    .guide-head .ght { font-size:12px; font-weight:700; color:var(--muted);
+      text-transform:uppercase; letter-spacing:.05em; }
+    .guide-head .ghclose { background:none; border:0; color:var(--muted); font-size:16px;
+      cursor:pointer; padding:0 2px; line-height:1; }
+    .guide-steps { list-style:none; padding:8px 0; }
+    .guide-step { display:flex; align-items:flex-start; gap:10px; padding:9px 16px;
+      cursor:pointer; transition:background .1s; border:0; background:none;
+      width:100%; text-align:left; }
+    .guide-step:hover { background:var(--bg-2); }
+    .guide-step.done { opacity:.5; }
+    .guide-step .gsicon { width:28px; height:28px; border-radius:8px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center; font-size:14px;
+      background:var(--accent-3); }
+    .guide-step.done .gsicon { background:rgba(5,150,105,.1); }
+    .guide-step .gsbody { flex:1; min-width:0; }
+    .guide-step .gstitle { font-size:13px; font-weight:600; color:var(--fg); line-height:1.3; }
+    .guide-step.done .gstitle { text-decoration:line-through; color:var(--muted); }
+    .guide-step .gsdesc { font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.4; }
+    .guide-step .gsarrow { color:var(--muted); font-size:12px; flex-shrink:0; margin-top:6px; }
+    .guide-divider { height:1px; background:var(--line); margin:4px 0; }
     .hamb { display:none; background:transparent; border:1px solid var(--line);
       color:var(--fg-2); border-radius:var(--radius-sm); padding:7px 10px; font-size:15px; }
     main { padding:24px; }
@@ -478,6 +513,18 @@
         <div class="spacer"></div>
         <span id="poll-pill" class="poll-pill" style="display:none">monitoreando…</span>
         <button class="btn subtle btn-sm" onclick="loadList()" title="Refrescar (R)">↻</button>
+        <div class="guide-wrap" id="guide-wrap">
+          <button class="guide-btn" id="guide-btn" onclick="toggleGuide()" title="Guía de pasos">
+            💡 Guía <span class="gbadge" id="guide-badge">1</span>
+          </button>
+          <div class="guide-panel" id="guide-panel">
+            <div class="guide-head">
+              <span class="ght">¿Qué hacer aquí?</span>
+              <button class="ghclose" onclick="toggleGuide()">✕</button>
+            </div>
+            <ul class="guide-steps" id="guide-steps"></ul>
+          </div>
+        </div>
         <button class="btn gold" onclick="openNewModal()">＋ Nuevo entregable</button>
       </div>
 
@@ -956,7 +1003,98 @@
       $("page-title").textContent = PAGE_TITLES[target] || "Inicio";
       $("app").classList.remove("sb-open");
       renderList();
+      renderGuide();
     }
+
+    /* ════════ Guía contextual ════════ */
+    function toggleGuide() {
+      const panel = $("guide-panel");
+      panel.classList.toggle("show");
+      if (panel.classList.contains("show")) renderGuide();
+    }
+    function closeGuide() { $("guide-panel").classList.remove("show"); }
+
+    function _guideStep(icon, title, desc, action, done=false) {
+      return { icon, title, desc, action, done };
+    }
+
+    function buildGuideSteps(rows) {
+      const total = rows.length;
+      const approved = rows.filter(r => r.status === "approved").length;
+      const running = rows.filter(r => r.status === "running" || r.status === "pending").length;
+      const failed = rows.filter(r => r.status === "failed").length;
+      const hasScouting = rows.some(r => r.is_scouting);
+
+      if (navModule === "all" || navModule === "investigacion") {
+        return [
+          _guideStep("✍️", "Crea un entregable",
+            "Describe el documento o proyecto y lanza el pipeline multiagente.",
+            () => { launchAction("inv_hacer"); closeGuide(); }, approved > 0 || running > 0),
+          _guideStep("🌐", "Busca oportunidades de financiamiento",
+            "El sistema detecta convocatorias reales con calificación ponderada.",
+            () => { launchAction("proj_buscar"); closeGuide(); }, hasScouting),
+          _guideStep("🔍", "Revisa los resultados generados",
+            "Abre cualquier entregable para descargar en Word, PDF o Excel.",
+            () => { navTo("investigacion"); closeGuide(); }, approved > 0),
+          _guideStep("📊", "Descarga el análisis estadístico",
+            "Cada propuesta incluye un Excel con estadísticas y presupuesto.",
+            () => { navTo("investigacion"); closeGuide(); }, approved > 0),
+        ];
+      }
+      if (navModule === "proyectos") {
+        return [
+          _guideStep("🌐", "Busca convocatorias por sector o tema",
+            "Escribe el área de interés y el sistema identifica el TOP-5 de oportunidades.",
+            () => { launchAction("proj_buscar"); closeGuide(); }),
+          _guideStep("🔗", "Sube una convocatoria desde una URL",
+            "Pega el enlace de una convocatoria específica para analizarla directamente.",
+            () => { launchAction("proj_enlaces"); closeGuide(); }),
+          _guideStep("📄", "Analiza documentos de bases o términos",
+            "Sube PDFs o Word con los términos de referencia para extraer requisitos.",
+            () => { launchAction("proj_docs"); closeGuide(); }),
+          _guideStep("✍️", "Genera la propuesta desde una oportunidad",
+            "Tras la búsqueda, selecciona oportunidades y genera propuestas con un clic.",
+            () => { navTo("proyectos"); closeGuide(); }, hasScouting && approved > 0),
+        ];
+      }
+      if (navModule === "incon") {
+        return [
+          _guideStep("▶️", "Reintenta un trabajo inconcluso",
+            "Abre el entregable y haz clic en Reintentar para lanzarlo de nuevo.",
+            () => { navTo("incon"); closeGuide(); }, failed === 0),
+          _guideStep("✏️", "Mejora el tema antes de reintentar",
+            "Usa «Mejorar tema» en el drawer para editar el input y lanzar una nueva versión.",
+            () => { navTo("incon"); closeGuide(); }),
+          _guideStep("⏸", "Pausa o detén trabajos en curso",
+            "En el drawer de un trabajo en curso aparecen los botones Pausar y Detener.",
+            () => { navTo("incon"); closeGuide(); }, running === 0),
+          _guideStep("🗑️", "Limpia trabajos que ya no necesitas",
+            "Usa el botón Borrar en el drawer para eliminar entregables descartados.",
+            () => { navTo("incon"); closeGuide(); }, failed === 0),
+        ];
+      }
+      return [];
+    }
+
+    function renderGuide() {
+      const steps = buildGuideSteps(listRows || []);
+      const pending = steps.filter(s => !s.done).length;
+      $("guide-badge").textContent = pending;
+      $("guide-badge").style.display = pending ? "" : "none";
+      $("guide-steps").innerHTML = steps.map((s, i) => `
+        <li class="guide-step${s.done?" done":""}" onclick="guideActions[${i}]()">
+          <div class="gsicon">${s.icon}</div>
+          <div class="gsbody">
+            <div class="gstitle">${s.done?"✓ ":""}${esc(s.title)}</div>
+            <div class="gsdesc">${esc(s.desc)}</div>
+          </div>
+          <div class="gsarrow">›</div>
+        </li>
+      `).join("");
+      // Store actions to avoid inline eval
+      window.guideActions = steps.map(s => s.action);
+    }
+    let listRows = [];
     function launchAction(a) {
       $("app").classList.remove("sb-open");
       openNewModal();
@@ -1264,7 +1402,7 @@
           }
         }
         lastInProgressIds = nowInProgress;
-        lastRows = rows; renderStats(rows); renderList();
+        lastRows = rows; listRows = rows; renderStats(rows); renderList(); renderGuide();
         $("poll-pill").style.display = nowInProgress.size ? "" : "none";
         $("poll-pill").textContent = nowInProgress.size ? `${nowInProgress.size} en curso · poll 6s` : "";
         scheduleNextPoll(nowInProgress.size > 0);
@@ -1598,10 +1736,19 @@
     document.addEventListener("keydown", (e) => {
       if ($("app").hidden) return;
       if (e.target.matches("input, textarea")) { if (e.key === "Escape") e.target.blur(); return; }
-      if (e.key === "Escape") { if ($("refine-modal-backdrop").classList.contains("show")) closeRefineModal(); else if ($("modal-backdrop").classList.contains("show")) closeNewModal(); else if ($("drawer").classList.contains("show")) closeDrawer(); }
+      if (e.key === "Escape") {
+        if ($("guide-panel").classList.contains("show")) { closeGuide(); return; }
+        if ($("refine-modal-backdrop").classList.contains("show")) { closeRefineModal(); return; }
+        if ($("modal-backdrop").classList.contains("show")) { closeNewModal(); return; }
+        if ($("drawer").classList.contains("show")) closeDrawer();
+      }
       if (e.key === "n" || e.key === "N") openNewModal();
       if (e.key === "/") { e.preventDefault(); $("q").focus(); }
       if (e.key === "r" || e.key === "R") loadList();
+    });
+    document.addEventListener("click", (e) => {
+      if (!$("guide-wrap") || !$("guide-panel").classList.contains("show")) return;
+      if (!e.target.closest(".guide-wrap")) closeGuide();
     });
 
     /* ════════ Boot ════════ */
