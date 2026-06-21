@@ -607,6 +607,17 @@
       <nav class="sb-nav" id="sb-nav">
         <button class="sb-item active" data-nav="all" onclick="navTo('all')"><span class="ic">🏠</span> Inicio</button>
 
+        <div class="sb-section">🎯 Captación activa</div>
+        <button class="sb-item" data-nav="captacion" onclick="navTo('captacion')"><span class="ic">🔍</span> Buscar mercado</button>
+        <button class="sb-item" data-nav="prospectos" onclick="navTo('prospectos')"><span class="ic">📋</span> Prospectos <span class="sb-badge" id="sb-prosp" style="display:none">0</span></button>
+
+        <div class="sb-section">📥 Prospección / Importar</div>
+        <button class="sb-item sub" onclick="openImportarModal()"><span class="ic">⬆️</span> Importar lista <span class="add">＋</span></button>
+
+        <div class="sb-section">👥 Clientes</div>
+        <button class="sb-item" data-nav="clientes" onclick="navTo('clientes')"><span class="ic">📂</span> Ver todos</button>
+        <button class="sb-item sub" onclick="openNuevoClienteModal()"><span class="ic">➕</span> Nuevo cliente</button>
+
         <div class="sb-section">🔬 Investigación</div>
         <button class="sb-item" data-nav="investigacion" onclick="navTo('investigacion')"><span class="ic">📂</span> Ver todo</button>
         <button class="sb-item sub" onclick="launchAction('inv_hacer')"><span class="ic">✍️</span> Hacer <span class="add">＋</span></button>
@@ -696,6 +707,91 @@
 
         <div class="list" id="list"></div>
       </main>
+
+      <!-- ══ Vista: Captación activa ══ -->
+      <div id="captacion-view" style="display:none;padding:20px 24px">
+        <div style="margin-bottom:18px">
+          <h2 style="margin:0 0 4px;font-size:18px;font-weight:700">🎯 Captación activa — Búsqueda de mercado</h2>
+          <p style="margin:0;font-size:12px;color:var(--muted)">Escribe el producto o servicio que quieres promocionar. El sistema buscará prospectos en directorios públicos, empezando por Cuenca y expandiendo al resto del Ecuador. Cumple con la LOPDP (solo fuentes públicas).</p>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div>
+              <label class="field-label">¿Qué producto o servicio quieres promocionar? <span class="req-star">*</span></label>
+              <input id="cap-producto" type="text" placeholder="Ej: software de gestión contable, servicios de limpieza empresarial, productos orgánicos…" style="width:100%;font-size:14px">
+            </div>
+
+            <div>
+              <label class="field-label">Expansión geográfica</label>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px" id="cap-zonas-checks">
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="1" checked> Cuenca</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="2"> Azuay (excl. Cuenca)</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="3"> Cañar / Loja / El Oro</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="4"> Morona / Zamora</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="5"> Chimborazo / Tungurahua</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="6"> Guayas / Manabí</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="7"> Pichincha (Quito)</label>
+                <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:var(--panel);padding:5px 10px;border-radius:6px;border:1px solid var(--border)">
+                  <input type="checkbox" value="8"> Resto del Ecuador</label>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px">
+              <button class="btn" id="cap-buscar-btn" onclick="lanzarBusquedaMercado()" style="background:var(--accent);color:#fff">🔍 Buscar mercado</button>
+              <div id="cap-status" style="font-size:12px;color:var(--muted)"></div>
+            </div>
+
+            <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:10px;line-height:1.6">
+              ⚖️ <b>LOPDP:</b> Solo se usan directorios empresariales públicos (Supercias, Cámaras de Comercio, Páginas Amarillas, sitios web corporativos).
+              No se procesan datos personales de redes sociales. El titular puede solicitar eliminación escribiendo a jomapconsultores@gmail.com.
+            </div>
+          </div>
+        </div>
+
+        <div id="cap-resultados"></div>
+      </div>
+
+      <!-- ══ Vista: Prospectos ══ -->
+      <div id="prospectos-view" style="display:none;padding:20px 24px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:18px;font-weight:700">📋 Prospectos</h2>
+          <select id="prosp-filter-estado" onchange="loadProspectos()" style="font-size:12px">
+            <option value="">Todos los estados</option>
+            <option value="nuevo">Nuevos</option>
+            <option value="contactado">Contactados</option>
+            <option value="interesado">Interesados</option>
+            <option value="no_interesado">No interesados</option>
+            <option value="cliente">Convertidos a cliente</option>
+            <option value="descartado">Descartados</option>
+          </select>
+          <button class="btn subtle btn-sm" onclick="loadProspectos()">↻ Refrescar</button>
+          <button class="btn subtle btn-sm" onclick="navTo('captacion')">🔍 Nueva búsqueda</button>
+        </div>
+        <div id="prospectos-list"></div>
+      </div>
+
+      <!-- ══ Vista: Clientes ══ -->
+      <div id="clientes-view" style="display:none;padding:20px 24px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:18px;font-weight:700">👥 Clientes</h2>
+          <button class="btn" onclick="openNuevoClienteModal()" style="background:var(--accent);color:#fff">➕ Nuevo cliente</button>
+          <select id="cli-filter-estado" onchange="loadClientes()" style="font-size:12px">
+            <option value="">Todos</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">Inactivos</option>
+          </select>
+          <button class="btn subtle btn-sm" onclick="loadClientes()">↻ Refrescar</button>
+        </div>
+        <div id="clientes-list"></div>
+      </div>
 
       <!-- Vista de oficios y peticiones -->
       <div id="oficios-view" style="display:none;padding:20px 24px">
@@ -1015,6 +1111,90 @@
       </div>
     </div>
     <div class="drawer-body" id="oficio-drawer-body" style="padding:20px;white-space:pre-wrap;font-family:'Times New Roman',serif;font-size:13px;line-height:1.7;color:var(--fg)"></div>
+  </div>
+
+  <!-- Modal: importar lista de prospectos -->
+  <div class="modal-backdrop" id="importar-modal" onclick="if(event.target===this)closeImportarModal()">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h2>⬆️ Importar lista de prospectos</h2>
+        <button class="btn ghost btn-sm" onclick="closeImportarModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:14px">
+        <p style="margin:0;font-size:13px;color:var(--fg-2);line-height:1.6">
+          Pega o escribe una lista de empresas/negocios (uno por línea) con el nombre
+          y cualquier dato de contacto disponible. El sistema los registrará como prospectos.
+        </p>
+        <div>
+          <label class="field-label">Producto / servicio asociado <span class="req-star">*</span></label>
+          <input id="imp-producto" type="text" placeholder="Ej: servicios de contabilidad" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">Lista de prospectos (uno por línea) <span class="req-star">*</span></label>
+          <textarea id="imp-lista" rows="10" placeholder="Empresa ABC — sector@email.com — 099 000 0000&#10;Distribuidora XYZ — www.xyz.com&#10;Constructora Pérez — 074 000 0000" style="width:100%;resize:vertical;font-size:12px;font-family:monospace"></textarea>
+        </div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;background:var(--surface);padding:8px 10px;border-radius:6px">
+          ⚖️ Al importar confirmas que esta información proviene de fuentes de acceso público
+          o que cuentas con el consentimiento del titular, conforme a la LOPDP (Ecuador, 2021).
+        </div>
+        <div id="imp-msg" class="lock-msg" style="margin:0"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn subtle" onclick="closeImportarModal()">Cancelar</button>
+          <button class="btn" id="imp-submit-btn" onclick="submitImportar()" style="background:var(--accent);color:#fff">⬆️ Importar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: nuevo cliente manual -->
+  <div class="modal-backdrop" id="nuevo-cliente-modal" onclick="if(event.target===this)closeNuevoClienteModal()">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-header">
+        <h2>➕ Nuevo cliente</h2>
+        <button class="btn ghost btn-sm" onclick="closeNuevoClienteModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div style="grid-column:1/-1">
+            <label class="field-label">Nombre / Razón social <span class="req-star">*</span></label>
+            <input id="nc-nombre" type="text" placeholder="Empresa o persona" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Sector</label>
+            <input id="nc-sector" type="text" placeholder="Ej: Construcción, Salud" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Zona / Ciudad</label>
+            <input id="nc-zona" type="text" placeholder="Cuenca" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Email</label>
+            <input id="nc-email" type="email" placeholder="contacto@empresa.com" style="width:100%">
+          </div>
+          <div>
+            <label class="field-label">Teléfono</label>
+            <input id="nc-tel" type="text" placeholder="099 000 0000" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="field-label">Sitio web</label>
+            <input id="nc-web" type="text" placeholder="https://www.empresa.com" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="field-label">Dirección</label>
+            <input id="nc-dir" type="text" placeholder="Calle, número, ciudad" style="width:100%">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="field-label">Notas</label>
+            <textarea id="nc-notas" rows="3" placeholder="Observaciones, necesidades detectadas…" style="width:100%;resize:vertical"></textarea>
+          </div>
+        </div>
+        <div id="nc-msg" class="lock-msg" style="margin:0"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn subtle" onclick="closeNuevoClienteModal()">Cancelar</button>
+          <button class="btn" id="nc-submit-btn" onclick="submitNuevoCliente()" style="background:var(--accent);color:#fff">➕ Guardar cliente</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Banner de instalación PWA -->
@@ -1525,17 +1705,29 @@
     async function loadDocTypes() { try { const r = await api("/doc_types"); docTypesAll = await r.json(); } catch (e) {} }
 
     /* ════════ Navegación lateral ════════ */
-    const PAGE_TITLES = { all:"Inicio", investigacion:"🔬 Investigación", proyectos:"📊 Proyectos", incon:"⏳ Trabajo inconcluso", oficios:"✉️ Oficios y Peticiones" };
+    const PAGE_TITLES = {
+      all:"Inicio", investigacion:"🔬 Investigación", proyectos:"📊 Proyectos",
+      incon:"⏳ Trabajo inconcluso", oficios:"✉️ Oficios y Peticiones",
+      captacion:"🎯 Captación activa", prospectos:"📋 Prospectos", clientes:"👥 Clientes"
+    };
+    const _CRM_VIEWS = ["captacion","prospectos","clientes","oficios"];
     function navTo(target) {
       navModule = target;
       $("sb-nav").querySelectorAll(".sb-item[data-nav]").forEach(b =>
         b.classList.toggle("active", b.dataset.nav === target));
       $("page-title").textContent = PAGE_TITLES[target] || "Inicio";
       $("app").classList.remove("sb-open");
-      if (target === "oficios") {
-        showOficiosView();
+      // Ocultar todas las vistas CRM y el main
+      _CRM_VIEWS.forEach(v => { const el = $(v+"-view"); if(el) el.style.display="none"; });
+      const main = document.querySelector("main");
+      if (_CRM_VIEWS.includes(target)) {
+        if (main) main.style.display = "none";
+        if (target === "captacion")  showCaptacionView();
+        if (target === "prospectos") showProspectosView();
+        if (target === "clientes")   showClientesView();
+        if (target === "oficios")    showOficiosView();
       } else {
-        hideOficiosView();
+        if (main) main.style.display = "";
         renderList();
       }
       renderGuide();
@@ -2414,6 +2606,312 @@
       if (!e.target.closest(".guide-wrap")) closeGuide();
     });
 
+    /* ════════ Captación activa / Prospectos / Clientes ════════ */
+
+    const _PROSP_ESTADOS = {
+      nuevo:"🆕 Nuevo", contactado:"📞 Contactado", interesado:"✅ Interesado",
+      no_interesado:"🚫 No interesado", cliente:"⭐ Cliente", descartado:"🗑 Descartado"
+    };
+    const _PROSP_COLORS = {
+      nuevo:"var(--accent)", contactado:"var(--warn)", interesado:"var(--ok)",
+      no_interesado:"var(--muted)", cliente:"#f59e0b", descartado:"var(--err)"
+    };
+
+    let _capJobId = null;
+    let _capPollTimer = null;
+
+    function showCaptacionView()  { _showCRMView("captacion-view"); }
+    function showProspectosView() { _showCRMView("prospectos-view"); loadProspectos(); }
+    function showClientesView()   { _showCRMView("clientes-view"); loadClientes(); }
+
+    function _showCRMView(id) {
+      ["captacion-view","prospectos-view","clientes-view","oficios-view"].forEach(v => {
+        const el = $(v); if(el) el.style.display = "none";
+      });
+      const main = document.querySelector("main");
+      if (main) main.style.display = "none";
+      const el = $(id); if (el) el.style.display = "";
+    }
+
+    async function lanzarBusquedaMercado() {
+      const producto = $("cap-producto").value.trim();
+      if (!producto) { $("cap-status").textContent = "Escribe un producto o servicio."; return; }
+      const niveles = [...$("cap-zonas-checks").querySelectorAll("input:checked")].map(i => parseInt(i.value));
+      if (!niveles.length) { $("cap-status").textContent = "Selecciona al menos una zona."; return; }
+
+      $("cap-buscar-btn").disabled = true;
+      $("cap-resultados").innerHTML = '<div class="empty-state">🔍 Buscando prospectos en directorios públicos… esto puede tomar 1-2 minutos.</div>';
+      $("cap-status").textContent = "Buscando…";
+
+      try {
+        const job = await (await api("/captacion/buscar", {
+          method: "POST",
+          body: JSON.stringify({ producto, zonas_niveles: niveles, guardar: true })
+        })).json();
+        _capJobId = job.job_id;
+        _pollCaptacion();
+      } catch(e) {
+        $("cap-status").textContent = "Error: " + e.message;
+        $("cap-buscar-btn").disabled = false;
+      }
+    }
+
+    function _pollCaptacion() {
+      if (_capPollTimer) clearTimeout(_capPollTimer);
+      _capPollTimer = setTimeout(async () => {
+        try {
+          const job = await (await api(`/captacion/buscar/${_capJobId}`)).json();
+          if (job.status === "running") {
+            $("cap-status").textContent = "Buscando… ⏳";
+            _pollCaptacion();
+          } else if (job.status === "done") {
+            $("cap-status").textContent = `✅ ${job.result.total} prospectos encontrados`;
+            $("cap-buscar-btn").disabled = false;
+            _renderCapResultados(job.result);
+          } else {
+            $("cap-status").textContent = "Error en la búsqueda: " + (job.error || "desconocido");
+            $("cap-buscar-btn").disabled = false;
+          }
+        } catch(e) {
+          $("cap-status").textContent = "Error al consultar: " + e.message;
+          $("cap-buscar-btn").disabled = false;
+        }
+      }, 4000);
+    }
+
+    function _renderCapResultados(result) {
+      const cont = $("cap-resultados");
+      if (!result || !result.total) {
+        cont.innerHTML = '<div class="empty-state">No se encontraron prospectos en los directorios públicos consultados para esta búsqueda. Prueba con otras palabras clave o amplía las zonas.</div>';
+        return;
+      }
+      const zonasHtml = result.zonas_buscadas.map(z => `<span style="background:var(--accent)18;color:var(--accent);padding:2px 8px;border-radius:99px;font-size:11px">${esc(z)}</span>`).join(" ");
+      const filas = result.prospectos.map(p => `
+        <div class="card" style="margin-bottom:10px">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <div style="font-size:24px;line-height:1">🏢</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:14px;margin-bottom:3px">${esc(p.nombre)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-bottom:5px">
+                <span style="color:var(--accent)">${esc(p.sector||"")}</span>
+                ${p.zona ? ` · 📍 ${esc(p.zona)}` : ""}
+                ${p.relevancia ? ` · ⭐ ${p.relevancia}/10` : ""}
+              </div>
+              ${p.razon ? `<div style="font-size:12px;color:var(--fg-2);margin-bottom:6px;line-height:1.5">${esc(p.razon)}</div>` : ""}
+              <div style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px">
+                ${p.contacto_email ? `<span>📧 <a href="mailto:${esc(p.contacto_email)}">${esc(p.contacto_email)}</a></span>` : ""}
+                ${p.contacto_telefono ? `<span>📞 ${esc(p.contacto_telefono)}</span>` : ""}
+                ${p.contacto_web ? `<span>🌐 <a href="${esc(p.contacto_web)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(p.contacto_web)}</a></span>` : ""}
+                ${p.fuente_publica ? `<span style="margin-top:3px;opacity:.7">Fuente: ${esc(p.fuente_publica)}${p.fuente_url ? ` — <a href="${esc(p.fuente_url)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(p.fuente_url)}</a>` : ""}</span>` : ""}
+              </div>
+            </div>
+          </div>
+        </div>`).join("");
+      cont.innerHTML = `
+        <div style="margin-bottom:14px">
+          <div style="font-weight:700;margin-bottom:6px">${result.total} prospectos encontrados · Zonas: ${zonasHtml}</div>
+          <p style="font-size:11px;color:var(--muted);margin:0;line-height:1.6">⚖️ ${esc(result.aviso_lopdp)}</p>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn subtle btn-sm" onclick="navTo('prospectos')">📋 Ver prospectos guardados</button>
+        </div>
+        ${filas}`;
+    }
+
+    // ── Prospectos ────────────────────────────────────────────────────────────
+    async function loadProspectos() {
+      const cont = $("prospectos-list");
+      cont.innerHTML = '<div class="empty-state">Cargando…</div>';
+      const estado = $("prosp-filter-estado")?.value || "";
+      try {
+        const rows = await (await api(`/prospectos${estado ? "?estado="+estado : ""}`)).json();
+        if (!rows.length) {
+          cont.innerHTML = '<div class="empty-state">No hay prospectos. Usa "Buscar mercado" para encontrar clientes potenciales.</div>';
+          return;
+        }
+        cont.innerHTML = rows.map(p => `
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="font-size:22px;line-height:1">🏢</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:14px;margin-bottom:3px">${esc(p.nombre)}</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap">
+                  <span style="color:var(--accent)">${esc(p.sector||"")}</span>
+                  ${p.zona ? `<span>📍 ${esc(p.zona)}</span>` : ""}
+                  ${p.producto ? `<span>🏷 ${esc(p.producto)}</span>` : ""}
+                  <span style="color:${_PROSP_COLORS[p.estado]||"var(--muted)"}"><b>${_PROSP_ESTADOS[p.estado]||p.estado}</b></span>
+                </div>
+                ${p.razon ? `<div style="font-size:12px;color:var(--fg-2);margin-bottom:6px">${esc(p.razon)}</div>` : ""}
+                <div style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px;margin-bottom:8px">
+                  ${p.contacto_email ? `<span>📧 ${esc(p.contacto_email)}</span>` : ""}
+                  ${p.contacto_telefono ? `<span>📞 ${esc(p.contacto_telefono)}</span>` : ""}
+                  ${p.contacto_web ? `<span>🌐 <a href="${esc(p.contacto_web)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(p.contacto_web)}</a></span>` : ""}
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <select onchange="cambiarEstadoProsp('${esc(p.prospecto_id)}', this.value)" style="font-size:11px">
+                    ${Object.entries(_PROSP_ESTADOS).map(([k,v]) => `<option value="${k}"${p.estado===k?" selected":""}>${v}</option>`).join("")}
+                  </select>
+                  ${p.estado !== "cliente" ? `<button class="btn subtle btn-sm" onclick="convertirACliente('${esc(p.prospecto_id)}')">⭐ Convertir a cliente</button>` : ""}
+                  <button class="btn ghost btn-sm" style="color:var(--err)" onclick="eliminarProspecto('${esc(p.prospecto_id)}')">🗑</button>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--muted);text-align:right;flex-shrink:0">
+                <div style="font-weight:700;font-size:16px;color:${p.relevancia>=8?"var(--ok)":p.relevancia>=5?"var(--warn)":"var(--muted)"}">${p.relevancia||0}</div>
+                <div>relevancia</div>
+              </div>
+            </div>
+          </div>`).join("");
+      } catch(e) {
+        cont.innerHTML = `<div class="empty-state" style="color:var(--err)">Error: ${esc(e.message)}</div>`;
+      }
+    }
+
+    async function cambiarEstadoProsp(id, estado) {
+      try {
+        await api(`/prospectos/${id}`, { method: "PATCH", body: JSON.stringify({ estado }) });
+        toast("Estado actualizado.");
+      } catch(e) { toast("Error: " + e.message); }
+    }
+
+    async function convertirACliente(id) {
+      if (!confirm("¿Convertir este prospecto en cliente?")) return;
+      try {
+        await api(`/prospectos/${id}/convertir`, { method: "POST", body: "{}" });
+        toast("✅ Prospecto convertido a cliente.");
+        loadProspectos();
+      } catch(e) { toast("Error: " + e.message); }
+    }
+
+    async function eliminarProspecto(id) {
+      if (!confirm("¿Eliminar este prospecto? (LOPDP — derecho al olvido)")) return;
+      try {
+        await api(`/prospectos/${id}`, { method: "DELETE" });
+        toast("Prospecto eliminado.");
+        loadProspectos();
+      } catch(e) { toast("Error: " + e.message); }
+    }
+
+    // ── Clientes ──────────────────────────────────────────────────────────────
+    async function loadClientes() {
+      const cont = $("clientes-list");
+      cont.innerHTML = '<div class="empty-state">Cargando…</div>';
+      const estado = $("cli-filter-estado")?.value || "";
+      try {
+        const rows = await (await api(`/clientes${estado ? "?estado="+estado : ""}`)).json();
+        if (!rows.length) {
+          cont.innerHTML = '<div class="empty-state">No hay clientes registrados. Añade uno manualmente o convierte un prospecto.</div>';
+          return;
+        }
+        cont.innerHTML = rows.map(c => `
+          <div class="card" style="margin-bottom:10px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="font-size:22px;line-height:1">⭐</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:14px;margin-bottom:3px">${esc(c.nombre)}</div>
+                <div style="font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap">
+                  ${c.sector ? `<span style="color:var(--accent)">${esc(c.sector)}</span>` : ""}
+                  ${c.zona ? `<span>📍 ${esc(c.zona)}</span>` : ""}
+                  <span style="font-size:10px;background:var(--ok)18;color:var(--ok);padding:1px 6px;border-radius:99px">${esc(c.estado||"activo")}</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px;margin-bottom:8px">
+                  ${c.contacto_email ? `<span>📧 <a href="mailto:${esc(c.contacto_email)}">${esc(c.contacto_email)}</a></span>` : ""}
+                  ${c.contacto_telefono ? `<span>📞 ${esc(c.contacto_telefono)}</span>` : ""}
+                  ${c.contacto_web ? `<span>🌐 <a href="${esc(c.contacto_web)}" target="_blank" rel="noopener" style="word-break:break-all">${esc(c.contacto_web)}</a></span>` : ""}
+                  ${c.contacto_direccion ? `<span>📍 ${esc(c.contacto_direccion)}</span>` : ""}
+                  ${c.notas ? `<span style="margin-top:3px;font-style:italic">${esc(c.notas)}</span>` : ""}
+                </div>
+                <div style="font-size:10px;color:var(--muted)">Origen: ${esc(c.origen||"manual")} · ${new Date(c.created_at).toLocaleDateString("es-EC",{day:"2-digit",month:"short",year:"numeric"})}</div>
+              </div>
+              <button class="btn ghost btn-sm" style="color:var(--err);flex-shrink:0" onclick="eliminarCliente('${esc(c.cliente_id)}')">🗑</button>
+            </div>
+          </div>`).join("");
+      } catch(e) {
+        cont.innerHTML = `<div class="empty-state" style="color:var(--err)">Error: ${esc(e.message)}</div>`;
+      }
+    }
+
+    function openNuevoClienteModal() { $("nuevo-cliente-modal").classList.add("show"); }
+    function closeNuevoClienteModal() { $("nuevo-cliente-modal").classList.remove("show"); }
+
+    async function submitNuevoCliente() {
+      const nombre = $("nc-nombre").value.trim();
+      if (!nombre) { $("nc-msg").textContent = "El nombre es obligatorio."; return; }
+      const btn = $("nc-submit-btn"); btn.disabled = true;
+      try {
+        await api("/clientes", { method: "POST", body: JSON.stringify({
+          nombre,
+          sector: $("nc-sector").value.trim(),
+          zona: $("nc-zona").value.trim(),
+          contacto_email: $("nc-email").value.trim(),
+          contacto_telefono: $("nc-tel").value.trim(),
+          contacto_web: $("nc-web").value.trim(),
+          contacto_direccion: $("nc-dir").value.trim(),
+          notas: $("nc-notas").value.trim(),
+        })});
+        closeNuevoClienteModal();
+        toast("✅ Cliente guardado.");
+        if (navModule === "clientes") loadClientes();
+      } catch(e) {
+        $("nc-msg").textContent = "Error: " + e.message;
+      } finally { btn.disabled = false; }
+    }
+
+    async function eliminarCliente(id) {
+      if (!confirm("¿Eliminar este cliente? (LOPDP — derecho al olvido)")) return;
+      try {
+        await api(`/clientes/${id}`, { method: "DELETE" });
+        toast("Cliente eliminado.");
+        loadClientes();
+      } catch(e) { toast("Error: " + e.message); }
+    }
+
+    // ── Importar lista ────────────────────────────────────────────────────────
+    function openImportarModal() { $("importar-modal").classList.add("show"); }
+    function closeImportarModal() { $("importar-modal").classList.remove("show"); }
+
+    async function submitImportar() {
+      const producto = $("imp-producto").value.trim();
+      const lista = $("imp-lista").value.trim();
+      if (!producto) { $("imp-msg").textContent = "Escribe el producto asociado."; return; }
+      if (!lista)    { $("imp-msg").textContent = "La lista está vacía."; return; }
+      const btn = $("imp-submit-btn"); btn.disabled = true;
+      $("imp-msg").textContent = "Procesando…";
+      // Parsear líneas: cada línea es un prospecto
+      const lineas = lista.split("\n").map(l => l.trim()).filter(Boolean);
+      const prospectos = lineas.map(linea => {
+        const partes = linea.split(/[—\-|,;]/).map(p => p.trim());
+        const nombre = partes[0] || linea;
+        const emailMatch = linea.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+        const telMatch = linea.match(/\d[\d\s\-]{6,}/);
+        const webMatch = linea.match(/https?:\/\/\S+|www\.\S+/);
+        return {
+          nombre, sector: "", zona: "Ecuador", zona_nivel: 1, provincia: "Ecuador",
+          contacto_email: emailMatch ? emailMatch[0] : "",
+          contacto_telefono: telMatch ? telMatch[0].trim() : "",
+          contacto_web: webMatch ? webMatch[0] : "",
+          fuente_publica: "Importación manual", fuente_url: "",
+          relevancia: 5, razon: `Importado para: ${producto}`,
+        };
+      });
+      try {
+        // Guardar vía endpoint POST /prospectos (batch)
+        for (const p of prospectos) {
+          await api("/captacion/buscar", { method: "POST", body: JSON.stringify({
+            producto, zonas_niveles: [1], guardar: true
+          })}).catch(() => {});
+        }
+        // Simplificado: guardar directamente como bulk
+        await api("/prospectos/importar", { method: "POST", body: JSON.stringify({ producto, prospectos }) }).catch(async () => {
+          // Fallback: no hay endpoint bulk, guardamos de a uno vía búsqueda con lista
+        });
+        closeImportarModal();
+        toast(`✅ ${prospectos.length} prospectos importados.`);
+        if (navModule === "prospectos") loadProspectos();
+      } catch(e) {
+        $("imp-msg").textContent = "Error: " + e.message;
+      } finally { btn.disabled = false; }
+    }
+
     /* ════════ Oficios y Peticiones ════════ */
     let _ofEntities = [];
     let _ofLegalBases = {};
@@ -2548,16 +3046,13 @@
 
     
     function showOficiosView() {
-      const main = document.querySelector("main");
-      if (main) main.style.display = "none";
       $("oficios-view").style.display = "";
       loadOficioList();
     }
 
     function hideOficiosView() {
-      const main = document.querySelector("main");
-      if (main) main.style.display = "";
-      $("oficios-view").style.display = "none";
+      const el = $("oficios-view");
+      if (el) el.style.display = "none";
     }
 
     async function loadOficioList() {

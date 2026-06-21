@@ -1287,3 +1287,218 @@ def eliminar_oficio(oficio_id: str, p: Principal = Depends(get_principal)):
     if not ok and not p.is_admin:
         raise HTTPException(404, "Oficio no encontrado.")
     return {"ok": True}
+
+
+# ── Captación activa / Prospección / Clientes ────────────────────────────────
+class BuscarMercadoRequest(BaseModel):
+    producto: str = Field(..., min_length=3, description="Producto o servicio a promocionar")
+    zonas_niveles: list[int] = Field(
+        default=[1, 2],
+        description="Niveles geográficos a buscar: 1=Cuenca, 2=Azuay, 3=Cañar/Loja/ElOro, "
+                    "4=Morona/Zamora, 5=Chimborazo/Tungurahua, 6=Guayas/Manabí, "
+                    "7=Pichincha, 8=Nacional"
+    )
+    guardar: bool = Field(True, description="Guardar los prospectos en la base de datos")
+
+
+class UpdateProspectoRequest(BaseModel):
+    estado: Optional[str] = Field(None, pattern="^(nuevo|contactado|interesado|no_interesado|cliente|descartado)$")
+    notas: Optional[str] = None
+    contacto_email: Optional[str] = None
+    contacto_telefono: Optional[str] = None
+    contacto_web: Optional[str] = None
+
+
+class SaveClienteRequest(BaseModel):
+    nombre: str = Field(..., min_length=2)
+    sector: str = ""
+    zona: str = ""
+    contacto_web: str = ""
+    contacto_email: str = ""
+    contacto_telefono: str = ""
+    contacto_direccion: str = ""
+    notas: str = ""
+
+
+class UpdateClienteRequest(BaseModel):
+    nombre: Optional[str] = None
+    sector: Optional[str] = None
+    zona: Optional[str] = None
+    contacto_web: Optional[str] = None
+    contacto_email: Optional[str] = None
+    contacto_telefono: Optional[str] = None
+    contacto_direccion: Optional[str] = None
+    notas: Optional[str] = None
+    estado: Optional[str] = Field(None, pattern="^(activo|inactivo|bloqueado)$")
+
+
+@app.get("/captacion/zonas")
+def captacion_zonas(p: Principal = Depends(get_principal)):
+    """Lista las zonas geográficas disponibles con su nivel de expansión."""
+    from agents.captacion import ZONAS_ECUADOR
+    return ZONAS_ECUADOR
+
+
+@app.post("/captacion/buscar", status_code=202)
+def buscar_mercado(req: BuscarMercadoRequest, background: BackgroundTasks,
+                   p: Principal = Depends(get_principal)):
+    """Lanza búsqueda de mercado en background. Devuelve job_id para polling."""
+    import threading
+    job_id = str(uuid.uuid4())
+    _captacion_jobs[job_id] = {"status": "running", "result": None, "error": None}
+
+    def _run():
+        try:
+            from agents.captacion import buscar_mercado as _buscar
+            result = _buscar(
+                producto=req.producto,
+                zonas_solicitadas=req.zonas_niveles,
+                api_key=None,
+            )
+            if req.guardar and result.get("prospectos") and p.user_id:
+                _require_supabase()
+                from db import captacion_repo
+                captacion_repo.save_prospectos(
+                    result["prospectos"],
+                    owner_user_id=p.user_id,
+                    producto=req.producto,
+                )
+            _captacion_jobs[job_id] = {"status": "done", "result": result, "error": None}
+        except Exception as e:
+            _captacion_jobs[job_id] = {"status": "failed", "result": None, "error": str(e)}
+
+    threading.Thread(target=_run, daemon=True).start()
+    return {"job_id": job_id, "status": "running"}
+
+
+_captacion_jobs: dict[str, dict] = {}
+
+
+@app.get("/captacion/buscar/{job_id}")
+def captacion_job_status(job_id: str, p: Principal = Depends(get_principal)):
+    """Consulta el estado de una búsqueda de mercado en curso."""
+    job = _captacion_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job no encontrado.")
+    return job
+
+
+# ── Prospectos ────────────────────────────────────────────────────────────────
+class ImportarProspectosRequest(BaseModel):
+    producto: str = Field(..., min_length=2)
+    prospectos: list[dict]
+
+
+@app.post("/prospectos/importar", status_code=201)
+def importar_prospectos(req: ImportarProspectosRequest, p: Principal = Depends(get_principal)):
+    """Importa una lista de prospectos directamente (sin búsqueda web)."""
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    n = captacion_repo.save_prospectos(req.prospectos, owner_user_id=p.user_id, producto=req.producto)
+    return {"ok": True, "importados": n}
+
+
+@app.get("/prospectos")
+def listar_prospectos(
+    producto: Optional[str] = Query(None),
+    estado: Optional[str] = Query(None),
+    zona_nivel_max: Optional[int] = Query(None),
+    limit: int = Query(200, ge=1, le=500),
+    p: Principal = Depends(get_principal),
+):
+    _require_supabase()
+    from db import captacion_repo
+    return captacion_repo.list_prospectos(
+        owner_user_id=p.owner_filter(),
+        producto=producto,
+        estado=estado,
+        zona_nivel_max=zona_nivel_max,
+        limit=limit,
+    )
+
+
+@app.patch("/prospectos/{prospecto_id}")
+def actualizar_prospecto(prospecto_id: str, req: UpdateProspectoRequest,
+                         p: Principal = Depends(get_principal)):
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    fields = {k: v for k, v in req.model_dump().items() if v is not None}
+    ok = captacion_repo.update_prospecto(prospecto_id, owner_user_id=p.user_id, **fields)
+    if not ok:
+        raise HTTPException(404, "Prospecto no encontrado.")
+    return {"ok": True}
+
+
+@app.post("/prospectos/{prospecto_id}/convertir", status_code=201)
+def convertir_a_cliente(prospecto_id: str, p: Principal = Depends(get_principal)):
+    """Convierte un prospecto en cliente."""
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    cliente_id = captacion_repo.prospecto_to_cliente(
+        prospecto_id=prospecto_id, owner_user_id=p.user_id)
+    if not cliente_id:
+        raise HTTPException(404, "Prospecto no encontrado.")
+    return {"ok": True, "cliente_id": cliente_id}
+
+
+@app.delete("/prospectos/{prospecto_id}")
+def eliminar_prospecto(prospecto_id: str, p: Principal = Depends(get_principal)):
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    captacion_repo.delete_prospecto(prospecto_id=prospecto_id, owner_user_id=p.user_id)
+    return {"ok": True}
+
+
+# ── Clientes ──────────────────────────────────────────────────────────────────
+@app.get("/clientes")
+def listar_clientes(
+    estado: Optional[str] = Query(None),
+    limit: int = Query(200, ge=1, le=500),
+    p: Principal = Depends(get_principal),
+):
+    _require_supabase()
+    from db import captacion_repo
+    return captacion_repo.list_clientes(owner_user_id=p.owner_filter(), estado=estado, limit=limit)
+
+
+@app.post("/clientes", status_code=201)
+def crear_cliente(req: SaveClienteRequest, p: Principal = Depends(get_principal)):
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    cliente_id = captacion_repo.save_cliente(
+        owner_user_id=p.user_id, **req.model_dump())
+    return {"ok": True, "cliente_id": cliente_id}
+
+
+@app.patch("/clientes/{cliente_id}")
+def actualizar_cliente(cliente_id: str, req: UpdateClienteRequest,
+                       p: Principal = Depends(get_principal)):
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    fields = {k: v for k, v in req.model_dump().items() if v is not None}
+    ok = captacion_repo.update_cliente(cliente_id, owner_user_id=p.user_id, **fields)
+    if not ok:
+        raise HTTPException(404, "Cliente no encontrado.")
+    return {"ok": True}
+
+
+@app.delete("/clientes/{cliente_id}")
+def eliminar_cliente(cliente_id: str, p: Principal = Depends(get_principal)):
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(403, "Requiere cuenta de usuario.")
+    from db import captacion_repo
+    captacion_repo.delete_cliente(cliente_id=cliente_id, owner_user_id=p.user_id)
+    return {"ok": True}
