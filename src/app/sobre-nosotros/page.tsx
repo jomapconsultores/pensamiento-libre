@@ -206,16 +206,40 @@ export default function SobreNosotrosPage() {
         </div>
       </section>
 
-      {/* ── CTA ── */}
-      <section className="py-20 bg-brand-cream/40">
-        <div className="container-page text-center max-w-3xl mx-auto">
-          <h2 className="section-title font-display">Únete a la transformación</h2>
-          <p className="section-subtitle">
-            Hay muchas formas de ser parte: como voluntario, como donante o como aliado estratégico.
+      {/* ── CTA TRIPLE ── */}
+      <section className="py-20 bg-brand-navy text-white">
+        <div className="container-page text-center max-w-4xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
+            Únete a la transformación
+          </h2>
+          <p className="text-white/75 mb-10 text-lg max-w-2xl mx-auto">
+            Hay muchas formas de ser parte de nuestra misión. Elige la que va mejor contigo.
           </p>
-          <div className="mt-10 flex flex-wrap gap-4 justify-center">
-            <Link href="/donar" className="btn-primary">Quiero donar</Link>
-            <Link href="/contacto" className="btn-outline">Quiero ser voluntario</Link>
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Link
+              href="/donar"
+              className="bg-brand-gold text-brand-navy rounded-2xl p-6 hover:bg-brand-gold-light transition-all hover:-translate-y-0.5 hover:shadow-lg text-left"
+            >
+              <span className="text-2xl block mb-3">💛</span>
+              <p className="font-bold text-lg mb-1">Quiero donar</p>
+              <p className="text-sm text-brand-navy/70">Desde $10. Elige tu monto o un paquete de impacto.</p>
+            </Link>
+            <Link
+              href="/membresias"
+              className="bg-white/10 border border-white/20 text-white rounded-2xl p-6 hover:bg-white/20 transition-all hover:-translate-y-0.5 hover:shadow-lg text-left"
+            >
+              <span className="text-2xl block mb-3">🌳</span>
+              <p className="font-bold text-lg mb-1">Hacerme miembro</p>
+              <p className="text-sm text-white/60">Desde $10/mes. Apoyo continuo + beneficios exclusivos.</p>
+            </Link>
+            <Link
+              href="/contacto"
+              className="bg-white/10 border border-white/20 text-white rounded-2xl p-6 hover:bg-white/20 transition-all hover:-translate-y-0.5 hover:shadow-lg text-left"
+            >
+              <span className="text-2xl block mb-3">🤝</span>
+              <p className="font-bold text-lg mb-1">Ser voluntario</p>
+              <p className="text-sm text-white/60">Suma tu tiempo y talento. Te acompañamos en el proceso.</p>
+            </Link>
           </div>
         </div>
       </section>

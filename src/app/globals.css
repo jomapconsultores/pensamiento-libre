@@ -52,6 +52,18 @@ body {
   .section-subtitle {
     @apply text-lg md:text-xl text-brand-navy/70 text-center max-w-3xl mx-auto mt-4;
   }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
+  }
+
+  .badge-gold {
+    @apply inline-block px-4 py-1 rounded-full bg-brand-gold/10 text-brand-gold text-xs font-bold uppercase tracking-widest border border-brand-gold/20;
+  }
+
+  .badge-sky {
+    @apply inline-block px-4 py-1 rounded-full bg-brand-sky/10 text-brand-sky text-xs font-bold uppercase tracking-widest border border-brand-sky/20;
+  }
 }
 
 .gradient-text {
@@ -66,4 +78,11 @@ body {
     radial-gradient(ellipse at top right, rgba(90, 180, 227, 0.15), transparent 50%),
     radial-gradient(ellipse at bottom left, rgba(212, 160, 23, 0.10), transparent 50%),
     linear-gradient(180deg, #ffffff 0%, #fdf8ed 100%);
+}
+
+/* Subtle pattern overlay for sections */
+.pattern-dots {
+  background-image: radial-gradient(#1e3a6d 1px, transparent 1px);
+  background-size: 24px 24px;
+  opacity: 0.04;
 }

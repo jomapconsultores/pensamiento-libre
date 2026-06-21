@@ -1,65 +1,230 @@
 import type { Metadata } from 'next';
-import { DonationForm } from '@/components/DonationForm';
+import Link from 'next/link';
+import { DonationTabs } from '@/components/DonationTabs';
 
 export const metadata: Metadata = {
   title: 'Donar | Fundación Pensamiento Libre',
   description:
-    'Realiza una donación única o recurrente. Tu aporte transforma vidas y libera mentes.',
+    'Apoya nuestros programas de salud mental, educación y desarrollo personal. Donaciones únicas, recurrentes o paquetes de impacto directo en Cuenca, Ecuador.',
 };
 
-const impact = [
-  { amount: '$10', text: 'cubre una sesión de orientación psicológica' },
-  { amount: '$25', text: 'permite un kit de materiales para taller comunitario' },
-  { amount: '$50', text: 'sostiene una beca educativa por un mes' },
-  { amount: '$100', text: 'financia un mes de salud mental para una familia' },
+const STATS = [
+  { number: '+2.500', label: 'Personas beneficiadas' },
+  { number: '12', label: 'Programas activos' },
+  { number: '+80', label: 'Voluntarios' },
+  { number: '100%', label: 'Transparencia' },
+];
+
+const IMPACT_STORIES = [
+  {
+    emoji: '🧠',
+    quote:
+      '"Gracias al programa psicológico pude superar la ansiedad que me tenía paralizada. Hoy vivo con libertad y acompaño a otros."',
+    author: 'María F. — beneficiaria del programa de salud mental',
+  },
+  {
+    emoji: '📚',
+    quote:
+      '"La beca de la Fundación me permitió terminar mis estudios cuando pensé que no podía. Hoy tengo trabajo y una carrera."',
+    author: 'Carlos M. — beneficiario de beca estudiantil',
+  },
+  {
+    emoji: '💙',
+    quote:
+      '"Los talleres de inteligencia emocional cambiaron la forma en que me relaciono con mi familia y conmigo misma."',
+    author: 'Ana L. — participante de talleres',
+  },
+];
+
+const TRUST_ITEMS = [
+  {
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+      />
+    ),
+    color: 'text-brand-gold bg-brand-gold/10',
+    title: 'Pago 100% seguro',
+    desc: 'Cifrado SSL por Stripe',
+  },
+  {
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+      />
+    ),
+    color: 'text-brand-sky bg-brand-sky/10',
+    title: 'Fundación legal',
+    desc: 'Resolución MINEDEC-CZ6-2025-01466-R',
+  },
+  {
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      />
+    ),
+    color: 'text-brand-green bg-brand-green/10',
+    title: 'Recibo inmediato',
+    desc: 'Comprobante enviado por email',
+  },
 ];
 
 export default function DonarPage() {
   return (
     <>
-      <section className="hero-bg py-20">
-        <div className="container-page text-center">
-          <h1 className="text-4xl md:text-6xl font-display font-bold text-brand-navy">
-            Tu aporte libera mentes
+      {/* HERO */}
+      <section className="hero-bg py-20 md:py-28">
+        <div className="container-page text-center max-w-4xl mx-auto">
+          <span className="inline-block px-4 py-1.5 rounded-full bg-brand-gold/15 text-brand-gold font-semibold text-sm mb-6 border border-brand-gold/20">
+            Tu aporte transforma vidas reales
+          </span>
+          <h1 className="text-4xl md:text-6xl font-display font-bold text-brand-navy leading-tight">
+            Cada donación es
+            <br />
+            <span className="gradient-text">una mente liberada</span>
           </h1>
-          <p className="mt-6 text-lg md:text-xl text-brand-navy/70 max-w-3xl mx-auto">
-            Cada donación, por más pequeña que parezca, multiplica nuestro impacto en
-            las comunidades que más lo necesitan.
+          <p className="mt-6 text-lg md:text-xl text-brand-navy/70 max-w-3xl mx-auto leading-relaxed">
+            Con tu apoyo financiamos consultas psicológicas, becas educativas, talleres
+            comunitarios y programas de desarrollo personal que llegan a quienes más los
+            necesitan en Cuenca y Ecuador.
           </p>
+          <div className="mt-8 flex flex-wrap gap-3 justify-center">
+            <a href="#donar-ahora" className="btn-primary">
+              Donar ahora
+              <svg className="ml-2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 5v14m7-7H5" />
+              </svg>
+            </a>
+            <Link href="/membresias" className="btn-outline">
+              Hacerme miembro mensual
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="py-20">
-        <div className="container-page grid lg:grid-cols-2 gap-12 items-start">
-          <div>
-            <h2 className="text-3xl font-display font-bold text-brand-navy mb-6">
-              Realiza tu donación
-            </h2>
-            <p className="text-brand-navy/75 mb-8 leading-relaxed">
-              Selecciona un monto y modalidad. El pago se procesa de forma segura
-              mediante Stripe. Recibirás un recibo por email.
-            </p>
-            <DonationForm />
+      {/* STATS BAR */}
+      <section className="py-10 bg-brand-navy">
+        <div className="container-page">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center text-white">
+            {STATS.map((s) => (
+              <div key={s.label}>
+                <p className="text-2xl md:text-3xl font-bold text-brand-gold">{s.number}</p>
+                <p className="text-sm text-white/70 mt-1">{s.label}</p>
+              </div>
+            ))}
           </div>
+        </div>
+      </section>
 
-          <div className="bg-brand-cream/60 rounded-2xl p-8 lg:sticky lg:top-28">
-            <h3 className="text-2xl font-display font-bold text-brand-navy mb-6">
-              Tu impacto
-            </h3>
-            <ul className="space-y-4">
-              {impact.map((i) => (
-                <li key={i.amount} className="flex gap-4 items-start">
-                  <span className="flex-shrink-0 w-16 h-16 rounded-xl bg-brand-gold text-white font-bold flex items-center justify-center text-lg">
-                    {i.amount}
-                  </span>
-                  <p className="text-brand-navy/80 pt-3">{i.text}</p>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-8 text-sm text-brand-navy/60 leading-relaxed">
-              Los pagos se procesan con cifrado seguro a través de Stripe. La Fundación
-              Pensamiento Libre no almacena datos de tarjetas.
+      {/* DONATION SECTION */}
+      <section id="donar-ahora" className="py-20">
+        <div className="container-page">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1 rounded-full bg-brand-gold/10 text-brand-gold text-xs font-bold uppercase tracking-widest mb-4 border border-brand-gold/20">
+              Elige cómo quieres impactar
+            </span>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-brand-navy">
+              Donación libre o paquetes de impacto
+            </h2>
+            <p className="mt-4 text-brand-navy/70 max-w-2xl mx-auto">
+              Dona el monto que prefieras o elige un{' '}
+              <strong>paquete de impacto directo</strong> para financiar una clase, taller,
+              consulta psicológica o beca específica.
             </p>
+          </div>
+          <DonationTabs />
+        </div>
+      </section>
+
+      {/* IMPACT STORIES */}
+      <section className="py-20 bg-brand-cream/40">
+        <div className="container-page">
+          <div className="text-center mb-12">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-brand-gold/10 text-brand-gold font-semibold text-sm border border-brand-gold/20 mb-4">
+              Historias reales
+            </span>
+            <h2 className="text-3xl md:text-4xl font-display font-bold text-brand-navy">
+              Tu donación tiene nombre y apellido
+            </h2>
+            <p className="section-subtitle mt-4">
+              Detrás de cada dólar hay una persona que recuperó su bienestar, una familia que encontró apoyo o un joven que pudo seguir estudiando.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {IMPACT_STORIES.map((story, i) => (
+              <blockquote
+                key={i}
+                className="bg-white rounded-2xl p-8 shadow-md border border-brand-navy/5 hover:shadow-xl transition-shadow"
+              >
+                <div className="text-3xl mb-4">{story.emoji}</div>
+                <p className="text-brand-navy/80 leading-relaxed mb-6 italic text-sm">
+                  {story.quote}
+                </p>
+                <footer className="text-xs font-semibold text-brand-gold border-t border-brand-navy/8 pt-4">
+                  {story.author}
+                </footer>
+              </blockquote>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST SIGNALS */}
+      <section className="py-16">
+        <div className="container-page max-w-4xl mx-auto">
+          <div className="bg-white rounded-3xl p-10 shadow-lg border border-brand-navy/5 text-center">
+            <h3 className="text-2xl font-display font-bold text-brand-navy mb-8">
+              Tu donación es segura y transparente
+            </h3>
+            <div className="grid sm:grid-cols-3 gap-8">
+              {TRUST_ITEMS.map((item) => (
+                <div key={item.title} className="flex flex-col items-center gap-3">
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center ${item.color}`}>
+                    <svg
+                      className="w-7 h-7"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      {item.icon}
+                    </svg>
+                  </div>
+                  <p className="font-bold text-brand-navy">{item.title}</p>
+                  <p className="text-sm text-brand-navy/60">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-16 bg-brand-navy text-white">
+        <div className="container-page text-center max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-display font-bold mb-4">
+            ¿Prefieres apoyarnos mensualmente?
+          </h2>
+          <p className="text-white/75 mb-8 text-lg leading-relaxed">
+            Con una membresía mensual sostienes nuestra labor de forma continua y accedes a
+            beneficios exclusivos como charlas, talleres y contenido especializado.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/membresias" className="btn-primary">
+              Ver planes de membresía
+            </Link>
+            <Link
+              href="/contacto"
+              className="bg-white/10 text-white border border-white/20 hover:bg-white/20 font-semibold px-6 py-3 rounded-full transition-colors"
+            >
+              Tengo preguntas
+            </Link>
           </div>
         </div>
       </section>

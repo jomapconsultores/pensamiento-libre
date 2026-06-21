@@ -37,7 +37,7 @@ export function Footer() {
 
         <div>
           <h3 className="font-bold text-brand-gold-light mb-4">Navegación</h3>
-          <ul className="space-y-2 text-white/80">
+          <ul className="space-y-2 text-white/80 text-sm">
             <li><Link href="/sobre-nosotros" className="hover:text-brand-gold-light transition-colors">Sobre nosotros</Link></li>
             <li><Link href="/programas" className="hover:text-brand-gold-light transition-colors">Programas</Link></li>
             <li><Link href="/servicios" className="hover:text-brand-gold-light transition-colors">Servicios</Link></li>
@@ -45,7 +45,7 @@ export function Footer() {
             <li><Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">CMAJ</Link></li>
             <li><Link href="/golden-gate" className="hover:text-brand-gold-light transition-colors">Golden Gate</Link></li>
             <li><Link href="/membresias" className="hover:text-brand-gold-light transition-colors">Membresías</Link></li>
-            <li><Link href="/donar" className="hover:text-brand-gold-light transition-colors">Donar</Link></li>
+            <li><Link href="/donar" className="text-brand-gold-light font-semibold hover:text-brand-gold transition-colors">💛 Donar ahora</Link></li>
             <li><Link href="/contacto" className="hover:text-brand-gold-light transition-colors">Contacto</Link></li>
           </ul>
         </div>

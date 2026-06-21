@@ -31,40 +31,69 @@ export default function ContactoPage() {
             <ContactForm />
           </div>
 
-          <div>
+          <div className="space-y-6">
             <h2 className="text-2xl font-display font-bold text-brand-navy mb-6">
               Otros canales
             </h2>
-            <ul className="space-y-6">
+            <ul className="space-y-5">
               <li>
-                <p className="font-semibold text-brand-navy">Email</p>
+                <p className="font-semibold text-brand-navy text-sm mb-1">Email</p>
                 <a
                   href="mailto:jomapconsultores@gmail.com"
-                  className="text-brand-gold hover:underline"
+                  className="text-brand-gold hover:text-brand-gold-light transition-colors font-medium"
                 >
                   jomapconsultores@gmail.com
                 </a>
               </li>
               <li>
-                <p className="font-semibold text-brand-navy mb-2">Redes sociales</p>
+                <p className="font-semibold text-brand-navy text-sm mb-2">Redes sociales</p>
                 <SocialLinks variant="light" />
               </li>
               <li>
-                <p className="font-semibold text-brand-navy">Aliados</p>
+                <p className="font-semibold text-brand-navy text-sm mb-1">Aliados</p>
                 <a
                   href="https://jomapconsultores.com"
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-brand-gold hover:underline"
+                  className="text-brand-gold hover:text-brand-gold-light transition-colors font-medium"
                 >
                   JOMAP Consultores →
                 </a>
               </li>
             </ul>
 
-            <div className="mt-10 bg-brand-cream/60 rounded-2xl p-6">
+            <div className="bg-brand-cream/60 rounded-2xl p-6 border border-brand-navy/8">
               <h3 className="font-bold text-brand-navy mb-2">Horario de atención</h3>
               <p className="text-brand-navy/75 text-sm">Lunes a viernes, 9:00 — 18:00</p>
+              <p className="text-brand-navy/50 text-xs mt-1">Cuenca, Azuay, Ecuador</p>
+            </div>
+
+            {/* Quick actions */}
+            <div className="bg-brand-navy rounded-2xl p-6 text-white">
+              <p className="font-bold text-brand-gold-light mb-4">Actúa ahora</p>
+              <div className="space-y-3">
+                <a
+                  href="/donar"
+                  className="flex items-center gap-3 text-sm text-white/80 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center text-base flex-shrink-0">💛</span>
+                  Hacer una donación
+                </a>
+                <a
+                  href="/membresias"
+                  className="flex items-center gap-3 text-sm text-white/80 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center text-base flex-shrink-0">🌳</span>
+                  Hacerme miembro mensual
+                </a>
+                <a
+                  href="/servicios"
+                  className="flex items-center gap-3 text-sm text-white/80 hover:text-white transition-colors"
+                >
+                  <span className="w-8 h-8 rounded-full bg-brand-gold/20 flex items-center justify-center text-base flex-shrink-0">🧠</span>
+                  Reservar una consulta
+                </a>
+              </div>
             </div>
           </div>
         </div>
