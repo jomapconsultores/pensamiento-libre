@@ -124,14 +124,8 @@ Extrae TODOS los requisitos, secciones, campos y restricciones. Devuelve SOLO es
             max_tokens=2000, temperature=0.2,
         )
         raw = raw.strip()
-        if "```json" in raw:
-            raw = raw.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw:
-            raw = raw.split("```")[1].split("```")[0].strip()
-        s, e = raw.find("{"), raw.rfind("}") + 1
-        if s >= 0 and e > s:
-            raw = raw[s:e]
-        data = json.loads(raw)
+        from utils.json_utils import robust_json_loads
+        data = robust_json_loads(raw)
         data["url_contents"] = url_list
         return data
     except Exception as ex:

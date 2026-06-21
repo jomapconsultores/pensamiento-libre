@@ -71,15 +71,8 @@ def _propose_queries(provider: str, topic: str, base: list[str]) -> list[str]:
 
 
 def _parse_json(raw: str) -> dict:
-    raw = (raw or "").strip()
-    if "```json" in raw:
-        raw = raw.split("```json")[1].split("```")[0].strip()
-    elif "```" in raw:
-        raw = raw.split("```")[1].split("```")[0].strip()
-    s, e = raw.find("{"), raw.rfind("}") + 1
-    if s >= 0 and e > s:
-        raw = raw[s:e]
-    return json.loads(raw)
+    from utils.json_utils import robust_json_loads
+    return robust_json_loads(raw)
 
 
 def _gather_evidence(session: ProjectSession, seed: dict | None = None) -> str:

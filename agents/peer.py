@@ -85,15 +85,8 @@ Devuelve SOLO el JSON con complete/confidence/issues.
 
 
 def _parse(raw: str) -> dict:
-    raw = (raw or "").strip()
-    if "```json" in raw:
-        raw = raw.split("```json")[1].split("```")[0].strip()
-    elif "```" in raw:
-        raw = raw.split("```")[1].split("```")[0].strip()
-    s, e = raw.find("{"), raw.rfind("}") + 1
-    if s >= 0 and e > s:
-        raw = raw[s:e]
-    return json.loads(raw)
+    from utils.json_utils import robust_json_loads
+    return robust_json_loads(raw)
 
 
 def _verdict(provider: str, prompt: str) -> dict:
