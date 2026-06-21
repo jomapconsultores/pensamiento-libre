@@ -426,6 +426,12 @@ def icon_svg():
                         headers={"Cache-Control": "max-age=604800"})
 
 
+@app.get("/logo.png", include_in_schema=False)
+def logo_png():
+    return FileResponse(STATIC_DIR / "logo.png", media_type="image/png",
+                        headers={"Cache-Control": "max-age=604800"})
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "service": "agente_map", "version": app.version}
