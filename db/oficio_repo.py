@@ -49,25 +49,40 @@ def save(
     return oficio_id
 
 
+def _table_missing(e: Exception) -> bool:
+    msg = str(e)
+    return "does not exist" in msg or "42P01" in msg
+
+
 def list_oficios(*, owner_user_id: Optional[str] = None, limit: int = 50) -> list[dict[str, Any]]:
     sb = get_client(service_role=True)
-    q = (
-        sb.table("oficios")
-        .select("oficio_id, entity, doc_type, subject, requester_name, city, created_at, doc_number")
-        .order("created_at", desc=True)
-        .limit(limit)
-    )
-    if owner_user_id:
-        q = q.eq("owner_user_id", owner_user_id)
-    return q.execute().data or []
+    try:
+        q = (
+            sb.table("oficios")
+            .select("oficio_id, entity, doc_type, subject, requester_name, city, created_at, doc_number")
+            .order("created_at", desc=True)
+            .limit(limit)
+        )
+        if owner_user_id:
+            q = q.eq("owner_user_id", owner_user_id)
+        return q.execute().data or []
+    except Exception as e:
+        if _table_missing(e):
+            return []
+        raise
 
 
 def get_oficio(oficio_id: str) -> Optional[dict[str, Any]]:
     sb = get_client(service_role=True)
-    rows = (
-        sb.table("oficios").select("*").eq("oficio_id", oficio_id).limit(1).execute().data
-    )
-    return rows[0] if rows else None
+    try:
+        rows = (
+            sb.table("oficios").select("*").eq("oficio_id", oficio_id).limit(1).execute().data
+        )
+        return rows[0] if rows else None
+    except Exception as e:
+        if _table_missing(e):
+            return None
+        raise
 
 
 def delete_oficio(*, oficio_id: str, owner_user_id: str) -> bool:
