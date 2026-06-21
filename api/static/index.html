@@ -72,14 +72,14 @@
     /* Hero (left) */
     .lhero { background:linear-gradient(135deg,#0f172a 0%,#1e293b 60%,#0f1e3d 100%);
       padding:56px 64px; display:flex; flex-direction:column; justify-content:space-between;
-      position:relative; overflow:hidden; }
+      position:relative; overflow:clip; }
     .lhero::before { content:""; position:absolute; top:-120px; right:-80px; width:480px; height:480px;
       background:radial-gradient(circle,rgba(37,99,235,.18) 0%,transparent 70%); pointer-events:none; }
     .lhero::after { content:""; position:absolute; bottom:-60px; left:40px; width:320px; height:320px;
       background:radial-gradient(circle,rgba(14,165,233,.10) 0%,transparent 70%); pointer-events:none; }
-    .lhero-brand { display:flex; align-items:center; gap:14px; }
-    .lhero-logo-img { width:190px; height:auto; border-radius:8px; object-fit:contain; display:block; box-shadow:0 4px 24px rgba(0,0,0,.4); }
-    .lhero-brand .lbtag { font-size:11px; color:#64748b; letter-spacing:.02em; margin-top:8px; }
+    .lhero-brand { display:flex; flex-direction:column; align-items:flex-start; gap:8px; position:relative; z-index:2; flex-shrink:0; }
+    .lhero-logo-img { width:180px; max-width:100%; height:auto; border-radius:8px; display:block; box-shadow:0 4px 24px rgba(0,0,0,.5); }
+    .lhero-brand .lbtag { font-size:11px; color:#64748b; letter-spacing:.02em; }
     .lhero-body { position:relative; z-index:1; }
     .lhero-body h2 { font-size:38px; font-weight:800; color:#f8fafc; line-height:1.15;
       letter-spacing:-.03em; margin-bottom:18px; }
@@ -95,8 +95,7 @@
     .lhero-foot { color:#334155; font-size:11.5px; position:relative; z-index:1; }
     /* Login panel (right) */
     .lpanel { background:#ffffff; display:flex; flex-direction:column;
-      justify-content:flex-start; padding:40px 44px; border-left:1px solid #e2e8f0;
-      overflow-y:auto; }
+      justify-content:center; padding:40px 44px; border-left:1px solid #e2e8f0; }
     .lpanel-head { margin-bottom:32px; }
     .lpanel-head h3 { font-size:22px; font-weight:700; color:#0f172a; letter-spacing:-.02em; }
     .lpanel-head p { font-size:13.5px; color:#64748b; margin-top:6px; }
@@ -482,7 +481,7 @@
 
       <!-- Hero izquierdo -->
       <div class="lhero">
-        <div class="lhero-brand" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="lhero-brand">
           <img src="/logo.png" alt="MAP Proyectos" class="lhero-logo-img">
           <div class="lbtag">FUNDACION JOMAP · CMAJ ASOCIADOS · Cuenca, Ecuador</div>
         </div>
@@ -519,8 +518,8 @@
 
       <!-- Panel de login derecho -->
       <div class="lpanel">
-        <div style="align-self:center;margin-bottom:28px;margin-top:8px">
-          <img src="/logo.png" alt="MAP Proyectos" style="width:160px;height:auto;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.10);display:block">
+        <div style="align-self:center;margin-bottom:22px">
+          <img src="/logo.png" alt="MAP Proyectos" style="width:140px;max-width:100%;height:auto;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.10);display:block">
         </div>
         <div class="lpanel-head" style="margin-bottom:20px;text-align:center">
           <h3 id="lock-title">Bienvenido de nuevo</h3>
