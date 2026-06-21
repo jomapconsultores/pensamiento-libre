@@ -137,7 +137,7 @@ export function Hero() {
           {/* Logo — horizontal version, no animation that delays render */}
           <div className="relative z-10">
             <Image
-              src="/logo-horizontal.jpg"
+              src="/logo-horizontal.png"
               alt="Fundación Pensamiento Libre"
               width={560}
               height={210}

@@ -73,7 +73,7 @@ export default function SobreNosotrosPage() {
             {/* Horizontal logo */}
             <div className="relative w-full rounded-3xl overflow-hidden bg-white shadow-2xl p-8 border border-brand-navy/8">
               <Image
-                src="/logo-horizontal.jpg"
+                src="/logo-horizontal.png"
                 alt="Logo Fundación Pensamiento Libre"
                 width={600}
                 height={225}
