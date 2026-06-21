@@ -1932,7 +1932,7 @@
         const v = (s.verification || "inferido").toLowerCase();
         const badge = v==="verificado" ? '<span class="pill approved">verificado</span>' : v==="no_verificado" ? '<span class="pill failed">no verificado</span>' : '<span class="pill conditional">inferido</span>';
         const link = s.source_url
-          ? `<a href="${esc(s.source_url)}" target="_blank" rel="noopener">${esc(s.source_title || s.source_url)}</a><div style="font-size:11px;color:var(--muted);word-break:break-all;margin-top:2px;user-select:all">${esc(s.source_url)}</div>`
+          ? `${s.source_title ? `<div style="font-size:12px;color:var(--fg-2);margin-bottom:2px">${esc(s.source_title)}</div>` : ""}<a href="${esc(s.source_url)}" target="_blank" rel="noopener" style="font-size:12px;word-break:break-all;user-select:all">${esc(s.source_url)}</a>`
           : esc(s.source_title || "(sin fuente)");
         const quote = s.source_quote ? `<div class="quote">"${esc(s.source_quote)}"</div>` : "";
         return `<div class="evid-item"><div class="claim">${esc(s.claim || "(claim sin texto)")} ${badge}</div><div class="src">${link}</div>${quote}</div>`;
@@ -2003,7 +2003,7 @@
           linkItems.push({ url: s.source_url, label: s.source_title || s.source_url });
       });
       const linksHtml = linkItems.length ? `<div style="margin:10px 0 4px;font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Verificar directamente</div><div style="display:flex;flex-direction:column;gap:8px">${
-        linkItems.map(l => `<div><a href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--accent);display:flex;align-items:center;gap:4px">↗ ${esc(l.label)}</a><div style="font-size:11px;color:var(--muted);word-break:break-all;margin-top:2px;user-select:all">${esc(l.url)}</div></div>`).join("")
+        linkItems.map(l => `<div><div style="font-size:12px;color:var(--fg-2);margin-bottom:2px">↗ ${esc(l.label)}</div><a href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);word-break:break-all;user-select:all">${esc(l.url)}</a></div>`).join("")
       }</div>` : "";
 
       const actionsHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
