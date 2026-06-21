@@ -168,6 +168,8 @@ class SessionSummary(BaseModel):
     created_at: Optional[str] = None
     completed_at: Optional[str] = None
     error_message: Optional[str] = None
+    current_phase: Optional[str] = None
+    progress_steps: list = []
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -243,6 +245,8 @@ def _row_to_summary(row: dict) -> SessionSummary:
         created_at=str(row.get("created_at")) if row.get("created_at") else None,
         completed_at=str(row.get("completed_at")) if row.get("completed_at") else None,
         error_message=row.get("error_message"),
+        current_phase=row.get("current_phase"),
+        progress_steps=row.get("progress_steps") or [],
     )
 
 
@@ -699,6 +703,20 @@ def cancel_proposal(session_id: str, p: Principal = Depends(get_principal)):
     if not ok:
         raise HTTPException(404, "session_id no encontrado")
     return {"ok": True, "status": "failed"}
+
+
+@app.post("/propuestas/{session_id}/pause", status_code=200)
+def pause_proposal(session_id: str, p: Principal = Depends(get_principal)):
+    """Señaliza al pipeline que se detenga limpiamente al final de la fase actual."""
+    from db import repository
+    row = _owned_row(session_id, p)
+    if row.get("status") not in ("running", "pending"):
+        raise HTTPException(409, "Solo se puede pausar un trabajo en curso o en cola.")
+    try:
+        repository.request_pause(session_id)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"No se pudo pausar: {type(e).__name__}: {e}")
+    return {"ok": True, "status": "pausing"}
 
 
 @app.delete("/propuestas/{session_id}", status_code=200)

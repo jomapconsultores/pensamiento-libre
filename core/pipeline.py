@@ -3,13 +3,20 @@
 Flujo (cada fase la produce una IA y la audita OTRA; si un gate da <90 se vuelve al
 inicio y se reinvestiga, hasta MAX_PIPELINE_RESTARTS intentos):
 
-  FASE 0  Clasificación ........................ Claude
-  FASE 1  Investigación web + análisis ......... ROLE_RESEARCH (DeepSeek)
-          └─ GATE 1 revisado por ............... ROLE_REVIEW_RESEARCH (Mistral)
-  FASE 2  Redacción del documento .............. ROLE_WRITER (Mistral)
-          └─ GATE 2 revisado por ............... ROLE_REVIEW_WRITER (DeepSeek)
-  FASE 3  Estructuración financiera ........... ROLE_FINANCIAL (Codestral)
-  FASE 4  Veredicto final 90/90 ............... Claude (reviewer.run)
+  FASE 0   Clasificación ........................ Mistral (ROLE_CLASSIFIER)
+  FASE 0.5 Intake: análisis de docs/URLs ........ Mistral (antes del loop)
+  FASE 1   Investigación web + análisis ......... Mistral (ROLE_RESEARCH)
+           └─ GATE 1 revisado por ............... Codestral (ROLE_REVIEW_RESEARCH)
+  FASE 2   Redacción del documento .............. Codestral (ROLE_WRITER)
+           └─ GATE 2 revisado por ............... Mistral (ROLE_REVIEW_WRITER)
+  FASE 3   Estructuración financiera ............ Codestral (ROLE_FINANCIAL)
+  FASE 3.5 Revisión paquete completo ............ DeepSeek (ROLE_PACKAGE_REVIEW)
+           └─ Si no pasa → REINICIA desde FASE 1
+  FASE 4   Veredicto final 90/90 ................ Claude (reviewer.run)
+           └─ Si no aprueba → REINICIA desde FASE 1
+
+Fallback: si Mistral o Codestral no están disponibles, complete_builder escala
+automáticamente a DeepSeek y como último recurso a Claude.
 
 Si tras agotar los intentos no se alcanza el 90, se entrega la MEJOR versión
 lograda marcada como inconclusa.
@@ -37,8 +44,10 @@ import agents.writer as writer
 import agents.reviewer as reviewer
 import agents.financial as financial
 import agents.phase_review as phase_review
+import agents.intake as intake
 from agents.analyst import result_from_data
 from utils.output import save_session
+from utils import empresas as empresas_util
 from db import repository
 
 
@@ -50,6 +59,24 @@ def _resolve_doc_type(user_input: str, template_text: str, support_docs: list,
         return classifier.detect_type(user_input, template_text, support_docs, api_key)
     except Exception:
         return "generico"
+
+
+def _log(session_id: str, phase: str, label: str, icon: str = "⚙",
+         status: str = "running", detail: str = "") -> None:
+    """Registra el avance del pipeline en la BD para mostrarlo en la UI."""
+    repository.update_progress(session_id, phase=phase, label=label,
+                                icon=icon, status=status, detail=detail)
+
+
+def _pause_if_requested(session_id: str, session: "ProjectSession") -> bool:
+    """Verifica si el usuario solicitó pausa. Si es así, detiene el pipeline limpiamente.
+    Devuelve True si se debe abortar."""
+    if not repository.is_pause_requested(session_id):
+        return False
+    _log(session_id, "pausa", "Pausado por el usuario", "⏸", "paused",
+         "Retomable con el botón Continuar desde donde lo dejaste")
+    _mark_failed(session_id, "⏸ Pausado por el usuario · usa Continuar para reanudar")
+    return True
 
 
 def _mark_running(session_id: str, owner_user_id: Optional[str] = None):
@@ -94,6 +121,31 @@ def _mark_completed(session_id: str, approved: bool):
         ).eq("session_id", session_id).execute()
     except Exception:
         pass
+
+
+def _enrich_brief_with_intake(session: ProjectSession) -> None:
+    """Fusiona los requisitos del intake en el brief para que Gates 1 y 2 los validen."""
+    brief = session.brief
+    intake = session.intake_data
+    if not brief or not intake:
+        return
+    # Añadir secciones obligatorias del formulario que no estén ya en el brief
+    required = [
+        s["name"] for s in (intake.get("required_sections") or [])
+        if s.get("mandatory") and s.get("name") and s["name"] not in brief.sections
+    ]
+    if required:
+        brief.sections = brief.sections + required
+    # Añadir restricciones clave como requisitos del brief
+    new_reqs = [c for c in (intake.get("key_constraints") or []) if c]
+    if new_reqs:
+        brief.key_requirements = brief.key_requirements + new_reqs
+    # Aplicar overrides de formato si los detectó el intake
+    fmt_overrides = intake.get("format_overrides") or {}
+    if fmt_overrides:
+        for key, val in fmt_overrides.items():
+            if val is not None and key in brief.format_spec:
+                brief.format_spec[key] = val
 
 
 def _research_content(session: ProjectSession) -> str:
@@ -145,15 +197,22 @@ def run_scouting(
         doc_type_key="propuesta", owner_user_id=owner_user_id,
     )
     _mark_running(session_id, owner_user_id)
+    _log(session_id, "scout_start", "Iniciando búsqueda de oportunidades", "🔍", "running",
+         "Investigando convocatorias activas con financiamiento no reembolsable")
     try:
         opportunities = scout.run(session, api_key)
         if not opportunities:
+            _log(session_id, "scout_end", "Sin oportunidades verificables", "🚫", "done")
             session.approved = False
             session.inconclusive_reason = "La búsqueda no devolvió oportunidades verificables."
             save_session(session)
             _mark_completed(session_id, approved=False)
             return session
 
+        _log(session_id, "scout_end",
+             f"Búsqueda completada · {len(opportunities)} oportunidad(es) encontrada(s)",
+             "🏆", "done",
+             " · ".join(o.get("title", "")[:60] for o in opportunities[:3]))
         best = opportunities[0]
         analysis = result_from_data(best, best.get("summary", ""))
         analysis.summary = best.get("summary", "")
@@ -196,7 +255,7 @@ def run_pipeline(
     session_id = session_id or uuid.uuid4().hex[:8]
     support_docs = support_docs or []
 
-    # FASE 0 — Clasificación (Claude). Una sola vez para todo el pipeline.
+    # FASE 0 — Clasificación (Mistral). Una sola vez para todo el pipeline.
     resolved_type = _resolve_doc_type(user_input, template_text, support_docs,
                                        api_key, doc_type_key)
 
@@ -211,9 +270,19 @@ def run_pipeline(
     )
 
     _mark_running(session_id, owner_user_id)
+    _log(session_id, "fase0", "Clasificando tipo de documento", "🔍", "done",
+         f"Tipo detectado: {resolved_type}")
 
     try:
         doc_type = get_doc_type(resolved_type)
+
+        # ── FASE 0.5 — INTAKE (una sola vez; los docs de entrada no cambian) ──
+        _log(session_id, "fase0_5", "Analizando documentos de entrada", "📄", "running")
+        session.intake_data = intake.analyze(session)
+        _log(session_id, "fase0_5", "Documentos analizados", "📄", "done")
+
+        # Contexto organizacional (Empresas/) — cargado una sola vez
+        empresas_context = empresas_util.context_block()
 
         approved = False
         # Mejor versión lograda (por si ningún intento alcanza el 90).
@@ -222,13 +291,19 @@ def run_pipeline(
         for attempt in range(1, MAX_PIPELINE_RESTARTS + 1):
             session.attempts = attempt
             session.current_cycle = attempt
+            cycle_label = f" (ciclo {attempt})" if attempt > 1 else ""
+
+            if _pause_if_requested(session_id, session):
+                return session
 
             # ── FASE 1 — INVESTIGACIÓN WEB + ANÁLISIS (IA investigadora) ──────
+            _log(session_id, "fase1", f"Investigando fuentes y analizando{cycle_label}",
+                 "🌐", "running", "Mistral busca convocatorias y verifica elegibilidad")
             if doc_type.is_proposal:
                 analysis = researcher.run(session, api_key, seed=seed_opportunity)
                 session.analysis = analysis
                 if not analysis.viable:
-                    # Oportunidad no viable: no tiene sentido reintentar.
+                    _log(session_id, "fase1", "Análisis: oportunidad no viable", "🚫", "done")
                     session.approved = False
                     session.inconclusive_reason = "Análisis de viabilidad: NO-GO."
                     save_session(session)
@@ -237,8 +312,15 @@ def run_pipeline(
                 session.brief = classifier.analysis_to_brief(analysis, resolved_type)
             else:
                 session.brief = researcher.build_brief(session, resolved_type, api_key)
+            _log(session_id, "fase1", f"Investigación completada{cycle_label}", "🌐", "done",
+                 f"Viabilidad: {getattr(session.analysis, 'viability_score', '—')}/100" if session.analysis else "")
+
+            # Enriquecer el brief con los requisitos del intake (secciones, restricciones)
+            _enrich_brief_with_intake(session)
 
             # ── GATE 1 — la investigación la audita OTRA IA ──────────────────
+            _log(session_id, "gate1", f"Gate 1: auditando investigación{cycle_label}",
+                 "🔎", "running", "Codestral verifica fuentes reales y cobertura de lineamientos")
             g1 = phase_review.review(
                 ROLE_REVIEW_RESEARCH, phase="investigación",
                 brief=session.brief, content=_research_content(session),
@@ -247,14 +329,27 @@ def run_pipeline(
             )
             session.phase_reviews.append({"attempt": attempt, **g1})
             if not g1["passed"]:
+                _log(session_id, "gate1", f"Gate 1 no aprobado — reiniciando{cycle_label}",
+                     "🔄", "warning", f"Puntaje: {g1.get('score', '—')}/100 · {g1.get('verdict', '')[:120]}")
                 continue  # VUELVE AL INICIO: reinvestiga
+            _log(session_id, "gate1", f"Gate 1 aprobado{cycle_label}", "✅", "done",
+                 f"Puntaje: {g1.get('score', '—')}/100")
+
+            if _pause_if_requested(session_id, session):
+                return session
 
             # ── FASE 2 — REDACCIÓN (IA redactora) ────────────────────────────
+            _log(session_id, "fase2", f"Redactando documento{cycle_label}",
+                 "✍️", "running", "Codestral estructura y redacta la propuesta completa")
             proposal = writer.run(session, [], api_key, provider=ROLE_WRITER)
             session.proposal_versions.append(proposal)
             session.final_proposal = proposal
+            _log(session_id, "fase2", f"Redacción completada{cycle_label}", "✍️", "done",
+                 f"{len(proposal):,} caracteres generados")
 
             # ── GATE 2 — la redacción la audita OTRA IA ──────────────────────
+            _log(session_id, "gate2", f"Gate 2: auditando redacción{cycle_label}",
+                 "🔎", "running", "Mistral verifica secciones, formato y rigor")
             g2 = phase_review.review(
                 ROLE_REVIEW_WRITER, phase="redacción",
                 brief=session.brief, content=proposal,
@@ -263,17 +358,53 @@ def run_pipeline(
             )
             session.phase_reviews.append({"attempt": attempt, **g2})
             if not g2["passed"]:
+                _log(session_id, "gate2", f"Gate 2 no aprobado — reiniciando{cycle_label}",
+                     "🔄", "warning", f"Puntaje: {g2.get('score', '—')}/100 · {g2.get('verdict', '')[:120]}")
                 continue  # VUELVE AL INICIO
+            _log(session_id, "gate2", f"Gate 2 aprobado{cycle_label}", "✅", "done",
+                 f"Puntaje: {g2.get('score', '—')}/100")
+
+            if _pause_if_requested(session_id, session):
+                return session
 
             # ── FASE 3 — ESTRUCTURACIÓN FINANCIERA (IA financiera) ───────────
             if session.brief and session.brief.needs_budget_excel:
+                _log(session_id, "fase3", f"Estructurando presupuesto{cycle_label}",
+                     "💰", "running", "Codestral genera la estructura financiera")
                 try:
                     session.financial = financial.run(
                         session, proposal, api_key, provider=ROLE_FINANCIAL)
+                    _log(session_id, "fase3", f"Presupuesto completado{cycle_label}",
+                         "💰", "done")
                 except Exception:
                     session.financial = None
+                    _log(session_id, "fase3", "Presupuesto omitido (error no crítico)",
+                         "💰", "warning")
+
+            # ── GATE 3 — DeepSeek revisa el paquete completo ─────────────────
+            _log(session_id, "gate3", f"Gate 3: revisión del paquete completo{cycle_label}",
+                 "🔎", "running", "DeepSeek audita propuesta + presupuesto + requisitos")
+            g3 = phase_review.review_package(
+                brief=session.brief,
+                proposal=proposal,
+                financial=session.financial,
+                intake_data=session.intake_data,
+                empresas_context=empresas_context,
+            )
+            session.phase_reviews.append({"attempt": attempt, **g3})
+            if not g3["passed"]:
+                _log(session_id, "gate3", f"Gate 3 no aprobado — reiniciando{cycle_label}",
+                     "🔄", "warning", f"Puntaje: {g3.get('score', '—')}/100 · {g3.get('verdict', '')[:120]}")
+                continue  # VUELVE AL INICIO: reinvestiga y reescribe
+            _log(session_id, "gate3", f"Gate 3 aprobado{cycle_label}", "✅", "done",
+                 f"Puntaje: {g3.get('score', '—')}/100")
+
+            if _pause_if_requested(session_id, session):
+                return session
 
             # ── FASE 4 — VEREDICTO FINAL 90/90 (Claude) ──────────────────────
+            _log(session_id, "fase4", f"Veredicto final 90/90{cycle_label}",
+                 "⚖️", "running", "Claude evalúa con criterios de máxima exigencia")
             review = reviewer.run(session, proposal, api_key)
             session.review_results.append(review)
 
@@ -282,8 +413,12 @@ def run_pipeline(
                         "financial": session.financial}
 
             if review.approved:
+                _log(session_id, "fase4", f"¡Aprobado 90/90!{cycle_label}",
+                     "🏆", "done", f"Puntaje final: {review.overall_score:.0f}/100")
                 approved = True
                 break
+            _log(session_id, "fase4", f"No aprobado — reiniciando{cycle_label}",
+                 "🔄", "warning", f"Puntaje: {review.overall_score:.0f}/100 — bajo el umbral 90")
             # No aprobó el 90/90 → VUELVE AL INICIO (reinvestiga)
 
         session.approved = approved

@@ -5,6 +5,10 @@ Cada fase del pipeline (investigación, redacción) es auditada por una IA DISTI
 a la que la produjo. Si el puntaje global es <90 o hay problemas críticos, la fase
 NO pasa y el pipeline vuelve al inicio (reinvestiga).
 
+Además incluye review_package() — GATE 3 que usa DeepSeek para revisar el paquete
+completo (propuesta + financiero + cumplimiento de plantilla/docs de entrada) antes
+de pasar al veredicto final de Claude.
+
 El veredicto FINAL del documento lo da Claude con la regla 90/90 estricta
 (agents/reviewer.py); este módulo son los gates intermedios.
 """
@@ -20,13 +24,20 @@ from models.schemas import DocumentBrief
 MAX_TOKENS_GATE = 1500
 
 _SYSTEM = """
-Eres un AUDITOR independiente y exigente. Evalúas si una FASE del trabajo cumple el estándar
-profesional mínimo para avanzar. Eres honesto y calibrado: no inflas puntajes. Verificas que NO
-haya datos, citas, cifras ni fuentes inventadas y que se respeten los lineamientos y el formato.
-Respondes ÚNICAMENTE con JSON válido:
-{"score": <0-100>, "critical": ["<problema crítico que obliga a rehacer>", ...],
- "issues": ["<faltante/mejora concreta y accionable>", ...],
- "strengths": ["<fortaleza>", ...], "recommendation": "<resumen 1-3 frases>"}
+Eres un auditor de calidad independiente, riguroso y calibrado. Tu función es evaluar si una fase
+del trabajo cumple el estándar profesional mínimo para avanzar en el pipeline. No inflás puntajes:
+si algo no está a nivel, lo dices con precisión y señalas exactamente qué falta y cómo subsanarlo.
+
+Verificas tres cosas con igual rigor:
+  - Que no haya datos, cifras, fuentes ni citas inventadas (cualquier invención es "critical").
+  - Que se respeten los lineamientos nacionales e internacionales requeridos.
+  - Que el formato y la estructura exigida estén correctamente aplicados.
+
+Tus correcciones son específicas y accionables — no "mejorar el contenido", sino "la sección X
+carece de Y; agregar Z con fuente real". Respondes ÚNICAMENTE con JSON válido:
+{"score": <0-100>, "critical": ["<problema que obliga a rehacer — dato inventado / incumplimiento grave>", ...],
+ "issues": ["<observación concreta y accionable>", ...],
+ "strengths": ["<fortaleza real>", ...], "recommendation": "<resumen 1-3 frases>"}
 Sin texto fuera del JSON.
 """
 
@@ -106,6 +117,128 @@ listarlo en "critical". Devuelve SOLO el JSON.
     except Exception as ex:  # un gate caído no debe tumbar el pipeline
         return {
             "phase": phase, "provider": provider, "score": float(threshold),
+            "passed": True, "critical": [], "issues": [],
+            "strengths": [], "recommendation": f"(gate omitido: {type(ex).__name__})",
+        }
+
+
+_PACKAGE_SYSTEM = """
+Eres un auditor senior de convocatorias internacionales con décadas de experiencia evaluando
+paquetes completos de propuestas antes de su entrega a financiadores de la más alta exigencia.
+Tu juicio es independiente, calibrado y sin concesiones: si el paquete no está listo, lo dices.
+
+Tu auditoría del paquete completo (documento + presupuesto + cumplimiento de plantilla) cubre:
+  1. Cumplimiento de TODAS las secciones y campos obligatorios del formulario/bases detectado.
+  2. Datos organizacionales reales (razón social, RUC, representante legal, CV de participantes)
+     correctamente integrados — sin datos genéricos ni inventados.
+  3. Coherencia interna entre narrativa de la propuesta, presupuesto y marco lógico.
+  4. Respeto de límites de extensión, formato y criterios de evaluación.
+  5. Ausencia de datos, cifras, fuentes o citas inventadas.
+
+Cada observación en "critical" señala concretamente el campo o sección problemática y por qué
+constituye un impedimento para entregar. Respondes ÚNICAMENTE con JSON válido.
+"""
+
+_PACKAGE_JSON = (
+    '{"score": <0-100>, "critical": ["<problema que impide entregar>", ...],'
+    ' "issues": ["<campo incompleto o inconsistencia concreta>", ...],'
+    ' "strengths": ["<fortaleza>", ...], "recommendation": "<resumen 1-3 frases>"}'
+)
+
+
+def review_package(
+    *,
+    brief: "DocumentBrief",
+    proposal: str,
+    financial=None,
+    intake_data: dict | None = None,
+    empresas_context: str = "",
+) -> dict:
+    """GATE 3 (DeepSeek): revisa el paquete completo antes del veredicto final de Claude.
+
+    Verifica cumplimiento de plantilla, datos reales de organizaciones, consistencia
+    financiera y ausencia de datos inventados. Si no pasa → el pipeline reinicia.
+    """
+    provider = config.ROLE_PACKAGE_REVIEW  # deepseek
+
+    intake_block = ""
+    if intake_data:
+        sections = intake_data.get("required_sections") or []
+        constraints = intake_data.get("key_constraints") or []
+        if sections or constraints:
+            sec_lines = "\n".join(
+                f"  - [{('OBLIGATORIO' if s.get('mandatory') else 'opcional')}] "
+                f"{s.get('name','')}: {s.get('description','')}"
+                for s in sections
+            )
+            con_lines = "\n".join(f"  - {c}" for c in constraints)
+            intake_block = (
+                "\nSECCIONES Y CAMPOS REQUERIDOS POR LA PLANTILLA/BASES:\n"
+                + (sec_lines or "  (ninguno detectado)")
+                + "\n\nRESTRICCIONES CRÍTICAS:\n"
+                + (con_lines or "  (ninguna)")
+            )
+
+    financial_block = ""
+    if financial:
+        n_budget = len(getattr(financial, "budget_items", []))
+        n_logic = len(getattr(financial, "logframe_rows", []))
+        n_sched = len(getattr(financial, "schedule_rows", []))
+        financial_block = (
+            f"\nPRESUPUESTO ESTRUCTURADO: {n_budget} rubros | "
+            f"Marco lógico: {n_logic} filas | Cronograma: {n_sched} actividades\n"
+            f"Narrativa presupuestaria: {(getattr(financial,'budget_narrative','') or '')[:1000]}\n"
+        )
+
+    org_block = ""
+    if empresas_context:
+        org_block = f"\nCONTEXTO ORGANIZACIONAL DISPONIBLE:\n{empresas_context[:3000]}\n"
+
+    prompt = f"""
+Audita el PAQUETE COMPLETO de esta propuesta.
+
+{_brief_context(brief)}
+{intake_block}
+{org_block}
+{financial_block}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DOCUMENTO PRINCIPAL (propuesta):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+{_clip(proposal, 40000)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Verifica:
+1. ¿Están cubiertas TODAS las secciones/campos obligatorios de la plantilla?
+2. ¿Los datos organizacionales (razón social, RUC, representante, CVs) son reales
+   y provienen del contexto organizacional disponible, no inventados?
+3. ¿El presupuesto es coherente con la narrativa? ¿Los montos cuadran?
+4. ¿Se respetan los límites de extensión y criterios de evaluación?
+5. ¿Hay datos, fuentes o cifras inventadas?
+
+Devuelve SOLO: {_PACKAGE_JSON}
+"""
+    threshold = config.PHASE_REVIEW_THRESHOLD
+    try:
+        raw = llm.complete(
+            provider, system=_PACKAGE_SYSTEM, prompt=prompt,
+            max_tokens=2000, temperature=0.2,
+        )
+        data = _parse(raw)
+        score = float(data.get("score", 0) or 0)
+        critical = [str(c) for c in (data.get("critical") or [])]
+        issues = [str(i) for i in (data.get("issues") or [])]
+        strengths = [str(s) for s in (data.get("strengths") or [])]
+        passed = score >= threshold and not critical
+        return {
+            "phase": "paquete completo", "provider": provider, "score": score,
+            "passed": passed, "critical": critical, "issues": issues,
+            "strengths": strengths,
+            "recommendation": str(data.get("recommendation", "")),
+        }
+    except Exception as ex:
+        return {
+            "phase": "paquete completo", "provider": provider, "score": float(threshold),
             "passed": True, "critical": [], "issues": [],
             "strengths": [], "recommendation": f"(gate omitido: {type(ex).__name__})",
         }

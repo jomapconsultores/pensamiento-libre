@@ -186,3 +186,7 @@ class ProjectSession:
     brief: Optional["DocumentBrief"] = None
     template_text: str = ""               # plantilla/modelo OPCIONAL a imitar (no obligatorio)
     support_docs: list = field(default_factory=list)  # [(nombre, texto)] documentos de apoyo
+    # Análisis estructurado de documentos de entrada (plantilla + docs de apoyo + URLs).
+    # Producido por agents/intake.py. Contiene: required_sections, format_overrides,
+    # key_constraints, org_refs, url_contents, raw_notes.
+    intake_data: dict = field(default_factory=dict)

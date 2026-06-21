@@ -19,9 +19,12 @@ from utils.output import save_session
 from tools.file_reader import read_file, list_supported_files
 import agents.analyst as analyst
 import agents.classifier as classifier
+import agents.intake as intake
 import agents.writer as writer
 import agents.reviewer as reviewer
 import agents.financial as financial
+import agents.phase_review as phase_review
+from utils import empresas as empresas_util
 
 
 # ── Startup check ─────────────────────────────────────────────────────────
@@ -220,6 +223,30 @@ def run_pipeline(api_key: str):
 
     doc_type = get_doc_type(doc_type_key)
 
+    # ── FASE 0.5: INTAKE + CONTEXTO ORGANIZACIONAL ───────────────────────
+    n_empresas = empresas_util.count()
+    if n_empresas:
+        display.info(f"Cargados {n_empresas} documentos organizacionales (Empresas/)")
+
+    has_input_docs = bool(template_text or support_docs or
+                          ("http" in (user_input or "").lower()))
+    if has_input_docs:
+        display.phase("FASE 0.5 — ANÁLISIS DE DOCUMENTOS DE ENTRADA", "📋")
+        display.info("Analizando plantilla, documentos de apoyo y/o URLs...")
+        with display.spinner("Agente Intake extrayendo secciones y requisitos"):
+            try:
+                session.intake_data = intake.analyze(session)
+                sections_found = len(session.intake_data.get("required_sections") or [])
+                constraints_found = len(session.intake_data.get("key_constraints") or [])
+                urls_found = len(session.intake_data.get("url_contents") or [])
+                display.success(
+                    f"Intake: {sections_found} secciones, {constraints_found} restricciones"
+                    + (f", {urls_found} URLs descargadas" if urls_found else "")
+                )
+            except Exception as e:
+                display.warning(f"Intake no disponible: {e}")
+                session.intake_data = {}
+
     # ── FASE 1: ANÁLISIS / BRIEF ──────────────────────────────────────────
     if doc_type.is_proposal:
         display.phase("FASE 1 — ANÁLISIS DE VIABILIDAD", "🔍")
@@ -254,18 +281,27 @@ def run_pipeline(api_key: str):
                 return
         display.brief_report(session.brief)
 
+    # Enriquecer el brief con requisitos del intake (secciones obligatorias, restricciones)
+    if session.brief and session.intake_data:
+        from core.pipeline import _enrich_brief_with_intake
+        _enrich_brief_with_intake(session)
+        n_extra = len(session.intake_data.get("required_sections") or [])
+        if n_extra:
+            display.info(f"Brief enriquecido con {n_extra} secciones del formulario de entrada.")
+
     display.console.print("\n[bold green]Definición completa. Procediendo a redacción...[/bold green]")
     input("\n  Presiona Enter para continuar → ")
 
-    # ── FASES 2+3: REDACCIÓN + REVISIÓN (ciclo) ───────────────────────────
+    # ── FASES 2+3+3.5+GATE3: REDACCIÓN → REVISIÓN → FINANCIERO → PAQUETE (ciclo) ──
     corrections = []
     final_proposal = ""
     approved = False
+    empresas_ctx = empresas_util.context_block()
 
     for cycle in range(1, MAX_REVIEW_CYCLES + 1):
         session.current_cycle = cycle
 
-        # Agent 2: Write
+        # FASE 2: Redacción
         display.phase(f"FASE 2.{cycle} — REDACCIÓN ({doc_type.name})", "✍️")
         if corrections:
             display.info(f"Aplicando {len(corrections)} correcciones del revisor...")
@@ -283,8 +319,8 @@ def run_pipeline(api_key: str):
         final_proposal = proposal
         display.success(f"Propuesta redactada ({len(proposal):,} caracteres)")
 
-        # Agent 3: Review
-        display.phase(f"FASE 3.{cycle} — CONTROL DE CALIDAD", "🔬")
+        # FASE 3: Control de calidad (Claude, regla 90/90)
+        display.phase(f"FASE 3.{cycle} — CONTROL DE CALIDAD (Claude)", "🔬")
         display.info("Evaluando propuesta con máximo rigor...")
 
         with display.spinner(f"Agente Revisor evaluando (ciclo {cycle})"):
@@ -297,46 +333,92 @@ def run_pipeline(api_key: str):
         session.review_results.append(review)
         display.review_report(review, cycle)
 
-        if review.approved:
-            approved = True
-            display.success(
-                f"[bold green]¡PROPUESTA APROBADA en ciclo {cycle}![/bold green] "
-                f"Score: {review.overall_score:.0f}/100"
-            )
-            break
+        if not review.approved:
+            corrections = review.corrections
+            if cycle < MAX_REVIEW_CYCLES:
+                display.warning(
+                    f"Ciclo {cycle}: score {review.overall_score:.0f}/100. "
+                    f"Enviando {len(corrections)} correcciones al redactor..."
+                )
+                continue
+            else:
+                display.warning(
+                    f"Se alcanzaron los {MAX_REVIEW_CYCLES} ciclos. "
+                    "Se guarda la mejor versión disponible."
+                )
+                break
 
-        corrections = review.corrections
-        if cycle < MAX_REVIEW_CYCLES:
-            display.warning(
-                f"Ciclo {cycle} completado. Enviando {len(corrections)} correcciones al redactor..."
-            )
+        # Llegó aquí: Claude aprobó (≥90/90) → FASE 3.5 + GATE 3
+        display.success(
+            f"[bold green]¡Aprobado por Claude en ciclo {cycle}![/bold green] "
+            f"Score: {review.overall_score:.0f}/100"
+        )
+
+        # FASE 3.5: Estructuración financiera
+        if session.brief and session.brief.needs_budget_excel:
+            display.phase(f"FASE 3.5.{cycle} — ESTRUCTURACIÓN FINANCIERA", "📊")
+            display.info("Estructurando presupuesto, marco lógico y cronograma...")
+            with display.spinner("Agente Financiero trabajando"):
+                try:
+                    session.financial = financial.run(session, proposal, api_key)
+                    display.success(
+                        f"Estructurados {len(session.financial.budget_items)} rubros y "
+                        f"{len(session.financial.logframe_rows)} filas de marco lógico."
+                    )
+                except Exception as e:
+                    display.warning(f"Excel no disponible: {e}")
+                    session.financial = None
         else:
-            display.warning(
-                f"Se alcanzaron los {MAX_REVIEW_CYCLES} ciclos máximos. "
-                "Se guarda la mejor versión disponible."
-            )
+            session.financial = None
+
+        # GATE 3: DeepSeek revisa el paquete completo
+        display.phase(f"GATE 3.{cycle} — REVISIÓN PAQUETE COMPLETO (DeepSeek)", "🔎")
+        display.info("Verificando cumplimiento de plantilla, datos reales y consistencia...")
+        g3_passed = True
+        with display.spinner("DeepSeek auditando el paquete completo"):
+            try:
+                g3 = phase_review.review_package(
+                    brief=session.brief,
+                    proposal=proposal,
+                    financial=session.financial,
+                    intake_data=getattr(session, "intake_data", {}),
+                    empresas_context=empresas_ctx,
+                )
+                session.phase_reviews.append({"attempt": cycle, **g3})
+                g3_passed = g3["passed"]
+                score_color = "green" if g3_passed else "yellow"
+                display.console.print(
+                    f"  [{score_color}]Score paquete: {g3['score']:.0f}/100 "
+                    f"({'PASA' if g3_passed else 'REQUIERE CORRECCIÓN'})[/{score_color}]"
+                )
+                if g3.get("critical"):
+                    display.warning("Problemas críticos (DeepSeek):")
+                    for c in g3["critical"][:5]:
+                        display.console.print(f"    • {c}")
+                    if g3_passed is False and g3.get("issues"):
+                        corrections = corrections + [
+                            f"[Gate3] {iss}" for iss in g3["issues"][:8]
+                        ]
+            except Exception as e:
+                display.warning(f"Gate 3 no disponible: {e}")
+
+        if not g3_passed and cycle < MAX_REVIEW_CYCLES:
+            display.warning(f"Gate 3 falló. Ciclo {cycle} → rehaciendo con correcciones adicionales.")
+            continue
+
+        # Paquete completo aprobado
+        approved = True
+        break
 
     # ── GUARDAR RESULTADOS ────────────────────────────────────────────────
     session.final_proposal = final_proposal
     session.approved = approved
 
-    # ── FASE 4: ESTRUCTURACIÓN FINANCIERA (Word + Excel vinculados) ────────
+    display.phase("FASE 4 — GENERACIÓN DE DOCUMENTOS", "📄")
     if session.brief and session.brief.needs_budget_excel:
-        display.phase("FASE 4 — ESTRUCTURACIÓN FINANCIERA Y EXCEL VINCULADO", "📊")
-        display.info("Este entregable requiere cálculos en Excel: estructurando presupuesto.")
-        with display.spinner("Agente Financiero estructurando presupuesto y marco lógico"):
-            try:
-                session.financial = financial.run(session, final_proposal, api_key)
-                display.success(
-                    f"Estructurados {len(session.financial.budget_items)} rubros de presupuesto y "
-                    f"{len(session.financial.logframe_rows)} filas de marco lógico."
-                )
-            except Exception as e:
-                display.warning(f"No se pudo estructurar el Excel (se continúa sin cálculos): {e}")
-                session.financial = None
+        display.info("Generando Word y Excel vinculados.")
     else:
-        display.phase("FASE 4 — GENERACIÓN DE DOCUMENTOS", "📄")
-        display.info("Este entregable no requiere Excel; se genera el Word con formato exigido.")
+        display.info("Generando Word con el formato exigido.")
 
     display.phase("GUARDANDO RESULTADOS", "💾")
     with display.spinner("Guardando documentos (MD, TXT, Word, Excel)"):

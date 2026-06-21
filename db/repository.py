@@ -87,6 +87,63 @@ def _review_rows(session_uuid: str, s: ProjectSession) -> list[dict]:
     return rows
 
 
+def update_progress(session_id: str, phase: str, label: str, icon: str = "⚙",
+                    status: str = "running", detail: str = "") -> None:
+    """Escribe el paso actual del pipeline en la BD (no bloquea si falla)."""
+    if not is_enabled():
+        return
+    try:
+        import datetime
+        from utils.supabase_client import get_client
+        sb = get_client(service_role=True)
+        # Recuperar pasos actuales
+        row = sb.table("sessions").select("progress_steps").eq(
+            "session_id", session_id).limit(1).execute()
+        steps: list = (row.data[0].get("progress_steps") or []) if row.data else []
+        # Actualizar paso existente si ya existe la misma fase, o añadir nuevo
+        ts = datetime.datetime.utcnow().isoformat() + "Z"
+        new_step = {"phase": phase, "label": label, "icon": icon,
+                    "status": status, "detail": detail, "ts": ts}
+        idx = next((i for i, s in enumerate(steps) if s.get("phase") == phase), -1)
+        if idx >= 0:
+            steps[idx] = new_step
+        else:
+            steps.append(new_step)
+        sb.table("sessions").update(
+            {"current_phase": f"{icon} {label}", "progress_steps": steps}
+        ).eq("session_id", session_id).execute()
+    except Exception:
+        pass  # el progreso no debe tumbar el pipeline
+
+
+def is_pause_requested(session_id: str) -> bool:
+    """True si el usuario solicitó pausa (el pipeline lo verifica antes de cada fase)."""
+    if not is_enabled():
+        return False
+    try:
+        from utils.supabase_client import get_client
+        sb = get_client(service_role=True)
+        row = sb.table("sessions").select("pause_requested").eq(
+            "session_id", session_id).limit(1).execute()
+        return bool((row.data or [{}])[0].get("pause_requested", False))
+    except Exception:
+        return False
+
+
+def request_pause(session_id: str) -> bool:
+    """Activa el flag de pausa. El pipeline lo detecta y se detiene limpiamente."""
+    if not is_enabled():
+        return False
+    try:
+        from utils.supabase_client import get_client
+        sb = get_client(service_role=True)
+        sb.table("sessions").update({"pause_requested": True}).eq(
+            "session_id", session_id).execute()
+        return True
+    except Exception as e:
+        raise SupabaseSaveError(f"{type(e).__name__}: {e}") from e
+
+
 def cancel_session(session_id: str) -> bool:
     """Cancela un trabajo (lo marca como fallido/cancelado, conservando el registro).
     Devuelve True si existía. Idempotente si Supabase está apagado."""

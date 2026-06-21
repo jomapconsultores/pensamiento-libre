@@ -155,17 +155,30 @@ def run(session: ProjectSession, api_key: str | None = None,
             "financiador ni de convocatoria):\n" + json.dumps(seed, ensure_ascii=False)[:4000] + "\n"
         )
 
+    # Contexto organizacional (carpeta Empresas/) — para direccionar la propuesta
+    empresas_block = ""
+    try:
+        from utils.empresas import context_block as _eb
+        empresas_block = _eb()
+        if empresas_block:
+            empresas_block = "\n\n" + empresas_block
+    except Exception:
+        pass
+
     # Reutiliza el esquema JSON completo del analista (modo "analizar documento"),
     # entregándole la evidencia ya recolectada como material fuente.
     document = (
         f"TEMA / SOLICITUD DEL USUARIO:\n{session.user_input}\n"
         f"{seed_block}\n"
         f"{evidence}"
-        f"{_support_block(session)}\n\n"
+        f"{_support_block(session)}"
+        f"{empresas_block}\n\n"
         "INSTRUCCIÓN: NO inventes datos. Usa SOLO la evidencia de arriba; cada dato "
         "concreto (financiador, deadline, monto, elegibilidad, criterios) debe estar "
         "respaldado por una URL real presente en la evidencia. Si un dato no aparece, "
-        "márcalo como 'no verificado' y baja viability_score en consecuencia."
+        "márcalo como 'no verificado' y baja viability_score en consecuencia.\n"
+        "Al identificar la organización ejecutora/proponente, usa los datos REALES de "
+        "la sección ORGANIZACIONES E INDIVIDUOS DISPONIBLES (si existe arriba)."
     )
     prompt = analyst._build_analysis_prompt(document)
 
@@ -182,10 +195,19 @@ def run(session: ProjectSession, api_key: str | None = None,
 #  INVESTIGACIÓN DE OTROS TIPOS  →  DocumentBrief
 # ════════════════════════════════════════════════════════════════════════════
 _BRIEF_SYSTEM = """
-Eres un director editorial y experto multidisciplinario del MÁS ALTO NIVEL. Investigas a fondo el
-formato exigido, el marco legal/normativo (nacional Ecuador e internacional/organizacional) y las
-fuentes reales, y defines con precisión qué hay que hacer. NO inventes fuentes ni normas: usa SOLO
-la evidencia entregada. Respondes ÚNICAMENTE con el JSON pedido, sin texto adicional.
+Eres un director editorial e investigador senior de primer orden, con dominio excepcional en
+gestión del conocimiento, análisis normativo y arquitectura de documentos de alta complejidad.
+Tu especialidad es identificar con exactitud qué debe contener un entregable de alta calidad —
+sus secciones obligatorias, su marco legal/normativo nacional e internacional, sus fuentes reales
+y su formato preciso — y traducirlo en instrucciones que permiten producir un documento impecable
+al primer intento.
+
+Razonas de forma sistemática y sin lagunas: revisas la evidencia disponible, determinas el
+estándar real del tipo de documento y defines los criterios de éxito con una claridad que no
+deja margen a la interpretación ni al relleno.
+
+NO inventes fuentes ni normas: usa SOLO la evidencia entregada. Si algo no está en la evidencia,
+indícalo como "a verificar" — nunca lo fabules. Respondes ÚNICAMENTE con el JSON pedido.
 """
 
 

@@ -50,15 +50,27 @@ def builder_for_cycle(cycle: int) -> str:
 # ── Asignación de IA por ROL (flujo por fases) ───────────────────────────────
 # Cada fase la produce una IA y la revisa OTRA distinta. Si un gate da <90, el
 # pipeline vuelve al inicio (reinvestiga). Todo es configurable por entorno.
-#   Investigación web + análisis  → DeepSeek   (revisa Mistral)
-#   Redacción del documento       → DeepSeek   (revisa Mistral)  ← económico
-#   Estructuración financiera     → Codestral  (entra en el veredicto final)
-#   Clasificación + veredicto 90/90 → Claude (Anthropic)
-ROLE_RESEARCH        = os.getenv("ROLE_RESEARCH",        "deepseek")
-ROLE_REVIEW_RESEARCH = os.getenv("ROLE_REVIEW_RESEARCH", "mistral")
-ROLE_WRITER          = os.getenv("ROLE_WRITER",          "deepseek")
+#
+#   FASE 0   Clasificación del tipo de doc  → Mistral
+#   FASE 1   Investigación web + análisis   → Mistral    (revisa Codestral)
+#   FASE 2   Redacción del documento        → Codestral  (revisa Mistral)
+#   FASE 3   Estructuración financiera      → Codestral
+#   FASE 3.5 Revisión completa del paquete  → DeepSeek   (si no pasa → reinicia)
+#   FASE 4   Veredicto final 90/90          → Claude     (si no aprueba → reinicia)
+#
+#   Fallback automático (complete_builder): si el proveedor primario falla,
+#   prueba el siguiente en BUILDER_ROTATION → DeepSeek es la red de seguridad.
+ROLE_CLASSIFIER      = os.getenv("ROLE_CLASSIFIER",      "mistral")
+ROLE_RESEARCH        = os.getenv("ROLE_RESEARCH",        "mistral")
+ROLE_REVIEW_RESEARCH = os.getenv("ROLE_REVIEW_RESEARCH", "codestral")
+ROLE_WRITER          = os.getenv("ROLE_WRITER",          "codestral")
 ROLE_REVIEW_WRITER   = os.getenv("ROLE_REVIEW_WRITER",   "mistral")
 ROLE_FINANCIAL       = os.getenv("ROLE_FINANCIAL",       "codestral")
+ROLE_PACKAGE_REVIEW  = os.getenv("ROLE_PACKAGE_REVIEW",  "deepseek")
+
+# Directorio con documentos organizacionales (empresas, CVs, estatutos…).
+# Se carga automáticamente como contexto para investigador y redactor.
+EMPRESAS_DIR = BASE_DIR / "Empresas"
 
 # Reinicios del ciclo completo cuando un gate reprueba (<90). Tras agotarlos se
 # entrega la mejor versión lograda marcada como inconclusa.

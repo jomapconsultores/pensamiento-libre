@@ -278,41 +278,74 @@ ALL_TOOLS = [DEEP_SEARCH_TOOL, WEB_SEARCH_TOOL, FETCH_PAGE_TOOL]
 
 # ── Pre-built deep query packs for opportunity hunting ─────────────────────
 def opportunity_queries(topic: str) -> list:
-    """Genera un paquete amplio de queries para una búsqueda profunda por tema.
-    Incluye: portales oficiales, LinkedIn, agregadores y motores locales.
+    """Genera un paquete amplio de queries para búsqueda profunda por tema.
+
+    Cubre: portales oficiales, multilaterales, bilaterales, ONU, UE, fundaciones,
+    agregadores, LinkedIn y consultoría/OSC en Ecuador (perfil JOMAP/CMAJ).
     """
     t = topic.strip()
-    year = "2026 2027"  # ventana móvil de los próximos años
+    year = "2025 2026 2027"
     base = [
-        # Portales generales + Ecuador
+        # ── Portales generales + Ecuador ───────────────────────────────────
         f"convocatoria financiamiento no reembolsable Ecuador {t} {year}",
-        f"fondos concursables {t} Ecuador organizaciones sociedad civil {year}",
-        f"grants non-refundable funding Ecuador {t} {year} open call",
-        f"call for proposals {t} Ecuador Latin America {year}",
-        f"requisitos bases convocatoria {t} Ecuador formato presupuesto elegibilidad",
-        # Multilaterales
-        f"BID BID-LAB FOMIN convocatoria {t} Ecuador {year}",
-        f"CAF cooperación técnica {t} Ecuador {year}",
-        f"World Bank GEF Green Climate Fund {t} Ecuador {year}",
-        # ONU
-        f"PNUD UNDP UNICEF FAO {t} Ecuador convocatoria sociedad civil {year}",
-        # UE + bilaterales
-        f"Unión Europea EU cooperación {t} Ecuador grant {year}",
-        f"GIZ USAID AECID AFD JICA cooperación {t} Ecuador convocatoria {year}",
-        f"appel à propositions {t} Équateur financement {year}",
-        # Agregadores donde aparecen convocatorias frescas
+        f"fondos concursables {t} Ecuador organizaciones sociedad civil OSC {year}",
+        f"grants non-refundable funding Ecuador {t} {year} open call NGO",
+        f"call for proposals {t} Ecuador Latin America South America {year}",
+        f"requisitos bases convocatoria {t} Ecuador elegibilidad presupuesto formulario",
+        # ── Multilaterales y bancos de desarrollo ──────────────────────────
+        f"BID IADB BID-LAB FOMIN convocatoria {t} Ecuador {year}",
+        f"CAF cooperación técnica {t} Ecuador Azuay Cuenca {year}",
+        f"Banco Mundial World Bank {t} Ecuador consultoría contrato {year}",
+        f"GEF FMAM fondo global medio ambiente {t} Ecuador {year}",
+        f"BCIE FONPLATA {t} Ecuador financiamiento {year}",
+        # ── Sistema ONU ─────────────────────────────────────────────────────
+        f"PNUD UNDP {t} Ecuador convocatoria sociedad civil consultoría {year}",
+        f"UNICEF OPS UNFPA {t} Ecuador propuesta organizacion {year}",
+        f"FAO OIT ILO UNESCO {t} Ecuador grant convocatoria {year}",
+        f"ONU Mujeres UN Women {t} Ecuador organización género {year}",
+        # ── Unión Europea + bilaterales ─────────────────────────────────────
+        f"Unión Europea EU cooperación internacional {t} Ecuador grant {year}",
+        f"GIZ cooperación alemana {t} Ecuador Azuay {year}",
+        f"USAID {t} Ecuador convocatoria ONG {year}",
+        f"AECID cooperación española {t} Ecuador {year}",
+        f"COSUDE Suiza {t} Ecuador convocatoria {year}",
+        f"AFD Agence Française Développement {t} Équateur {year}",
+        f"JICA cooperación japonesa {t} Ecuador {year}",
+        # ── Fundaciones internacionales ─────────────────────────────────────
+        f"Gates Foundation Ford Foundation {t} Ecuador {year}",
+        f"Fundación Avina Kellogg {t} Ecuador Latinoamérica {year}",
+        f"Bloomberg Philanthropies {t} Ecuador municipalities cities {year}",
+        # ── Consultoría técnica y capacitación (perfil CMAJ) ────────────────
+        f"consultoría técnica arquitectura ingeniería Ecuador Azuay convocatoria {year}",
+        f"licitación consultoría planificación urbana ordenamiento territorial Ecuador {year}",
+        f"capacitación formación profesional Ecuador {t} financiamiento {year}",
+        f"fortalecimiento capacidades organizaciones Ecuador {t} cooperación {year}",
+        # ── OSC / fundaciones / emprendimiento (perfil JOMAP) ───────────────
+        f"convocatoria fundaciones organizaciones sin fines de lucro Ecuador {t} {year}",
+        f"emprendimiento MIPYMES desarrollo empresarial Ecuador {t} fondos {year}",
+        f"fortalecimiento organizaciones gremiales Ecuador {t} cooperacion internacional {year}",
+        # ── Agregadores de convocatorias frescos ───────────────────────────
         f"site:reliefweb.int call for proposals {t} Ecuador",
-        f"site:devex.com {t} Ecuador funding opportunity",
-        f"site:fundsforngos.org {t} {year}",
-        f"site:grants.gov {t}",
-        # LinkedIn — los program officers suelen anunciar primero ahí
-        f"site:linkedin.com/posts {t} grant call proposals Ecuador",
-        f"site:linkedin.com/pulse {t} funding Ecuador {year}",
-        f"site:linkedin.com/posts convocatoria {t} {year}",
+        f"site:devex.com {t} Ecuador funding opportunity {year}",
+        f"site:fundsforngos.org {t} Ecuador {year}",
+        f"site:ungm.org {t} Ecuador RFP contract",
+        # ── LinkedIn — anuncios de program officers ─────────────────────────
+        f"site:linkedin.com/posts {t} grant call proposals Ecuador {year}",
+        f"site:linkedin.com/pulse {t} funding Ecuador convocatoria {year}",
+        f"site:linkedin.com/posts convocatoria {t} Azuay Cuenca {year}",
     ]
-    # Temáticas: añade clima/ambiente sólo cuando aplica
-    if any(k in t.lower() for k in ("ambient", "clima", "agua", "biodivers", "bosque", "carbono")):
-        base.append(f"GEF GCF Fondo Verde Clima {t} Ecuador {year}")
+    # Temáticas específicas adicionales
+    tl = t.lower()
+    if any(k in tl for k in ("ambient", "clima", "agua", "biodivers", "bosque", "carbono", "hidric")):
+        base.append(f"GEF GCF Fondo Verde Clima {t} Ecuador {year} propuesta")
+        base.append(f"Green Climate Fund {t} Ecuador accreditated entity {year}")
+    if any(k in tl for k in ("urban", "ciudad", "vivienda", "infraestructura", "territorio")):
+        base.append(f"ONU-Habitat UN-Habitat {t} Ecuador Cuenca {year}")
+        base.append(f"BID ciudades sostenibles infraestructura {t} Ecuador {year}")
+    if any(k in tl for k in ("género", "mujer", "mujeres", "equidad", "gender")):
+        base.append(f"ONU Mujeres UNFPA {t} Ecuador organización {year}")
+    if any(k in tl for k in ("educac", "capacitac", "formac", "docente")):
+        base.append(f"UNESCO UNICEF educación capacitación {t} Ecuador {year}")
     # Dedup conservando orden
     seen, out = set(), []
     for q in base:

@@ -11,26 +11,52 @@ from models.schemas import DocumentBrief, ProjectSession
 
 
 SYSTEM_PROMPT = """
-Eres un colectivo de expertos de élite encarnado en un solo redactor: combinas el dominio técnico
-de especialistas PhD del área, el rigor de un metodólogo, la precisión de un jurista y la pluma de
-un editorialista y corrector de estilo de primer nivel. Has publicado en revistas indexadas, ganado
-convocatorias internacionales, redactado pliegos y TDR jurídicamente blindados y dirigido tesis
-doctorales. Tu sello: máxima profundidad técnica + un TOQUE HUMANO, claro, elegante y profesional.
+Eres un redactor profesional de élite absoluta y pensador de primer orden: polímata con dominio
+simultáneo en múltiples disciplinas técnicas, científicas, jurídicas y humanísticas. Tu historial
+incluye propuestas ganadoras de financiamiento internacional, artículos en revistas Q1 indexadas,
+pliegos y TDR jurídicamente blindados, tesis doctorales, documentos de política pública y textos
+institucionales que han movido decisiones a la más alta escala.
 
-PRINCIPIOS INNEGOCIABLES:
-- Adopta exactamente los PERFILES DE EXPERTO indicados en el brief; piensa y escribe como ellos.
-- Cumple AL PIE DE LA LETRA el formato exigido (estructura, secciones, estilo de cita) y los
-  límites de extensión (páginas/palabras/caracteres). Si hay límite, autorregúlate para respetarlo.
-- Rigor académico/científico/legal del más alto nivel: afirmaciones fundamentadas, datos con fuente,
-  razonamiento explícito. NUNCA inventes datos, citas, referencias, artículos legales ni resultados.
-  Si falta evidencia, decláralo o usa fuentes reales del brief/documentos de apoyo.
-- Estilo humano y profesional: prosa fluida y precisa; evita relleno, clichés y frases vacías.
-- Respeta el estilo de cita pedido (APA 7, Vancouver, IEEE, etc.) y referencia de forma consistente.
-- Si se entrega una PLANTILLA, imita su estructura, tono y formato. Si hay DOCUMENTOS DE APOYO,
-  extrae de ellos el contenido y cítalos cuando corresponda.
+Lo que te distingue no es solo el conocimiento — es cómo PIENSAS antes de escribir. Cada
+documento que produces tiene una arquitectura argumental impecable: cada sección tiene un propósito
+preciso, cada párrafo construye sobre el anterior, cada oración carga su peso exacto. Haces que lo
+complejo sea claro sin sacrificar el rigor; adaptas el registro y la profundidad exactamente al
+perfil del lector objetivo. Tu prosa es densa de contenido y fluida en su lectura: sin relleno,
+sin clichés, sin frases que existan solo para ocupar espacio.
 
-Genera el documento COMPLETO en Markdown limpio (encabezados #, ##, ###; tablas con |; listas),
-en el idioma indicado, listo para entregar al más alto nivel. No añadas comentarios fuera del documento.
+PRINCIPIOS QUE RIGEN TODO LO QUE PRODUCES:
+
+1. ENCARNAS los perfiles de experto indicados en el brief — piensas como ellos, argumentas como
+   ellos, manejas su vocabulario técnico con autoridad. Si el perfil dice "hidrólogo especialista
+   en cuencas andinas", razonas con hidrología real; si dice "jurista en contratación pública",
+   citas normas reales con precisión.
+
+2. ARQUITECTURA PRIMERO: antes de escribir, la lógica del documento ya está clara. El lector
+   es conducido desde el problema hacia la solución a través de una cadena de razonamiento
+   irrefutable. Cada sección responde a una pregunta que el evaluador tiene en mente.
+
+3. FORMATO INVIOLABLE: respetas al milímetro la estructura, los límites de extensión (páginas/
+   palabras/caracteres), el estilo de cita y las convenciones del tipo de documento. Un texto
+   brillante que no cumple el formato es un texto fallido — te autorregulas para encajar.
+
+4. SOLO DATOS REALES: cada cifra, norma, fecha, artículo legal y referencia proviene del brief
+   o del material de apoyo entregado. Jamás inventas datos, estadísticas, citas bibliográficas,
+   artículos de ley ni resultados de estudios. Si un dato no está disponible, lo señalas o
+   propones cómo obtenerlo.
+
+5. DATOS ORGANIZACIONALES EXACTOS: si hay información real de organizaciones (RUC, razón social,
+   representante legal, CV, domicilio), la usas con exactitud. No sustituyes por datos genéricos.
+
+6. SI HAY PLANTILLA: adoptas su estructura y tono campo por campo; cada sección que aparezca
+   en la plantilla aparece en el documento con sustancia real, no con texto de relleno.
+
+7. ESTILO IMPECABLE: variedad sintáctica, párrafos bien construidos (apertura–desarrollo–cierre),
+   sin gerundismos en cadena, sin pasivas innecesarias, sin adjetivación vacía. El estilo se
+   adapta al idioma y al tipo de documento: técnico, académico, jurídico o narrativo según corresponda.
+
+Produce el documento COMPLETO en Markdown limpio (# ## ### para jerarquía; | para tablas; - / 1.
+para listas), en el idioma requerido, apto para entrega directa al más alto nivel.
+Sin comentarios, notas ni meta-texto fuera del documento.
 """
 
 
@@ -55,7 +81,7 @@ def _build_prompt(brief: DocumentBrief, session: ProjectSession, corrections: li
     if session.template_text:
         template_block = f"""
 ═══════════════════════════════════════════════════════════
-PLANTILLA / MODELO A IMITAR (formato, estructura y tono — referencia, NO copiar contenido)
+PLANTILLA / FORMULARIO A LLENAR (respeta su estructura exacta — NO copiar contenido genérico)
 ═══════════════════════════════════════════════════════════
 {_clip(session.template_text, 4000)}
 """
@@ -65,10 +91,29 @@ PLANTILLA / MODELO A IMITAR (formato, estructura y tono — referencia, NO copia
         joined = "\n\n".join(f"=== {n} ===\n{_clip(t, 3500)}" for n, t in session.support_docs)
         support_block = f"""
 ═══════════════════════════════════════════════════════════
-DOCUMENTOS DE APOYO (material fuente — extrae contenido y cita cuando corresponda)
+DOCUMENTOS DE APOYO (material fuente — extrae contenido real y cita cuando corresponda)
 ═══════════════════════════════════════════════════════════
 {joined}
 """
+
+    # Análisis de intake: secciones y campos obligatorios detectados en los docs de entrada
+    intake_block = ""
+    intake_data = getattr(session, "intake_data", None) or {}
+    if intake_data:
+        from agents.intake import intake_block as _ib
+        intake_block = _ib(intake_data)
+        if intake_block:
+            intake_block = "\n" + intake_block + "\n"
+
+    # Contexto organizacional (carpeta Empresas/)
+    empresas_block = ""
+    try:
+        from utils.empresas import context_block as _eb
+        empresas_block = _eb()
+        if empresas_block:
+            empresas_block = "\n" + empresas_block + "\n"
+    except Exception:
+        pass
 
     budget_block = ""
     if brief.needs_budget_excel:
@@ -139,13 +184,14 @@ MARCAS DE EXCELENCIA (lo que eleva este documento)
 
 FUENTES REALES DISPONIBLES (úsalas; no inventes otras):
 {_clip(brief.source_notes, 2500) or "  - Usa fuentes reales y verificables del área."}
-{template_block}{support_block}{budget_block}{corrections_block}
+{intake_block}{empresas_block}{template_block}{support_block}{budget_block}{corrections_block}
 ═══════════════════════════════════════════════════════════
 INSTRUCCIÓN FINAL
 ═══════════════════════════════════════════════════════════
 Redacta el documento COMPLETO en {brief.language}, en Markdown limpio, cumpliendo el formato y los
-límites de extensión. Será verificado con calificación mínima de 90% por elemento y 90% global,
-incluyendo cumplimiento de formato y de lineamientos nacionales e internacionales. Hazlo impecable.
+límites de extensión. Usa datos REALES de las organizaciones disponibles; no inventes razón social,
+RUC, representante legal ni datos de CVs. Cubre TODOS los campos del formulario/plantilla.
+Será verificado con calificación mínima de 90% por elemento y 90% global. Hazlo impecable.
 """
 
 

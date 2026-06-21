@@ -13,7 +13,9 @@ convierte su AnalysisResult en un DocumentBrief con analysis_to_brief().
 """
 import json
 import anthropic
+import config
 from config import MODEL, MAX_TOKENS_ANALYST
+from agents import llm
 from models.schemas import AnalysisResult, DocumentBrief
 from models.doc_types import (
     DOC_TYPES, get_doc_type, all_criteria, FormatSpec, DEFAULT_DOC_TYPE,
@@ -27,7 +29,7 @@ def _clip(text: str, n: int = 4000) -> str:
 
 
 # ════════════════════════════════════════════════════════════════════════════
-#  DETECCIÓN AUTOMÁTICA DEL TIPO
+#  DETECCIÓN AUTOMÁTICA DEL TIPO  (Mistral — tarea de clasificación simple)
 # ════════════════════════════════════════════════════════════════════════════
 _DETECT_SYSTEM = """
 Eres un clasificador experto de documentos profesionales y académicos. Dado lo que el usuario
@@ -55,18 +57,27 @@ DOCUMENTOS DE APOYO (opcional):
 Devuelve ÚNICAMENTE la clave del tipo más adecuado (p. ej. articulo_cientifico).
 Si nada encaja con claridad, responde: generico
 """
-    from agents._client import make_client
-    client = make_client(api_key)
-    resp = client.messages.create(
-        model=MODEL, max_tokens=20, system=_DETECT_SYSTEM,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    key = ""
-    for b in resp.content:
-        if hasattr(b, "text"):
-            key += b.text
-    key = key.strip().lower().split()[0] if key.strip() else DEFAULT_DOC_TYPE
-    return key if key in DOC_TYPES else DEFAULT_DOC_TYPE
+    try:
+        raw = llm.complete(
+            config.ROLE_CLASSIFIER, system=_DETECT_SYSTEM, prompt=prompt,
+            max_tokens=30, temperature=0.1,
+        )
+        key = raw.strip().lower().split()[0] if raw.strip() else DEFAULT_DOC_TYPE
+        return key if key in DOC_TYPES else DEFAULT_DOC_TYPE
+    except Exception:
+        # Fallback a Claude si Mistral no está disponible
+        from agents._client import make_client
+        client = make_client(api_key)
+        resp = client.messages.create(
+            model=MODEL, max_tokens=20, system=_DETECT_SYSTEM,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        key = ""
+        for b in resp.content:
+            if hasattr(b, "text"):
+                key += b.text
+        key = key.strip().lower().split()[0] if key.strip() else DEFAULT_DOC_TYPE
+        return key if key in DOC_TYPES else DEFAULT_DOC_TYPE
 
 
 # ════════════════════════════════════════════════════════════════════════════
