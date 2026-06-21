@@ -2,9 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Proyectos MAP · Investigación &amp; Financiamiento</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%90%3C/text%3E%3C/svg%3E">
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Proyectos MAP">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -130,6 +137,26 @@
     .lock-msg.info { color:#0284c7; }
     .lock-hint { font-size:11.5px; color:#94a3b8; margin-top:20px; line-height:1.5; text-align:center; }
     .lock-hint a { color:#2563eb; }
+    /* Bio buttons on landing */
+    .bio-options { display:flex; flex-direction:column; gap:8px; }
+    .bio-btn-wrap { position:relative; }
+    .bio-btn-label { font-size:11px; color:#94a3b8; text-align:center; margin-top:3px; }
+    /* In-app bio management */
+    .bio-mgmt { background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-top:12px; }
+    .bio-mgmt-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:10px; }
+    .bio-cred-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); }
+    .bio-cred-item:last-child { border-bottom:0; padding-bottom:0; }
+    .bio-cred-ic { font-size:20px; flex-shrink:0; }
+    .bio-cred-info { flex:1; min-width:0; }
+    .bio-cred-label { font-size:13px; font-weight:600; color:var(--fg); }
+    .bio-cred-date { font-size:11px; color:var(--muted); }
+    .bio-add-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+    /* install banner */
+    .pwa-banner { display:none; position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+      background:#1e3a8a; color:#fff; border-radius:12px; padding:12px 18px;
+      font-size:13px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.35);
+      gap:12px; align-items:center; z-index:500; max-width:calc(100vw - 32px); }
+    .pwa-banner.show { display:flex; }
     @media (max-width:860px) {
       .landing { grid-template-columns:1fr; }
       .lhero { display:none; }
@@ -505,9 +532,34 @@
           <p>Ingresa a tu cuenta para continuar</p>
         </div>
 
-        <button class="bio-btn" id="bio-btn" style="display:none" onclick="unlockWithBiometric()">
-          <span class="big">🔐</span> <span>Entrar con huella / Face ID</span>
-        </button>
+        <!-- Botones biométricos (se muestran según credenciales registradas) -->
+        <div class="bio-options" id="bio-options" style="display:none">
+          <div class="bio-btn-wrap">
+            <button class="bio-btn" id="bio-btn-huella" style="display:none" onclick="unlockWithBiometric('huella')">
+              <span class="big">👆</span>
+              <div style="text-align:left">
+                <div>Entrar con huella digital</div>
+                <div style="font-size:11px;opacity:.75;font-weight:400" id="bio-email-huella"></div>
+              </div>
+            </button>
+          </div>
+          <div class="bio-btn-wrap">
+            <button class="bio-btn" id="bio-btn-rostro" style="display:none" onclick="unlockWithBiometric('rostro')">
+              <span class="big">🫣</span>
+              <div style="text-align:left">
+                <div>Entrar con reconocimiento facial</div>
+                <div style="font-size:11px;opacity:.75;font-weight:400" id="bio-email-rostro"></div>
+              </div>
+            </button>
+          </div>
+          <button class="bio-btn" id="bio-btn-any" style="display:none" onclick="unlockWithBiometric()">
+            <span class="big">🔐</span>
+            <div style="text-align:left">
+              <div>Entrar con biometría</div>
+              <div style="font-size:11px;opacity:.75;font-weight:400" id="bio-email-any"></div>
+            </div>
+          </button>
+        </div>
         <div class="divider" id="lock-divider" style="display:none">o con tu cuenta</div>
 
         <div class="seg cols-2" id="auth-tabs">
@@ -580,6 +632,7 @@
             <div class="s">Sesión activa</div>
           </div>
         </div>
+        <button class="btn subtle btn-sm btn-block" style="margin-bottom:6px" onclick="openBioModal()">🔐 Autenticación biométrica</button>
         <button class="btn subtle btn-sm btn-block" onclick="lockNow()">🔒 Bloquear / salir</button>
       </div>
     </aside>
@@ -787,14 +840,48 @@
     </div>
   </div>
 
+  <!-- Modal: biometría -->
+  <div class="modal-backdrop" id="bio-modal" onclick="if(event.target===this)closeBioModal()">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-header">
+        <h2>🔐 Autenticación biométrica</h2>
+        <button class="btn ghost btn-sm" onclick="closeBioModal()">✕</button>
+      </div>
+      <div class="modal-body" id="bio-modal-body" style="padding:16px 20px 20px">
+        <p style="color:var(--muted);font-size:13px;margin:0 0 16px;line-height:1.55">
+          Registra tu huella digital o reconocimiento facial para ingresar sin contraseña en este dispositivo.
+          El sistema operativo gestiona la biometría de forma segura (Touch ID, Face ID, Windows Hello, huella Android).
+        </p>
+        <div id="bio-creds-list" style="margin-bottom:12px"></div>
+        <div class="bio-add-row">
+          <button class="btn subtle" onclick="registerBiometricServer('huella')">👆 Registrar huella digital</button>
+          <button class="btn subtle" onclick="registerBiometricServer('rostro')">🫣 Registrar reconocimiento facial</button>
+        </div>
+        <div class="lock-msg" id="bio-modal-msg" style="margin-top:10px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Banner de instalación PWA -->
+  <div class="pwa-banner" id="pwa-banner">
+    <span style="font-size:22px">📲</span>
+    <div>
+      <div style="font-weight:700">Instalar Proyectos MAP</div>
+      <div style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px">Agrégala a tu pantalla de inicio para acceso rápido</div>
+    </div>
+    <button class="btn" style="white-space:nowrap;flex-shrink:0" onclick="installPWA()">Instalar</button>
+    <button class="btn ghost" style="color:#fff;border-color:rgba(255,255,255,.3);flex-shrink:0" onclick="dismissPWA()">✕</button>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
     /* ════════ Estado ════════ */
     const TOKEN_LS = "agente_map.token";
-    const USER_LS = "agente_map.user";
+    const USER_LS  = "agente_map.user";
     const MASTER_LS = "agente_map.master";
-    const WA_CRED_LS = "agente_map.webauthn_cred";
+    const WA_CREDS_LS = "agente_map.webauthn_creds";  // [{id, label, email}]
+    const WA_CRED_LS  = "agente_map.webauthn_cred";   // legacy (single ID)
     const POLL_MS = 6000;
 
     let authToken = "";
@@ -858,36 +945,132 @@
       proj_enlaces:"Analiza y cruza los enlaces proporcionados y emite un dictamen riguroso.",
     };
 
-    /* ════════ WebAuthn (huella / Face ID) ════════ */
-    const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
-    const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-    const randomBytes = n => { const a = new Uint8Array(n); crypto.getRandomValues(a); return a; };
+    /* ════════ WebAuthn — utils ════════ */
+    const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=/g,"");
+    const unb64url = s => { s=s.replace(/-/g,"+").replace(/_/g,"/"); while(s.length%4)s+="="; return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); };
+
+    /* localStorage helpers — array of {id, label, email} */
+    function waGetCreds() {
+      try {
+        const arr = JSON.parse(localStorage.getItem(WA_CREDS_LS) || "[]");
+        if (Array.isArray(arr)) return arr;
+      } catch {}
+      /* Migrate legacy single-ID entry */
+      const legacy = localStorage.getItem(WA_CRED_LS);
+      if (legacy) {
+        const u = JSON.parse(localStorage.getItem(USER_LS) || "null");
+        const migrated = [{ id: legacy, label: "biometric", email: u?.email || "" }];
+        localStorage.setItem(WA_CREDS_LS, JSON.stringify(migrated));
+        localStorage.removeItem(WA_CRED_LS);
+        return migrated;
+      }
+      return [];
+    }
+    function waSetCreds(arr) { localStorage.setItem(WA_CREDS_LS, JSON.stringify(arr)); }
+    function waAddCred(id, label, email) {
+      const arr = waGetCreds().filter(c => c.id !== id);
+      arr.push({ id, label, email });
+      waSetCreds(arr);
+    }
+    function waRemoveCred(id) { waSetCreds(waGetCreds().filter(c => c.id !== id)); }
 
     async function biometricAvailable() {
-      if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return false;
+      if (!window.PublicKeyCredential) return false;
       try { return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); }
       catch { return false; }
     }
-    async function registerBiometric() {
-      const name = (currentUser && (currentUser.name || currentUser.email)) || "usuario";
-      const cred = await navigator.credentials.create({ publicKey: {
-        challenge: randomBytes(32),
-        rp: { name: "agente_map", id: location.hostname },
-        user: { id: randomBytes(16), name, displayName: name },
-        pubKeyCredParams: [{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
-        authenticatorSelection: { authenticatorAttachment:"platform", userVerification:"required", residentKey:"preferred" },
-        timeout: 60000, attestation: "none",
-      }});
-      localStorage.setItem(WA_CRED_LS, b64(cred.rawId));
+
+    /* Convert server options JSON (base64url strings) to WebAuthn API format (ArrayBuffers) */
+    function prepareCreationOpts(opts) {
+      opts.challenge = unb64url(opts.challenge);
+      opts.user.id = unb64url(opts.user.id);
+      (opts.excludeCredentials || []).forEach(c => { c.id = unb64url(c.id); });
+      return opts;
     }
-    async function verifyBiometric() {
-      const id = localStorage.getItem(WA_CRED_LS);
-      await navigator.credentials.get({ publicKey: {
-        challenge: randomBytes(32),
-        allowCredentials: id ? [{ type:"public-key", id: unb64(id) }] : [],
-        userVerification: "required", timeout: 60000, rpId: location.hostname,
-      }});
-      return true;
+    function prepareGetOpts(opts) {
+      opts.challenge = unb64url(opts.challenge);
+      (opts.allowCredentials || []).forEach(c => { c.id = unb64url(c.id); });
+      return opts;
+    }
+    function credToJSON(cred) {
+      const r = cred.response;
+      const base = { id: cred.id, rawId: b64url(cred.rawId), type: cred.type, response: {} };
+      if (r.attestationObject) {
+        base.response.attestationObject = b64url(r.attestationObject);
+        base.response.clientDataJSON = b64url(r.clientDataJSON);
+        if (r.getTransports) base.response.transports = r.getTransports();
+      } else {
+        base.response.authenticatorData = b64url(r.authenticatorData);
+        base.response.clientDataJSON = b64url(r.clientDataJSON);
+        base.response.signature = b64url(r.signature);
+        if (r.userHandle) base.response.userHandle = b64url(r.userHandle);
+      }
+      return base;
+    }
+
+    /* Server-side registration */
+    async function registerBiometricServer(label = "biometric") {
+      const bioMsg = id => { const el = $("bio-modal-msg"); if(el){el.textContent=id;el.className="lock-msg info";} };
+      bioMsg("Solicitando opciones al servidor…");
+      let optsResp;
+      try {
+        const r = await api("/auth/webauthn/register-options", { method:"POST", body:"{}" });
+        optsResp = await r.json();
+      } catch(e) { bioMsg(""); throw new Error("No se pudo contactar el servidor: " + e.message); }
+      if (optsResp.detail) throw new Error(optsResp.detail);
+
+      bioMsg("Verificando con el dispositivo…");
+      let cred;
+      try {
+        cred = await navigator.credentials.create({ publicKey: prepareCreationOpts(optsResp) });
+      } catch(e) { bioMsg(""); throw new Error("El dispositivo canceló la verificación: " + e.message); }
+
+      bioMsg("Registrando en el servidor…");
+      const email = currentUser?.email || "";
+      const body = JSON.stringify({ credential: credToJSON(cred), label });
+      let verifyResp;
+      try {
+        const r = await api("/auth/webauthn/register-verify", { method:"POST", body });
+        verifyResp = await r.json();
+      } catch(e) { bioMsg(""); throw new Error("Error al guardar credencial: " + e.message); }
+
+      waAddCred(verifyResp.credential_id, label, email);
+      bioMsg("");
+      return verifyResp;
+    }
+
+    /* Server-side authentication */
+    async function authenticateBiometricServer(preferredLabel) {
+      const creds = waGetCreds();
+      const target = preferredLabel ? creds.find(c => c.label === preferredLabel) : creds[0];
+      const email = target?.email || JSON.parse(localStorage.getItem(USER_LS)||"null")?.email || "";
+
+      const r1 = await fetch("/auth/webauthn/login-options", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ email }),
+      });
+      const opts = await r1.json();
+      if (!r1.ok) throw new Error(opts.detail || "Error al obtener opciones de login.");
+
+      const challengeKey = opts._challenge_key;
+      delete opts._challenge_key;
+
+      let cred;
+      try {
+        cred = await navigator.credentials.get({ publicKey: prepareGetOpts(opts) });
+      } catch(e) { throw new Error("Verificación biométrica cancelada: " + e.message); }
+
+      const credJson = credToJSON(cred);
+      credJson._challenge_key = challengeKey;
+      credJson.email = email;
+
+      const r2 = await fetch("/auth/webauthn/login-verify", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ credential: credJson, email }),
+      });
+      const j = await r2.json();
+      if (!r2.ok) throw new Error(j.detail || "Verificación fallida.");
+      return j;
     }
 
     /* ════════ Sesión / login ════════ */
@@ -903,16 +1086,30 @@
     }
 
     async function initLock() {
-      const hasTok = !!localStorage.getItem(TOKEN_LS) || !!localStorage.getItem(MASTER_LS);
-      const hasBio = !!localStorage.getItem(WA_CRED_LS);
       bioOkCache = await biometricAvailable();
-      const showBio = hasTok && hasBio && bioOkCache;
-      $("bio-btn").style.display = showBio ? "flex" : "none";
-      $("lock-divider").style.display = showBio ? "flex" : "none";
+      const creds = waGetCreds();
       const u = JSON.parse(localStorage.getItem(USER_LS) || "null");
       if (u && u.email) $("lk-email").value = u.email;
       if (u && u.name) $("lock-title").textContent = `Hola, ${u.name.split(" ")[0]}`;
       setAuthTab("login");
+
+      /* Show/hide bio buttons based on registered credentials (independent of cached token) */
+      const huella = creds.find(c => c.label === "huella");
+      const rostro  = creds.find(c => c.label === "rostro");
+      const any     = creds.length > 0 && !huella && !rostro ? creds[0] : null;
+      const hasBio  = bioOkCache && creds.length > 0;
+
+      $("bio-options").style.display = hasBio ? "" : "none";
+      $("lock-divider").style.display = hasBio ? "flex" : "none";
+
+      const showBtn = (id, emailId, cred) => {
+        const btn = $(id); if (!btn) return;
+        btn.style.display = cred && bioOkCache ? "" : "none";
+        if (cred) $(emailId).textContent = cred.email || "";
+      };
+      showBtn("bio-btn-huella", "bio-email-huella", huella);
+      showBtn("bio-btn-rostro",  "bio-email-rostro",  rostro);
+      showBtn("bio-btn-any",     "bio-email-any",     any);
     }
 
     async function submitAuth() {
@@ -937,10 +1134,17 @@
         const j = await r.json().catch(()=>({}));
         if (!r.ok) { lockMsg(j.detail || "No se pudo iniciar sesión.", "err"); return; }
         authToken = j.token; masterKey = ""; currentUser = j.user;
-        if (remember) { localStorage.setItem(TOKEN_LS, authToken); localStorage.setItem(USER_LS, JSON.stringify(j.user)); localStorage.removeItem(MASTER_LS); }
-        else { localStorage.removeItem(TOKEN_LS); localStorage.removeItem(USER_LS); }
+        if (remember) {
+          localStorage.setItem(TOKEN_LS, authToken);
+          localStorage.setItem(USER_LS, JSON.stringify(j.user));
+          localStorage.removeItem(MASTER_LS);
+        } else {
+          localStorage.removeItem(TOKEN_LS); localStorage.removeItem(USER_LS);
+        }
         await doUnlock();
-        if (remember && bioOkCache && !localStorage.getItem(WA_CRED_LS)) setTimeout(offerBiometricSetup, 600);
+        /* Offer bio setup if not yet registered and device supports it */
+        const creds = waGetCreds();
+        if (remember && bioOkCache && creds.length === 0) setTimeout(offerBiometricSetup, 800);
       } catch (e) { lockMsg("No se pudo contactar el servidor.", "err"); }
       finally { $("auth-btn").disabled = false; }
     }
@@ -957,27 +1161,115 @@
       } catch { lockMsg("No se pudo contactar el servidor.", "err"); }
     }
 
-    async function unlockWithBiometric() {
-      lockMsg("Verificando…", "info");
+    async function unlockWithBiometric(preferredLabel) {
+      lockMsg("Verificando biometría…", "info");
       try {
-        await verifyBiometric();
-        const tok = localStorage.getItem(TOKEN_LS) || "";
-        const mk = localStorage.getItem(MASTER_LS) || "";
-        if (tok) { authToken = tok; masterKey = ""; }
-        else if (mk) { masterKey = mk; authToken = ""; }
-        else { lockMsg("No hay sesión guardada; inicia sesión.", "err"); return; }
-        const r = await fetch("/auth/me", { headers: authHeaders() });
-        if (!r.ok) { authToken=""; masterKey=""; localStorage.removeItem(TOKEN_LS);
-          lockMsg("La sesión expiró. Inicia sesión de nuevo.", "err"); initLock(); return; }
-        currentUser = await r.json();
+        const j = await authenticateBiometricServer(preferredLabel);
+        authToken = j.token; masterKey = ""; currentUser = j.user;
+        localStorage.setItem(TOKEN_LS, authToken);
+        localStorage.setItem(USER_LS, JSON.stringify(j.user));
+        localStorage.removeItem(MASTER_LS);
         await doUnlock();
-      } catch (e) { lockMsg("No se pudo verificar la biometría.", "err"); }
+      } catch (e) {
+        lockMsg(e.message || "No se pudo verificar la biometría.", "err");
+      }
     }
 
     async function offerBiometricSetup() {
-      if (!confirm("¿Activar huella / Face ID para entrar más rápido en este dispositivo?")) return;
-      try { await registerBiometric(); toast("Huella / Face ID activado.", "ok"); }
-      catch (e) { toast("No se pudo activar la biometría.", "warn"); }
+      if (!bioOkCache) return;
+      if (!confirm("¿Activar acceso biométrico (huella o rostro) para entrar sin contraseña en este dispositivo?")) return;
+      openBioModal();
+    }
+
+    /* ════════ Modal biometría (in-app) ════════ */
+    function bioModalMsg(text, kind="") {
+      const el = $("bio-modal-msg"); if (!el) return;
+      el.textContent = text; el.className = "lock-msg " + (kind ? kind : "");
+    }
+
+    async function openBioModal() {
+      $("bio-modal").classList.add("show");
+      bioModalMsg("");
+      await renderBioCredsInModal();
+    }
+
+    function closeBioModal() { $("bio-modal").classList.remove("show"); }
+
+    async function renderBioCredsInModal() {
+      const list = $("bio-creds-list"); if (!list) return;
+      let creds = waGetCreds();
+      /* Also fetch from server if user is logged in */
+      if (authToken || masterKey) {
+        try {
+          const r = await api("/auth/webauthn/credentials");
+          const serverCreds = await r.json();
+          /* Merge: use server list as source of truth for IDs, keep local labels/emails */
+          const localMap = Object.fromEntries(creds.map(c => [c.id, c]));
+          creds = serverCreds.map(sc => ({
+            id: sc.credential_id, label: sc.label,
+            email: localMap[sc.credential_id]?.email || currentUser?.email || "",
+            created_at: sc.created_at,
+            server_id: sc.id,
+          }));
+          waSetCreds(creds.map(({id, label, email}) => ({id, label, email})));
+        } catch {}
+      }
+
+      if (!creds.length) {
+        list.innerHTML = `<p style="color:var(--muted);font-size:13px;margin:0 0 12px">No tienes credenciales biométricas registradas en este dispositivo.</p>`;
+        return;
+      }
+      const labelIc = { huella:"👆", rostro:"🫣", biometric:"🔐" };
+      const labelName = { huella:"Huella digital", rostro:"Reconocimiento facial", biometric:"Biométrico" };
+      list.innerHTML = creds.map(c => `
+        <div class="bio-cred-item">
+          <div class="bio-cred-ic">${labelIc[c.label] || "🔐"}</div>
+          <div class="bio-cred-info">
+            <div class="bio-cred-label">${esc(labelName[c.label] || c.label)}</div>
+            <div class="bio-cred-date">${c.email ? esc(c.email) + " · " : ""}${c.created_at ? new Date(c.created_at).toLocaleDateString("es-EC") : "Registrado"}</div>
+          </div>
+          <button class="btn subtle btn-sm" onclick="deleteBioCred('${esc(c.id)}')">Eliminar</button>
+        </div>
+      `).join("");
+    }
+
+    async function deleteBioCred(credId) {
+      if (!confirm("¿Eliminar esta credencial biométrica? Deberás registrarla de nuevo para usarla.")) return;
+      try {
+        await api(`/auth/webauthn/credentials/${encodeURIComponent(credId)}`, { method:"DELETE" });
+      } catch {}
+      waRemoveCred(credId);
+      await renderBioCredsInModal();
+      toast("Credencial eliminada.", "ok");
+    }
+
+    window.registerBiometricServer = async function(label) {
+      if (!bioOkCache) { bioModalMsg("Tu dispositivo no admite autenticación biométrica.", "err"); return; }
+      try {
+        const result = await registerBiometricServer(label);
+        toast(`${label === "huella" ? "Huella digital" : label === "rostro" ? "Reconocimiento facial" : "Biometría"} registrada correctamente.`, "ok");
+        await renderBioCredsInModal();
+        initLock();  /* Refresh landing buttons */
+      } catch(e) { bioModalMsg(e.message, "err"); }
+    };
+
+    /* ════════ PWA ════════ */
+    let pwaInstallPrompt = null;
+    window.addEventListener("beforeinstallprompt", e => {
+      e.preventDefault();
+      pwaInstallPrompt = e;
+      const dismissed = localStorage.getItem("pwa_dismissed");
+      if (!dismissed) $("pwa-banner").classList.add("show");
+    });
+    function installPWA() {
+      if (!pwaInstallPrompt) return;
+      $("pwa-banner").classList.remove("show");
+      pwaInstallPrompt.prompt();
+      pwaInstallPrompt.userChoice.then(() => { pwaInstallPrompt = null; });
+    }
+    function dismissPWA() {
+      $("pwa-banner").classList.remove("show");
+      localStorage.setItem("pwa_dismissed", "1");
     }
 
     async function doUnlock() {
@@ -1915,6 +2207,11 @@
 
     /* ════════ Boot ════════ */
     initLock();
+
+    /* Register service worker for PWA */
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
   </script>
 </body>
 </html>

@@ -15,14 +15,16 @@ sessions.status (pending → running → approved/failed).
 from __future__ import annotations
 
 import io
+import json
 import os
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from typing import Optional
 
 from fastapi import (
-    BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, UploadFile,
+    BackgroundTasks, Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile,
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
@@ -271,6 +273,75 @@ def _owned_row(session_id: str, p: Principal) -> dict:
 # ── Static / health ─────────────────────────────────────────────────────────
 STATIC_DIR = Path(__file__).parent / "static"
 
+# ── WebAuthn helpers ─────────────────────────────────────────────────────────
+# In-memory challenge store (single-instance; works on Render free tier).
+_wa_challenges: dict[str, tuple[bytes, float]] = {}
+
+
+def _wa_store(key: str, challenge: bytes) -> None:
+    _wa_challenges[key] = (challenge, time.time() + 300)
+    # Prune old entries to avoid memory growth
+    now = time.time()
+    for k in list(_wa_challenges):
+        if _wa_challenges[k][1] < now:
+            _wa_challenges.pop(k, None)
+
+
+def _wa_pop(key: str) -> Optional[bytes]:
+    entry = _wa_challenges.pop(key, None)
+    return entry[0] if entry and entry[1] > time.time() else None
+
+
+def _wa_rp_id(request: Request) -> str:
+    rp = os.getenv("WEBAUTHN_RP_ID", "")
+    if rp:
+        return rp
+    host = request.headers.get("host", "localhost")
+    return host.split(":")[0]
+
+
+def _wa_origin(request: Request) -> str:
+    env = os.getenv("WEBAUTHN_ORIGIN", "")
+    if env:
+        return env
+    host = request.headers.get("host", "localhost")
+    fwd = request.headers.get("x-forwarded-proto", "")
+    if fwd in ("http", "https"):
+        scheme = fwd
+    elif "." in host and "localhost" not in host:
+        scheme = "https"
+    else:
+        scheme = "http"
+    return f"{scheme}://{host}"
+
+
+def _wa_import():
+    """Lazy import with clear error if webauthn not installed."""
+    try:
+        import webauthn
+        from webauthn.helpers import options_to_json, bytes_to_base64url
+        from webauthn.helpers.structs import (
+            AuthenticatorSelectionCriteria,
+            AuthenticatorAttachment,
+            UserVerificationRequirement,
+            ResidentKeyRequirement,
+            PublicKeyCredentialDescriptor,
+            AuthenticatorAttestationResponse,
+            AuthenticatorAssertionResponse,
+            RegistrationCredential,
+            AuthenticationCredential,
+        )
+        return (webauthn, options_to_json, bytes_to_base64url,
+                AuthenticatorSelectionCriteria, AuthenticatorAttachment,
+                UserVerificationRequirement, ResidentKeyRequirement,
+                PublicKeyCredentialDescriptor, AuthenticatorAttestationResponse,
+                AuthenticatorAssertionResponse, RegistrationCredential,
+                AuthenticationCredential)
+    except ImportError as e:
+        raise HTTPException(501, f"WebAuthn no disponible. Instala 'webauthn' en el servidor: {e}")
+
+
+# ── Static / health ─────────────────────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)
 def root():
@@ -281,9 +352,268 @@ def root():
     )
 
 
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    return FileResponse(STATIC_DIR / "sw.js",
+                        media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/manifest.json", include_in_schema=False)
+def manifest():
+    return FileResponse(STATIC_DIR / "manifest.json",
+                        media_type="application/manifest+json",
+                        headers={"Cache-Control": "max-age=86400"})
+
+
+@app.get("/icon.svg", include_in_schema=False)
+def icon_svg():
+    return FileResponse(STATIC_DIR / "icon.svg", media_type="image/svg+xml",
+                        headers={"Cache-Control": "max-age=604800"})
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "service": "agente_map", "version": app.version}
+
+
+# ── WebAuthn endpoints ───────────────────────────────────────────────────────
+
+class WaRegisterVerifyReq(BaseModel):
+    credential: dict
+    label: str = "biometric"
+
+
+class WaLoginOptionsReq(BaseModel):
+    email: Optional[str] = None
+
+
+class WaLoginVerifyReq(BaseModel):
+    credential: dict
+    email: Optional[str] = None
+
+
+@app.post("/auth/webauthn/register-options")
+async def wa_register_options(request: Request, p: Principal = Depends(get_principal)):
+    """Genera las opciones de registro WebAuthn para el usuario autenticado."""
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(400, "Se requiere cuenta de usuario (no clave maestra) para registrar biometría.")
+    wa = _wa_import()
+    webauthn, options_to_json, _, AuthenticatorSelectionCriteria, AuthenticatorAttachment, \
+        UserVerificationRequirement, ResidentKeyRequirement, *_ = wa
+
+    u = _db(users_repo.get_by_id, p.user_id)
+    if not u:
+        raise HTTPException(404, "Usuario no encontrado.")
+
+    rp_id = _wa_rp_id(request)
+    user_id_bytes = p.user_id.encode()[:64]
+
+    from db import webauthn as wa_db
+    existing = wa_db.get_credentials_for_user(p.user_id)
+    exclude = []
+    if existing:
+        from webauthn.helpers.structs import PublicKeyCredentialDescriptor
+        from webauthn.helpers import base64url_to_bytes
+        for c in existing:
+            try:
+                exclude.append(PublicKeyCredentialDescriptor(id=base64url_to_bytes(c["credential_id"])))
+            except Exception:
+                pass
+
+    options = webauthn.generate_registration_options(
+        rp_id=rp_id,
+        rp_name="Proyectos MAP",
+        user_id=user_id_bytes,
+        user_name=u["email"],
+        user_display_name=u.get("name") or u["email"],
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            authenticator_attachment=AuthenticatorAttachment.PLATFORM,
+            user_verification=UserVerificationRequirement.REQUIRED,
+            resident_key=ResidentKeyRequirement.PREFERRED,
+        ),
+        exclude_credentials=exclude,
+        timeout=60000,
+    )
+    _wa_store(f"reg:{p.user_id}", options.challenge)
+    return json.loads(options_to_json(options))
+
+
+@app.post("/auth/webauthn/register-verify")
+async def wa_register_verify(request: Request, req: WaRegisterVerifyReq,
+                              p: Principal = Depends(get_principal)):
+    """Verifica la respuesta del dispositivo y almacena la credencial biométrica."""
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(400, "Se requiere cuenta de usuario.")
+    (webauthn, options_to_json, bytes_to_base64url,
+     AuthenticatorSelectionCriteria, AuthenticatorAttachment,
+     UserVerificationRequirement, ResidentKeyRequirement,
+     PublicKeyCredentialDescriptor, AuthenticatorAttestationResponse,
+     AuthenticatorAssertionResponse, RegistrationCredential,
+     AuthenticationCredential) = _wa_import()
+
+    challenge = _wa_pop(f"reg:{p.user_id}")
+    if not challenge:
+        raise HTTPException(400, "Challenge expirado. Solicita nuevas opciones de registro.")
+
+    d = req.credential
+    resp = d.get("response", {})
+    try:
+        cred = RegistrationCredential(
+            id=d["id"],
+            raw_id=d.get("rawId", d["id"]),
+            response=AuthenticatorAttestationResponse(
+                client_data_json=resp["clientDataJSON"],
+                attestation_object=resp["attestationObject"],
+                transports=resp.get("transports"),
+            ),
+            type=d.get("type", "public-key"),
+        )
+        verified = webauthn.verify_registration_response(
+            credential=cred,
+            expected_challenge=challenge,
+            expected_rp_id=_wa_rp_id(request),
+            expected_origin=_wa_origin(request),
+            require_user_verification=True,
+        )
+    except Exception as e:
+        raise HTTPException(400, f"Verificación biométrica fallida: {e}")
+
+    from db import webauthn as wa_db
+    cred_id_b64 = bytes_to_base64url(verified.credential_id)
+    if wa_db.get_credential(cred_id_b64):
+        raise HTTPException(409, "Esta credencial ya está registrada.")
+
+    label = (req.label or "biometric").strip() or "biometric"
+    wa_db.save_credential(
+        user_id=p.user_id,
+        credential_id=cred_id_b64,
+        public_key_bytes=verified.credential_public_key,
+        sign_count=verified.sign_count,
+        label=label,
+    )
+    return {"ok": True, "credential_id": cred_id_b64, "label": label}
+
+
+@app.post("/auth/webauthn/login-options")
+async def wa_login_options(request: Request, req: WaLoginOptionsReq):
+    """Genera las opciones de autenticación. Email opcional (para allowCredentials)."""
+    (webauthn, options_to_json, bytes_to_base64url,
+     _AuthSel, _AuthAtt, UserVerificationRequirement, _ResKey, PublicKeyCredentialDescriptor,
+     *_rest) = _wa_import()
+
+    allow = []
+    if req.email and users_repo.is_enabled():
+        u = users_repo.get_by_email(req.email)
+        if u:
+            from db import webauthn as wa_db
+            from webauthn.helpers import base64url_to_bytes
+            for c in wa_db.get_credentials_for_user(u["id"]):
+                try:
+                    allow.append(PublicKeyCredentialDescriptor(
+                        id=base64url_to_bytes(c["credential_id"])
+                    ))
+                except Exception:
+                    pass
+
+    rp_id = _wa_rp_id(request)
+    options = webauthn.generate_authentication_options(
+        rp_id=rp_id,
+        allow_credentials=allow,
+        user_verification=UserVerificationRequirement.REQUIRED,
+        timeout=60000,
+    )
+    challenge_key = f"auth:{req.email or 'anon'}:{id(options)}"
+    _wa_store(challenge_key, options.challenge)
+    result = json.loads(options_to_json(options))
+    result["_challenge_key"] = challenge_key
+    return result
+
+
+@app.post("/auth/webauthn/login-verify")
+async def wa_login_verify(request: Request, req: WaLoginVerifyReq):
+    """Verifica la respuesta biométrica y devuelve un token JWT."""
+    _require_supabase()
+    (webauthn, options_to_json, bytes_to_base64url,
+     AuthenticatorSelectionCriteria, AuthenticatorAttachment,
+     UserVerificationRequirement, ResidentKeyRequirement,
+     PublicKeyCredentialDescriptor, AuthenticatorAttestationResponse,
+     AuthenticatorAssertionResponse, RegistrationCredential,
+     AuthenticationCredential) = _wa_import()
+
+    d = req.credential
+    challenge_key = d.get("_challenge_key", "")
+    challenge = _wa_pop(challenge_key) if challenge_key else None
+    if not challenge:
+        raise HTTPException(400, "Challenge expirado. Vuelve a intentarlo.")
+
+    from db import webauthn as wa_db
+    cred_id = d.get("id", "")
+    stored = wa_db.get_credential(cred_id)
+    if not stored:
+        raise HTTPException(404, "Credencial biométrica no reconocida. Regístrala de nuevo.")
+
+    resp = d.get("response", {})
+    try:
+        cred = AuthenticationCredential(
+            id=d["id"],
+            raw_id=d.get("rawId", d["id"]),
+            response=AuthenticatorAssertionResponse(
+                client_data_json=resp["clientDataJSON"],
+                authenticator_data=resp["authenticatorData"],
+                signature=resp["signature"],
+                user_handle=resp.get("userHandle"),
+            ),
+            type=d.get("type", "public-key"),
+        )
+        webauthn.verify_authentication_response(
+            credential=cred,
+            expected_challenge=challenge,
+            expected_rp_id=_wa_rp_id(request),
+            expected_origin=_wa_origin(request),
+            credential_public_key=stored["_public_key_bytes"],
+            credential_current_sign_count=stored["sign_count"],
+            require_user_verification=True,
+        )
+    except Exception as e:
+        raise HTTPException(401, f"Verificación biométrica fallida: {e}")
+
+    wa_db.update_sign_count(cred_id, stored["sign_count"] + 1)
+
+    u = _db(users_repo.get_by_id, stored["user_id"])
+    if not u:
+        raise HTTPException(404, "Usuario no encontrado.")
+    if u.get("status") != "approved":
+        raise HTTPException(403, "Tu cuenta no está activa.")
+
+    users_repo.touch_login(u["id"])
+    token = auth_lib.make_token(u["id"], u.get("role", "user"))
+    return {"token": token, "user": users_repo.public_view(u)}
+
+
+@app.get("/auth/webauthn/credentials")
+def wa_list_credentials(p: Principal = Depends(get_principal)):
+    """Lista las credenciales biométricas del usuario autenticado."""
+    _require_supabase()
+    if not p.user_id:
+        return []
+    from db import webauthn as wa_db
+    return wa_db.list_for_user(p.user_id)
+
+
+@app.delete("/auth/webauthn/credentials/{credential_id}")
+def wa_delete_credential(credential_id: str, p: Principal = Depends(get_principal)):
+    """Elimina una credencial biométrica del usuario."""
+    _require_supabase()
+    if not p.user_id:
+        raise HTTPException(400, "Se requiere cuenta de usuario.")
+    from db import webauthn as wa_db
+    ok = wa_db.delete_credential(credential_id=credential_id, user_id=p.user_id)
+    if not ok:
+        raise HTTPException(404, "Credencial no encontrada.")
+    return {"ok": True}
 
 
 # ── Auth endpoints ───────────────────────────────────────────────────────────
