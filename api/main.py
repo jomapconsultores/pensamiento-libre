@@ -162,6 +162,10 @@ class SessionSummary(BaseModel):
     is_scouting: bool = False
     opportunities_count: int = 0
     go_no_go: Optional[str] = None
+    go_no_go_reasons: list = []
+    risks: list = []
+    strengths: list = []
+    recommendations: Optional[str] = None
     evidence_sources: list = []
     feasibility_breakdown: dict = {}
     owner_user_id: Optional[str] = None
@@ -239,6 +243,10 @@ def _row_to_summary(row: dict) -> SessionSummary:
         is_scouting=bool(alts),
         opportunities_count=len(alts),
         go_no_go=analysis.get("go_no_go"),
+        go_no_go_reasons=analysis.get("go_no_go_reasons") or [],
+        risks=analysis.get("risks") or [],
+        strengths=analysis.get("strengths") or [],
+        recommendations=analysis.get("recommendations"),
         evidence_sources=analysis.get("evidence_sources") or [],
         feasibility_breakdown=analysis.get("feasibility_breakdown") or {},
         owner_user_id=row.get("owner_user_id"),

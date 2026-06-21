@@ -1541,6 +1541,7 @@
             ${d.viability_score != null ? `<div>Viabilidad</div><div>${Math.round(d.viability_score)}/100</div>` : ""}
             ${d.winning_probability != null ? `<div>Prob. ganar</div><div>${Math.round(d.winning_probability)}%</div>` : ""}</div>` : "";
         const feasHtml = renderFeasibility(d.feasibility_breakdown);
+        const nogoHtml = renderNoGo(d);
         const errHtml = error ? `<h3>Error</h3><div class="err-banner"><div class="title">${esc(error.title)}</div><div>${esc(error.msg)}</div><div style="margin-top:6px"><b>Cómo resolver:</b> ${esc(error.fix)}</div>${d.error_message ? `<details><summary>Mostrar error técnico</summary><pre>${esc(d.error_message)}</pre></details>` : ""}</div>` : "";
         const dlHtml = `<h3>Descargas</h3><div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn subtle" onclick="downloadFile('${id}','word')">📄 Word</button>
@@ -1560,7 +1561,7 @@
           $("drawer-body").innerHTML = inconHtml + overviewHtml + progressHtml + renderScouting(id, opps) + errHtml + inputHtml;
           renderList(); return;
         }
-        $("drawer-body").innerHTML = inconHtml + overviewHtml + progressHtml + scoresHtml + verifHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
+        $("drawer-body").innerHTML = inconHtml + nogoHtml + overviewHtml + progressHtml + scoresHtml + verifHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
         renderList();
       } catch (e) { $("drawer-body").innerHTML = `<div class="list-empty">${esc(e.message)}</div>`; }
     }
@@ -1620,6 +1621,84 @@
         return `<div class="evid-item"><div class="claim">${esc(s.claim || "(claim sin texto)")} ${badge}</div><div class="src">${link}</div>${quote}</div>`;
       }).join("");
       return `<h3>Evidencias citadas (${sources.length})</h3><div class="evid">${items}</div>`;
+    }
+    function renderNoGo(d) {
+      const gng = d.go_no_go;
+      if (!gng || gng === "GO") return "";
+      const isNogo = gng === "NO-GO";
+      const color = isNogo ? "var(--err)" : "var(--warn)";
+      const bgColor = isNogo ? "rgba(220,38,38,.07)" : "rgba(217,119,6,.07)";
+      const borderColor = isNogo ? "rgba(220,38,38,.3)" : "rgba(217,119,6,.3)";
+      const icon = isNogo ? "🚫" : "⚠️";
+      const titleText = isNogo
+        ? "Veredicto: NO-GO — Esta oportunidad no es viable"
+        : "Veredicto: CONDICIONAL — Hay obstáculos importantes a resolver";
+      const explain = isNogo
+        ? `El sistema de análisis (FASE 1) evaluó la convocatoria y determinó que <b>no conviene continuar</b> con esta oportunidad en su estado actual. Esto puede deberse a que la entidad no cumple los requisitos mínimos de elegibilidad, el presupuesto o el plazo no son viables, o la probabilidad de éxito es demasiado baja para invertir recursos en la propuesta.`
+        : `El sistema detectó que esta oportunidad <b>podría ser viable bajo ciertas condiciones</b>. Hay al menos un requisito crítico que necesita verificación o ajuste antes de comprometer recursos en la elaboración de la propuesta completa.`;
+
+      // Low-scoring dimensions
+      const fb = d.feasibility_breakdown || {};
+      const labels = {
+        funder_match:"Match con el financiador",
+        geographic_eligibility:"Elegibilidad geográfica",
+        deadline_feasibility:"Viabilidad del plazo",
+        institutional_fit:"Perfil institucional",
+        budget_fit:"Encaje presupuestario",
+        winning_probability:"Probabilidad de ganar",
+      };
+      const lowDims = Object.entries(fb)
+        .map(([k,v]) => {
+          const score = (v && typeof v === "object") ? Number(v.score ?? 0) : Number(v || 0);
+          const reason = (v && typeof v === "object") ? (v.reason || "") : "";
+          return { key: k, label: labels[k]||k, score, reason };
+        })
+        .filter(x => x.score < 65)
+        .sort((a,b) => a.score - b.score);
+
+      const dimsHtml = lowDims.length ? `<div style="margin:10px 0 4px;font-weight:600;font-size:12px;color:${color};text-transform:uppercase;letter-spacing:.04em">Dimensiones críticas</div><div style="display:flex;flex-direction:column;gap:6px">${
+        lowDims.map(x => `<div style="background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:8px 12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:${x.reason?'4px':'0'}">
+            <span style="font-weight:600;font-size:13px">${esc(x.label)}</span>
+            <span style="margin-left:auto;font-weight:700;color:${x.score<40?'var(--err)':'var(--warn)'};font-size:13px">${Math.round(x.score)}/100</span>
+          </div>
+          ${x.reason ? `<div style="color:var(--fg-2);font-size:12px">${esc(x.reason)}</div>` : ""}
+        </div>`).join("")
+      }</div>` : "";
+
+      // Risks
+      const risksArr = d.risks || [];
+      const risksHtml = risksArr.length ? `<div style="margin:10px 0 4px;font-weight:600;font-size:12px;color:${color};text-transform:uppercase;letter-spacing:.04em">Riesgos identificados</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${
+        risksArr.map(r => `<li style="color:var(--fg-2);font-size:13px">${esc(typeof r === "string" ? r : (r.description||r.risk||JSON.stringify(r)))}</li>`).join("")
+      }</ul>` : "";
+
+      // Strengths (conditional only — show the positives)
+      const strengthsArr = d.strengths || [];
+      const strengthsHtml = (!isNogo && strengthsArr.length) ? `<div style="margin:10px 0 4px;font-weight:600;font-size:12px;color:var(--ok);text-transform:uppercase;letter-spacing:.04em">Puntos a favor</div><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">${
+        strengthsArr.map(s => `<li style="color:var(--fg-2);font-size:13px">${esc(typeof s === "string" ? s : (s.description||s.strength||JSON.stringify(s)))}</li>`).join("")
+      }</ul>` : "";
+
+      // Verification links
+      const linkItems = [];
+      if (d.funder_url) linkItems.push({ url: d.funder_url, label: d.funder ? `Sitio oficial de ${d.funder}` : "Sitio oficial del financiador" });
+      (d.evidence_sources || []).forEach(s => {
+        if (s.source_url && s.verification !== "verificado")
+          linkItems.push({ url: s.source_url, label: s.source_title || s.source_url });
+      });
+      const linksHtml = linkItems.length ? `<div style="margin:10px 0 4px;font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Verificar directamente</div><div style="display:flex;flex-direction:column;gap:5px">${
+        linkItems.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" style="font-size:13px;color:var(--accent);display:flex;align-items:center;gap:4px">↗ ${esc(l.label)}</a>`).join("")
+      }</div>` : "";
+
+      const actionsHtml = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <button class="btn" style="background:var(--accent);color:#fff;font-size:13px" onclick="openRefineModal()">✏️ Mejorar el tema y reintentar</button>
+        <button class="btn subtle" style="font-size:13px" onclick="deleteSession()">🗑 Descartar y empezar de nuevo</button>
+      </div>`;
+
+      return `<div style="border:1px solid ${borderColor};background:${bgColor};border-radius:10px;padding:16px 18px;margin-bottom:18px">
+        <div style="font-weight:700;font-size:15px;color:${color};margin-bottom:8px">${icon} ${titleText}</div>
+        <div style="color:var(--fg-2);font-size:13px;line-height:1.55;margin-bottom:10px">${explain}</div>
+        ${dimsHtml}${risksHtml}${strengthsHtml}${linksHtml}${actionsHtml}
+      </div>`;
     }
     function renderProgress(steps, status) {
       if (!steps || !steps.length) return "";
