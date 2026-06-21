@@ -285,16 +285,13 @@ function PlatformsBar() {
                 rel="noreferrer noopener"
                 className="group flex items-center gap-3 p-4 rounded-xl border border-brand-navy/10 bg-white hover:shadow-md hover:-translate-y-0.5 transition-all"
               >
-                <div
-                  className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center"
-                  style={{ background: p.bg }}
-                >
+                <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white shadow p-1.5">
                   <Image
                     src={p.logo}
                     alt={p.label}
                     width={40}
                     height={40}
-                    className="w-full h-full object-contain p-1"
+                    className="w-full h-full object-contain"
                   />
                 </div>
                 <div className="min-w-0">
@@ -331,7 +328,7 @@ function CompanyCard({ company }: { company: Company }) {
           background: `linear-gradient(135deg, ${company.bgFrom}, ${company.bgTo})`,
         }}
       >
-        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white/15 border-2 border-white/30 p-1.5 flex-shrink-0">
+        <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-lg p-2 flex-shrink-0">
           <Image
             src={company.logo}
             alt={company.name}

@@ -7,8 +7,10 @@ import Link from 'next/link';
 const PARTNERS = [
   {
     name: 'Atlas Centro de Estudios',
-    tagline: 'Educación · Psicología · Cursos',
+    tagline: 'Educación · Psicología · Nivelación',
     logo: '/logos/atlas.png',
+    photo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=320&fit=crop&q=80',
+    photoAlt: 'Estudiantes en clases en Atlas Centro de Estudios',
     bg: 'from-[#1e3a8a] to-[#1e3a6d]',
     accent: '#d4a017',
     url: 'https://atlas-sistema.onrender.com',
@@ -17,6 +19,8 @@ const PARTNERS = [
     name: 'CAPSA Consultoría',
     tagline: 'Capacitaciones · Asesoría · Resultados',
     logo: '/logos/capsa.png',
+    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500&h=320&fit=crop&q=80',
+    photoAlt: 'Consultoría profesional CAPSA — asesoría a clientes',
     bg: 'from-[#1a1a1a] to-[#2d2d2d]',
     accent: '#f59e0b',
     url: 'https://jomap-sistema.onrender.com',
@@ -25,6 +29,8 @@ const PARTNERS = [
     name: 'CMAJ Asociados',
     tagline: 'Tributos · Firma Electrónica · Consultoría',
     logo: '/logos/cmaj.png',
+    photo: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=320&fit=crop&q=80',
+    photoAlt: 'Asesor tributario trabajando con cliente en CMAJ Asociados',
     bg: 'from-[#1e2d40] to-[#2d3e56]',
     accent: '#c9a84c',
     url: 'https://jomap-sistema.onrender.com',
@@ -81,42 +87,51 @@ export function AliadosPreview() {
               style={{
                 opacity: visible ? 1 : 0,
                 transform: visible ? 'translateY(0)' : 'translateY(32px)',
-                transition: `opacity 0.6s ease ${i * 150}ms, transform 0.6s ease ${i * 150}ms, box-shadow 0.3s, translateY 0.3s`,
+                transition: `opacity 0.6s ease ${i * 150}ms, transform 0.6s ease ${i * 150}ms, box-shadow 0.3s`,
               }}
             >
-              <div className={`bg-gradient-to-br ${p.bg} p-8 flex flex-col items-center text-center gap-4 relative overflow-hidden`}>
-                {/* Decorative circles */}
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full opacity-10" style={{ background: p.accent, transform: 'translate(30%, -30%)' }} />
-                <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full opacity-10" style={{ background: p.accent, transform: 'translate(-30%, 30%)' }} />
-
-                <div className="relative z-10 w-20 h-20 rounded-2xl bg-white/15 border-2 border-white/30 p-1.5 group-hover:scale-110 transition-transform">
+              {/* Human activity photo */}
+              <div className="relative h-44 overflow-hidden">
+                <Image
+                  src={p.photo}
+                  alt={p.photoAlt}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                />
+                <div className={`absolute inset-0 bg-gradient-to-br ${p.bg} opacity-60`} />
+                {/* Logo on photo */}
+                <div className="absolute top-4 left-4 w-14 h-14 rounded-xl overflow-hidden bg-white/90 shadow-lg p-1.5">
                   <Image
                     src={p.logo}
                     alt={p.name}
-                    width={80}
-                    height={80}
+                    width={56}
+                    height={56}
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <div className="relative z-10">
-                  <p className="font-bold text-white text-lg leading-tight">{p.name}</p>
-                  <p className="text-white/60 text-sm mt-1">{p.tagline}</p>
-                </div>
               </div>
-              <div
-                className="px-6 py-3 flex items-center justify-between"
-                style={{ background: p.accent }}
-              >
-                <span className="text-xs font-bold text-black">Visitar plataforma</span>
-                <svg
-                  className="w-4 h-4 text-black group-hover:translate-x-1 transition-transform"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                  viewBox="0 0 24 24"
+
+              {/* Card footer */}
+              <div className={`bg-gradient-to-br ${p.bg} px-5 py-4 flex items-center justify-between`}>
+                <div>
+                  <p className="font-bold text-white text-sm">{p.name}</p>
+                  <p className="text-white/60 text-xs mt-0.5">{p.tagline}</p>
+                </div>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: p.accent }}
                 >
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+                  <svg
+                    className="w-4 h-4 text-brand-navy group-hover:translate-x-0.5 transition-transform"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </a>
           ))}

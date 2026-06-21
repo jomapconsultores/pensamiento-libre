@@ -84,8 +84,13 @@ export function Hero() {
             </Link>
           </div>
 
+          {/* Legal credibility line */}
+          <p className="mt-4 text-white/40 text-xs">
+            ✅ Personería jurídica · Ministerio de Educación · Resolución MINEDEC-CZ6-2025-01466-R
+          </p>
+
           {/* Secondary CTA */}
-          <div className="mt-4 flex items-center gap-4">
+          <div className="mt-5 flex items-center gap-4">
             <Link
               href="/programas"
               className="text-white/60 hover:text-white/90 transition-colors text-sm flex items-center gap-1.5"
@@ -129,15 +134,15 @@ export function Hero() {
             <div className="w-60 h-60 bg-brand-sky/10 rounded-full blur-2xl" />
           </div>
 
-          {/* Logo */}
-          <div className="relative z-10 animate-fly">
+          {/* Logo — horizontal version, no animation that delays render */}
+          <div className="relative z-10">
             <Image
-              src="/logo.png"
-              alt="Logo Fundación Pensamiento Libre"
-              width={500}
-              height={500}
+              src="/logo-horizontal.jpg"
+              alt="Fundación Pensamiento Libre"
+              width={560}
+              height={210}
               priority
-              className="w-full max-w-xs md:max-w-sm lg:max-w-md h-auto drop-shadow-2xl"
+              className="w-full max-w-xs md:max-w-sm lg:max-w-md h-auto drop-shadow-2xl rounded-2xl"
             />
           </div>
 
@@ -150,12 +155,6 @@ export function Hero() {
               {tag.label}
             </span>
           ))}
-
-          {/* Legal badge */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/10 border border-white/20 rounded-2xl px-4 py-2 text-center backdrop-blur-sm z-20 hidden lg:block">
-            <p className="text-white/90 text-xs font-semibold">Personería jurídica otorgada por</p>
-            <p className="text-brand-gold text-xs font-bold">Ministerio de Educación · Resolución 2025</p>
-          </div>
         </div>
       </div>
 

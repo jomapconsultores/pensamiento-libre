@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 const programs = [
@@ -5,51 +6,41 @@ const programs = [
     title: 'Salud mental comunitaria',
     description:
       'Consultas psicológicas, grupos de apoyo y talleres preventivos accesibles para personas de bajos recursos.',
-    color: 'from-brand-sky/15 to-brand-sky/5',
-    iconColor: 'text-brand-sky',
+    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=500&h=280&fit=crop&q=80',
+    photoAlt: 'Profesional de salud mental atendiendo a una persona',
+    accent: 'bg-brand-sky',
+    accentText: 'text-brand-sky',
     donateAmount: 35,
-    icon: (
-      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-    ),
   },
   {
     title: 'Educación consciente',
     description:
       'Talleres, conferencias y formación continua en pensamiento crítico, neurodesarrollo y aprendizaje significativo.',
-    color: 'from-brand-gold/15 to-brand-gold/5',
-    iconColor: 'text-brand-gold',
+    photo: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=500&h=280&fit=crop&q=80',
+    photoAlt: 'Estudiantes en un taller de educación consciente',
+    accent: 'bg-brand-gold',
+    accentText: 'text-brand-gold',
     donateAmount: 25,
-    icon: (
-      <>
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-        <path d="M6 12v5c3 3 9 3 12 0v-5" />
-      </>
-    ),
   },
   {
     title: 'Desarrollo personal',
     description:
       'Coaching, mentoría y programas de transformación para potenciar tu propósito de vida y bienestar integral.',
-    color: 'from-brand-green/15 to-brand-green/5',
-    iconColor: 'text-brand-green',
+    photo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=500&h=280&fit=crop&q=80',
+    photoAlt: 'Persona en sesión de coaching y desarrollo personal',
+    accent: 'bg-brand-green',
+    accentText: 'text-brand-green',
     donateAmount: 50,
-    icon: (
-      <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M6 21v-2a6 6 0 0112 0v2" />
-      </>
-    ),
   },
   {
     title: 'Voluntariado social',
     description:
       'Acompañamos a comunidades vulnerables con voluntarios formados que multiplican el impacto en territorio.',
-    color: 'from-brand-navy/15 to-brand-navy/5',
-    iconColor: 'text-brand-navy',
+    photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=500&h=280&fit=crop&q=80',
+    photoAlt: 'Voluntarios trabajando juntos en la comunidad',
+    accent: 'bg-brand-navy',
+    accentText: 'text-brand-navy',
     donateAmount: 10,
-    icon: (
-      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-    ),
   },
 ];
 
@@ -67,33 +58,34 @@ export function Programs() {
           {programs.map((p) => (
             <article
               key={p.title}
-              className={`relative rounded-2xl p-6 bg-gradient-to-br ${p.color} border border-white shadow-md hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col`}
+              className="rounded-2xl overflow-hidden shadow-md border border-white hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col bg-white"
             >
-              <div
-                className={`w-12 h-12 rounded-xl bg-white flex items-center justify-center mb-4 shadow ${p.iconColor}`}
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  {p.icon}
-                </svg>
+              {/* Photo header */}
+              <div className="relative h-44 flex-shrink-0 overflow-hidden">
+                <Image
+                  src={p.photo}
+                  alt={p.photoAlt}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/70 via-brand-navy/10 to-transparent" />
+                <span className={`absolute bottom-3 left-4 w-2.5 h-2.5 rounded-full ${p.accent} ring-2 ring-white`} />
               </div>
-              <h3 className="text-lg font-bold text-brand-navy mb-2">{p.title}</h3>
-              <p className="text-sm text-brand-navy/75 leading-relaxed flex-1">{p.description}</p>
-              <Link
-                href="/donar"
-                className="mt-5 text-xs font-bold text-brand-navy/70 hover:text-brand-gold flex items-center gap-1 transition-colors"
-              >
-                Apoyar desde ${p.donateAmount}
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M5 12h14m-6-6l6 6-6 6" />
-                </svg>
-              </Link>
+              {/* Card body */}
+              <div className="p-5 flex flex-col flex-1">
+                <h3 className="text-base font-bold text-brand-navy mb-2">{p.title}</h3>
+                <p className="text-sm text-brand-navy/70 leading-relaxed flex-1">{p.description}</p>
+                <Link
+                  href="/donar"
+                  className={`mt-5 text-xs font-bold ${p.accentText} hover:opacity-70 flex items-center gap-1 transition-opacity`}
+                >
+                  Apoyar desde ${p.donateAmount}
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14m-6-6l6 6-6 6" />
+                  </svg>
+                </Link>
+              </div>
             </article>
           ))}
         </div>

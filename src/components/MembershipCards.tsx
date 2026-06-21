@@ -3,6 +3,28 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+const TIER_ICONS = {
+  solidario: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-8 h-8">
+      <path d="M12 22C12 22 4 16 4 10a8 8 0 0116 0c0 6-8 12-8 12z" />
+      <circle cx={12} cy={10} r={3} fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  patrocinador: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-8 h-8">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor" />
+    </svg>
+  ),
+  corporativo: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-8 h-8">
+      <rect x={2} y={7} width={20} height={14} rx={2} />
+      <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+      <line x1={12} y1={12} x2={12} y2={16} />
+      <line x1={10} y1={14} x2={14} y2={14} />
+    </svg>
+  ),
+};
+
 const tiers = [
   {
     id: 'basic' as const,
@@ -10,7 +32,9 @@ const tiers = [
     subtitle: 'Empieza tu compromiso',
     price: '$10',
     period: '/mes',
-    emoji: '🌱',
+    icon: 'solidario' as keyof typeof TIER_ICONS,
+    iconBg: 'bg-brand-sky/15',
+    iconColor: 'text-brand-sky',
     features: [
       'Acceso a charlas mensuales online',
       'Newsletter exclusiva con contenido inspirador',
@@ -28,7 +52,9 @@ const tiers = [
     subtitle: 'El más elegido',
     price: '$30',
     period: '/mes',
-    emoji: '🌳',
+    icon: 'patrocinador' as keyof typeof TIER_ICONS,
+    iconBg: 'bg-brand-gold/20',
+    iconColor: 'text-brand-gold',
     features: [
       'Todo lo del plan Solidario',
       'Acceso a talleres premium exclusivos',
@@ -47,7 +73,9 @@ const tiers = [
     subtitle: 'Para empresas e instituciones',
     price: 'A convenir',
     period: '',
-    emoji: '🏛️',
+    icon: 'corporativo' as keyof typeof TIER_ICONS,
+    iconBg: 'bg-brand-navy/10',
+    iconColor: 'text-brand-navy',
     features: [
       'Todo lo del plan Patrocinador',
       'Mención como patrocinador oficial',
@@ -110,7 +138,11 @@ export function MembershipCards() {
             )}
             {!tier.highlighted && !tier.note && <div className="h-6 mb-4" />}
 
-            <div className="text-3xl mb-3">{tier.emoji}</div>
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 flex-shrink-0 ${tier.highlighted ? 'bg-white/15' : tier.iconBg}`}>
+              <span className={tier.highlighted ? 'text-brand-gold-light' : tier.iconColor}>
+                {TIER_ICONS[tier.icon]}
+              </span>
+            </div>
             <p
               className={`text-xs font-bold uppercase tracking-widest mb-1 ${
                 tier.highlighted ? 'text-brand-gold-light' : 'text-brand-gold'

@@ -69,17 +69,29 @@ export default function SobreNosotrosPage() {
               con directiva registrada para el período 2025 – 2029.
             </p>
           </div>
-          <div className="relative">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3]">
+          <div className="relative flex flex-col items-center gap-6">
+            {/* Horizontal logo */}
+            <div className="relative w-full rounded-3xl overflow-hidden bg-white shadow-2xl p-8 border border-brand-navy/8">
               <Image
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=700&h=525&fit=crop&q=80"
-                alt="Equipo Fundación Pensamiento Libre — personas trabajando juntas por el desarrollo humano"
+                src="/logo-horizontal.jpg"
+                alt="Logo Fundación Pensamiento Libre"
+                width={600}
+                height={225}
+                className="w-full h-auto"
+                priority
+              />
+            </div>
+            {/* Community photo below */}
+            <div className="relative w-full rounded-2xl overflow-hidden shadow-xl aspect-video">
+              <Image
+                src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=700&h=400&fit=crop&q=80"
+                alt="Comunidad Fundación Pensamiento Libre"
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/50 via-transparent to-transparent" />
-              <div className="absolute bottom-5 left-5 right-5">
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-navy/60 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4">
                 <span className="inline-block px-3 py-1.5 rounded-full bg-brand-gold text-brand-navy text-xs font-bold">
                   Personería jurídica · Ministerio de Educación 2025
                 </span>
