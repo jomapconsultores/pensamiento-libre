@@ -2195,6 +2195,12 @@
             : `<b>${esc(d.funder)}</b>`)
           : "<span class='muted'>—</span>";
         const inconHtml = isIncon(d.status) ? `<div class="err-banner" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.35);margin-bottom:14px"><div class="title" style="color:#fcd34d">⏳ Quedó inconcluso</div><div>Este entregable ${esc(reasonIncon(d))}. ${d.status==="failed"?"Puedes reintentarlo.":"Se actualizará solo mientras esté en curso."}</div></div>` : "";
+        const _dlColorMap = {abierta:"var(--ok)",abierta_proxima:"var(--ok)",por_cerrar:"var(--warn)",cierra_hoy:"var(--err)",cerrada:"var(--err)",sin_fecha:"var(--muted)"};
+        const _dlColor = _dlColorMap[d.deadline_status] || "var(--muted)";
+        const _dlLabel = d.deadline_label || d.deadline;
+        const deadlineHtml = _dlLabel ? `<span style="color:${_dlColor};font-weight:600">${esc(_dlLabel)}</span>` : "<span class='muted'>—</span>";
+        const _dlUrgent = d.deadline_status === "por_cerrar" || d.deadline_status === "cierra_hoy" || d.deadline_status === "cerrada";
+        const deadlineBannerHtml = (_dlUrgent && _dlLabel) ? `<div class="err-banner" style="background:${_dlColor}18;border-color:${_dlColor}60;margin-bottom:14px"><div class="title" style="color:${_dlColor}">📅 ${esc(_dlLabel)}</div><div style="font-size:12px;color:var(--fg-2)">Verifica el estado de la convocatoria antes de continuar.</div></div>` : "";
         const progressHtml = renderProgress(d.progress_steps, d.status);
         const phaseLabel = (inProgress && d.current_phase) ? `<div style="font-size:11px;color:var(--accent-2);margin-top:4px;opacity:.85">${esc(d.current_phase)}</div>` : "";
         const overviewHtml = `<h3>Resumen</h3><div class="kv">
@@ -2202,7 +2208,7 @@
             <div>Modo</div><div>${esc(modeLabel(d.input_mode))}</div>
             <div>Veredicto</div><div>${goNoGoPill(d.go_no_go) || "<span class='muted'>—</span>"}</div>
             <div>Financiador</div><div>${funderHtml}</div>
-            <div>Deadline</div><div>${esc(d.deadline) || "<span class='muted'>—</span>"}</div>
+            <div>Deadline</div><div>${deadlineHtml}</div>
             <div>Tipo</div><div>${esc(d.doc_type_key)}</div>
             <div>Ciclo</div><div>${d.current_cycle ?? 0}</div>
             <div>Creada</div><div class="muted">${esc(timeAgo(d.created_at))}</div>
@@ -2232,7 +2238,7 @@
           $("drawer-body").innerHTML = inconHtml + overviewHtml + progressHtml + renderScouting(id, opps) + errHtml + inputHtml;
           renderList(); return;
         }
-        $("drawer-body").innerHTML = inconHtml + nogoHtml + overviewHtml + progressHtml + scoresHtml + verifHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
+        $("drawer-body").innerHTML = inconHtml + deadlineBannerHtml + nogoHtml + overviewHtml + progressHtml + scoresHtml + verifHtml + feasHtml + errHtml + dlHtml + evHtml + previewHtml + inputHtml;
         renderList();
       } catch (e) { $("drawer-body").innerHTML = `<div class="list-empty">${esc(e.message)}</div>`; }
     }

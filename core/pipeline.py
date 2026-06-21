@@ -337,6 +337,24 @@ def run_pipeline(
             except Exception:
                 pass  # verificación es best-effort
 
+            # ── VERIFICACIÓN FEHACIENTE DE FECHA DE CIERRE ─────────────────
+            try:
+                from utils.deadline_checker import verify_deadline
+                if session.analysis and getattr(session.analysis, "funder", None):
+                    funder = session.analysis.funder
+                    dl = verify_deadline(
+                        funder_url=getattr(funder, "url", "") or "",
+                        llm_deadline_text=getattr(funder, "deadline", "") or "",
+                    )
+                    funder.deadline = dl["deadline_text"]
+                    funder.deadline_iso = dl.get("deadline_iso") or ""
+                    funder.deadline_status = dl["status"]
+                    funder.deadline_dias = dl.get("dias_restantes")
+                    funder.deadline_label = dl["label"]
+                    _log(session_id, "fase1", f"Convocatoria: {dl['label']}", "📅", "done")
+            except Exception:
+                pass
+
             _log(session_id, "fase1", f"Investigación completada{cycle_label}", "🌐", "done",
                  f"Viabilidad: {getattr(session.analysis, 'viability_score', '—')}/100" if session.analysis else "")
 

@@ -12,7 +12,11 @@ class FunderInfo:
     language: str       # idioma requerido de la propuesta
     sector: str
     country_focus: str
-    url_status: str = ""  # resultado de verificación HTTP: activo|acceso_restringido|url_muerta|no_responde
+    url_status: str = ""       # resultado de verificación HTTP: activo|acceso_restringido|url_muerta|no_responde
+    deadline_iso: str = ""     # fecha de cierre en formato ISO YYYY-MM-DD (verificada fehacientemente)
+    deadline_status: str = ""  # abierta|abierta_proxima|por_cerrar|cierra_hoy|cerrada|sin_fecha
+    deadline_dias: Optional[int] = None  # días restantes (negativo si ya cerró)
+    deadline_label: str = ""   # texto legible: "Abierta — cierra en 45 días" / "⚠️ Cierra en 5 días"
 
 
 @dataclass

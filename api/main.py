@@ -157,6 +157,8 @@ class SessionSummary(BaseModel):
     funder: Optional[str] = None
     funder_url: Optional[str] = None
     deadline: Optional[str] = None
+    deadline_label: Optional[str] = None
+    deadline_status: Optional[str] = None
     overall_score: Optional[float] = None
     viability_score: Optional[float] = None
     winning_probability: Optional[float] = None
@@ -288,6 +290,8 @@ def _row_to_summary(row: dict) -> SessionSummary:
         funder=funder_dict.get("name"),
         funder_url=funder_dict.get("url"),
         deadline=funder_dict.get("deadline"),
+        deadline_label=funder_dict.get("deadline_label"),
+        deadline_status=funder_dict.get("deadline_status"),
         overall_score=score,
         viability_score=analysis.get("viability_score"),
         winning_probability=analysis.get("winning_probability"),
