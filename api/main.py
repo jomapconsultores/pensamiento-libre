@@ -219,6 +219,53 @@ def _project_session_from_db(row: dict) -> ProjectSession:
     return session
 
 
+_DOC_TYPE_LABELS: dict[str, str] = {
+    "propuesta":          "Propuesta",
+    "articulo_cientifico":"Artículo científico",
+    "tesis":              "Tesis",
+    "tdr":                "TDR",
+    "informe":            "Informe",
+    "peer_review":        "Revisión de pares",
+    "legal_tecnico":      "Doc. legal/técnico",
+    "auto":               "Documento",
+}
+
+
+def _auto_title(row: dict, is_scouting: bool = False) -> str:
+    """Genera un título descriptivo cuando el pipeline aún no tiene uno."""
+    import datetime
+
+    created_raw = row.get("created_at")
+    try:
+        if created_raw:
+            dt = datetime.datetime.fromisoformat(str(created_raw).replace("Z", "+00:00"))
+            fecha = dt.strftime("%-d %b %Y") if hasattr(dt, "strftime") else str(dt)[:10]
+        else:
+            fecha = datetime.date.today().strftime("%-d %b %Y")
+    except Exception:
+        fecha = str(created_raw or "")[:10]
+
+    # Tipo de documento
+    key = (row.get("doc_type_key") or "auto").lower()
+    if is_scouting:
+        tipo = "Búsqueda de oportunidades"
+    else:
+        tipo = _DOC_TYPE_LABELS.get(key, key.replace("_", " ").title())
+
+    # Extracto del input
+    inp = (row.get("user_input") or "").strip()
+    if inp:
+        # Tomar las primeras palabras hasta ~55 chars, cortar en espacio
+        if len(inp) > 55:
+            cut = inp[:55]
+            space = cut.rfind(" ")
+            inp = (cut[:space] if space > 20 else cut) + "…"
+        # Limpiar saltos de línea
+        inp = inp.replace("\n", " ").replace("\r", "")
+        return f"{tipo} — {inp} ({fecha})"
+    return f"{tipo} ({fecha})"
+
+
 def _row_to_summary(row: dict) -> SessionSummary:
     brief = row.get("brief") or {}
     analysis = row.get("analysis") or {}
@@ -226,6 +273,9 @@ def _row_to_summary(row: dict) -> SessionSummary:
     last_review = (row.get("reviews") or [])[-1] if row.get("reviews") else None
     score = float(last_review["overall_score"]) if last_review else None
     alts = analysis.get("alternatives") or []
+    is_scouting = bool(alts)
+    real_title = brief.get("title") or analysis.get("project_title")
+    title = real_title or _auto_title(row, is_scouting=is_scouting)
     return SessionSummary(
         session_id=row["session_id"],
         status=row.get("status", "pending"),
@@ -234,7 +284,7 @@ def _row_to_summary(row: dict) -> SessionSummary:
         doc_type_key=row["doc_type_key"],
         input_mode=row.get("input_mode"),
         user_input=row.get("user_input"),
-        title=brief.get("title") or analysis.get("project_title"),
+        title=title,
         funder=funder_dict.get("name"),
         funder_url=funder_dict.get("url"),
         deadline=funder_dict.get("deadline"),

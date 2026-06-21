@@ -1684,6 +1684,29 @@
     const modeIcon = m => ({text:"📝",search:"🔎",url:"🔗",file:"📄"}[m] || "·");
     const modeLabel = m => ({text:"Texto",search:"Búsqueda",url:"Enlaces",file:"Archivos"}[m] || m);
 
+    const _DOC_LABELS = {
+      propuesta:"Propuesta", articulo_cientifico:"Artículo científico",
+      tesis:"Tesis", tdr:"TDR", informe:"Informe",
+      peer_review:"Revisión de pares", legal_tecnico:"Doc. legal/técnico", auto:"Documento",
+    };
+    const _MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    function autoTitle(r) {
+      if (r.title) return r.title;
+      let fecha = "—";
+      try {
+        const d = new Date(r.created_at);
+        if (!isNaN(d)) fecha = `${d.getDate()} ${_MESES[d.getMonth()]} ${d.getFullYear()}`;
+      } catch {}
+      const tipo = r.is_scouting ? "Búsqueda de oportunidades"
+                  : (_DOC_LABELS[r.doc_type_key] || (r.doc_type_key||"Documento").replace(/_/g," "));
+      let inp = (r.user_input || "").trim().replace(/\s+/g," ");
+      if (inp) {
+        if (inp.length > 55) { const cut=inp.slice(0,55); const sp=cut.lastIndexOf(" "); inp=(sp>20?cut.slice(0,sp):cut)+"…"; }
+        return `${tipo} — ${inp} (${fecha})`;
+      }
+      return `${tipo} (${fecha})`;
+    }
+
     /* ════════ Stats + inconclusos ════════ */
     function renderStats(rows) {
       $("stat-total").textContent = rows.length;
@@ -1711,7 +1734,7 @@
       banner.innerHTML = `<div class="incon">
         <h3>⏳ Tienes ${inc.length} trabajo(s) que quedaron inconclusos</h3>
         <ul>${top.map(r => `<li onclick="openDrawer('${r.session_id}')">
-          <span class="t">«${esc(r.title || "(sin título)")}» — ${esc(reasonIncon(r))}</span>
+          <span class="t">«${esc(autoTitle(r))}» — ${esc(reasonIncon(r))}</span>
           ${statusPill(r.status)}</li>`).join("")}</ul>
         ${inc.length > top.length ? `<div class="muted" style="font-size:11.5px;margin-top:6px">y ${inc.length-top.length} más — filtra por «Inconclusos» en la barra lateral.</div>` : ""}
       </div>`;
@@ -1747,7 +1770,7 @@
         <div class="item ${r.session_id===activeId?'active':''}" onclick="openDrawer('${r.session_id}')">
           <div class="mode-icon" title="${esc(modeLabel(r.input_mode))}">${modeIcon(r.input_mode)}</div>
           <div class="body">
-            <div class="title">${esc(r.title || "(sin título)")}</div>
+            <div class="title">${esc(autoTitle(r))}</div>
             <div class="sub">
               <span class="mono">${r.session_id}</span><span>·</span>${statusPill(r.status)}
               ${r.funder ? `<span>· <b>${esc(r.funder)}</b></span>` : ""}
@@ -1805,7 +1828,7 @@
         const ver = r3 ? await r3.json().catch(()=>null) : null;
         refineCurrentInput = d.user_input || "";
         activeStatus = d.status;
-        $("drawer-title").textContent = d.title || "(sin título)";
+        $("drawer-title").textContent = autoTitle(d);
         const inProgress = d.status === "pending" || d.status === "running";
         const canStop = inProgress || d.status === "failed";
         $("pause-btn").style.display = inProgress ? "" : "none";
