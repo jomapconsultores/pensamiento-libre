@@ -6,9 +6,9 @@ const programs = [
     title: 'Salud mental comunitaria',
     description:
       'Consultas psicológicas, grupos de apoyo y talleres preventivos accesibles para personas de bajos recursos.',
-    photo: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=600&q=85',
-    photoPos: 'object-center object-top',
-    photoAlt: 'Profesional de salud mental atendiendo a una persona',
+    photo: 'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?auto=format&fit=crop&w=700&q=85',
+    photoPos: 'object-center',
+    photoAlt: 'Grupo de apoyo de salud mental en sesión comunitaria',
     accent: 'bg-brand-sky',
     accentText: 'text-brand-sky',
     donateAmount: 35,
@@ -17,7 +17,7 @@ const programs = [
     title: 'Educación consciente',
     description:
       'Talleres, conferencias y formación continua en pensamiento crítico, neurodesarrollo y aprendizaje significativo.',
-    photo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=600&q=85',
+    photo: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=700&q=85',
     photoPos: 'object-center',
     photoAlt: 'Estudiantes en un taller de educación consciente',
     accent: 'bg-brand-gold',
@@ -28,9 +28,9 @@ const programs = [
     title: 'Desarrollo personal',
     description:
       'Coaching, mentoría y programas de transformación para potenciar tu propósito de vida y bienestar integral.',
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=85',
-    photoPos: 'object-center object-top',
-    photoAlt: 'Persona en sesión de coaching y desarrollo personal',
+    photo: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=700&q=85',
+    photoPos: 'object-[center_30%]',
+    photoAlt: 'Grupo en taller de desarrollo personal y coaching',
     accent: 'bg-brand-green',
     accentText: 'text-brand-green',
     donateAmount: 50,
@@ -39,7 +39,7 @@ const programs = [
     title: 'Voluntariado social',
     description:
       'Acompañamos a comunidades vulnerables con voluntarios formados que multiplican el impacto en territorio.',
-    photo: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=600&q=85',
+    photo: 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=700&q=85',
     photoPos: 'object-center',
     photoAlt: 'Voluntarios trabajando juntos en la comunidad',
     accent: 'bg-brand-navy',
@@ -65,7 +65,7 @@ export function Programs() {
               className="rounded-2xl overflow-hidden shadow-md border border-white hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col bg-white"
             >
               {/* Photo header */}
-              <div className="relative h-44 flex-shrink-0 overflow-hidden">
+              <div className="relative h-52 flex-shrink-0 overflow-hidden">
                 <Image
                   src={p.photo}
                   alt={p.photoAlt}
