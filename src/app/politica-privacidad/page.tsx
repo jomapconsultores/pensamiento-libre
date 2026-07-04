@@ -61,7 +61,6 @@ export default function PoliticaPrivacidadPage() {
             <li><strong>Supabase</strong> — almacenamiento seguro de datos.</li>
             <li><strong>Stripe</strong> — procesamiento de pagos.</li>
             <li><strong>Resend</strong> — envío de emails transaccionales.</li>
-            <li><strong>Render</strong> — alojamiento del sitio.</li>
           </ul>
           <p className="mt-3">
             No vendemos ni alquilamos tu información a terceros con fines comerciales.
