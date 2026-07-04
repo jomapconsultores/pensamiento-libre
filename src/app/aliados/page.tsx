@@ -74,7 +74,7 @@ export default function AliadosPage() {
         <div className="container-page">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { value: '4', label: 'Plataformas activas', suffix: '+' },
+              { value: '6', label: 'Empresas aliadas', suffix: '' },
               { value: '20', label: 'Años de experiencia', suffix: '+' },
               { value: '14', label: 'Cursos especializados', suffix: '+' },
               { value: '3', label: 'Áreas de expertise', suffix: '' },
