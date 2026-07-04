@@ -36,7 +36,7 @@ export function NewsletterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
+    <form onSubmit={handleSubmit} className="relative flex flex-col sm:flex-row gap-2">
       <label htmlFor="newsletter-email" className="sr-only">Email</label>
       <input
         id="newsletter-email"
@@ -55,7 +55,7 @@ export function NewsletterForm() {
         {status === 'loading' ? '...' : 'Suscribirme'}
       </button>
       {status === 'error' && (
-        <p className="text-red-300 text-xs sm:absolute sm:mt-12">{errorMsg}</p>
+        <p className="text-red-300 text-xs sm:absolute sm:top-full sm:mt-1">{errorMsg}</p>
       )}
     </form>
   );

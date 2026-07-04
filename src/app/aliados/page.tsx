@@ -16,7 +16,7 @@ const AliadosHub = dynamic(
 export const metadata: Metadata = {
   title: 'Aliados y Ecosistema | Fundación Pensamiento Libre',
   description:
-    'Conoce el ecosistema de aliados de la Fundación Pensamiento Libre: Atlas Centro de Estudios, CAPSA Consultoría, CMAJ Asociados, Tributos Web y Calendarios MAP.',
+    'Conoce el ecosistema de aliados de la Fundación Pensamiento Libre: Atlas Centro de Estudios, CAPSA Consultoría, CMAJ Asociados, Golden Gate English Center, Tributos Web y Calendarios MAP.',
   keywords: [
     'Atlas Centro de Estudios',
     'CAPSA consultoría',
@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     'gestión tributaria',
     'contratación pública',
     'cursos online Ecuador',
+    'clases de inglés',
+    'TOEFL',
+    'Cambridge',
   ],
 };
 
@@ -71,7 +74,7 @@ export default function AliadosPage() {
         <div className="container-page">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
-              { value: '5', label: 'Plataformas activas', suffix: '+' },
+              { value: '4', label: 'Plataformas activas', suffix: '+' },
               { value: '20', label: 'Años de experiencia', suffix: '+' },
               { value: '14', label: 'Cursos especializados', suffix: '+' },
               { value: '3', label: 'Áreas de expertise', suffix: '' },

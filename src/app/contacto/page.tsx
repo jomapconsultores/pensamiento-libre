@@ -52,12 +52,10 @@ export default function ContactoPage() {
               <li>
                 <p className="font-semibold text-brand-navy text-sm mb-1">Aliados</p>
                 <a
-                  href="https://jomapconsultores.com"
-                  target="_blank"
-                  rel="noreferrer noopener"
+                  href="/aliados"
                   className="text-brand-gold hover:text-brand-gold-light transition-colors font-medium"
                 >
-                  JOMAP Consultores →
+                  Ver nuestros aliados →
                 </a>
               </li>
             </ul>

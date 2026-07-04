@@ -32,6 +32,11 @@ export function FooterContact() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name || !form.email) return;
+    if (!form.message.trim()) {
+      setStatus('error');
+      setErrorMsg('Por favor escribe un mensaje.');
+      return;
+    }
     setStatus('loading');
     setErrorMsg('');
 
@@ -127,7 +132,7 @@ export function FooterContact() {
           id="footer-interest"
           value={form.topic}
           onChange={(e) => update('topic', e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40 bg-brand-navy"
+          className="w-full px-3 py-2 rounded-lg border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-gold/40 bg-brand-navy"
         >
           <option value="">Selecciona un área...</option>
           {INTERESTS.map((i) => (

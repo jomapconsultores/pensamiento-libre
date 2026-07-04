@@ -39,14 +39,14 @@ const IMPACT_DESTINATIONS = [
   {
     emoji: '🧠',
     area: 'Salud Mental',
-    desc: 'Consultas psicológicas solidarias para personas sin recursos. Tu membresía cubre entre 0,5 y 3 sesiones al mes.',
+    desc: 'Consultas psicológicas solidarias para personas sin recursos. Tu membresía ayuda a financiar estas consultas cada mes.',
     programs: ['Consultas gratuitas', 'Grupos terapéuticos', 'Talleres de bienestar'],
     memberRequired: 'Solidario +',
   },
   {
     emoji: '📚',
     area: 'Becas Educativas',
-    desc: 'Financiamos el acceso a educación para jóvenes en situación de vulnerabilidad en Cuenca y provincias.',
+    desc: 'Financiamos el acceso a educación para jóvenes en situación de vulnerabilidad en Cuenca y otras provincias de Ecuador.',
     programs: ['Beca mensual ($50)', 'Materiales didácticos', 'Tutorías personalizadas'],
     memberRequired: 'Solidario +',
   },
@@ -123,7 +123,7 @@ export default function MembresiasPage() {
           </h1>
           <p className="mt-6 text-lg md:text-xl text-brand-navy/70 max-w-3xl mx-auto leading-relaxed">
             Al hacerte miembro, financias directamente consultas psicológicas, becas educativas
-            y talleres comunitarios en Cuenca y Ecuador — y a la vez accedes a beneficios
+            y talleres comunitarios en Cuenca y el resto de Ecuador — y a la vez accedes a beneficios
             diseñados para tu propio desarrollo personal.
           </p>
           <div className="mt-8 flex flex-wrap gap-3 justify-center">

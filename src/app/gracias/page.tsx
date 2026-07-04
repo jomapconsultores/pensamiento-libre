@@ -16,10 +16,10 @@ export default function GraciasPage() {
           </svg>
         </div>
         <h1 className="text-4xl md:text-5xl font-display font-bold text-brand-navy">
-          ¡Gracias por tu aporte!
+          ¡Gracias por tu apoyo!
         </h1>
         <p className="mt-6 text-lg text-brand-navy/75">
-          Tu donación ya está siendo procesada. Recibirás un correo de confirmación en
+          Tu pago ya está siendo procesado. Recibirás un correo de confirmación en
           breve. Eres parte del cambio que transforma vidas.
         </p>
         <div className="mt-10 flex flex-wrap gap-4 justify-center">

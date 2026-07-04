@@ -1,6 +1,16 @@
 import Link from 'next/link';
 import { SocialLinks } from './SocialLinks';
 import { FooterContact } from './FooterContact';
+import { NewsletterForm } from './NewsletterForm';
+
+const PARTNER_LINKS: { label: string; href: string; internal?: boolean }[] = [
+  { label: 'Atlas Centro de Estudios', href: 'https://atlas-sistema.onrender.com' },
+  { label: 'CAPSA Consultoría', href: 'https://jomap-sistema.onrender.com' },
+  { label: 'CMAJ Asociados', href: '/cmaj', internal: true },
+  { label: 'Golden Gate English Center', href: '/golden-gate', internal: true },
+  { label: 'Tributos Web', href: 'https://tributos-web.onrender.com' },
+  { label: 'Calendarios MAP', href: 'https://calendarios-map.onrender.com' },
+];
 
 export function Footer() {
   return (
@@ -22,6 +32,15 @@ export function Footer() {
           </p>
           <div className="mt-4">
             <SocialLinks />
+          </div>
+
+          {/* Newsletter */}
+          <div className="mt-8 max-w-md">
+            <p className="font-bold text-brand-gold-light mb-1">Newsletter</p>
+            <p className="text-white/50 text-xs mb-4">
+              Recibe novedades e historias de impacto directamente en tu correo.
+            </p>
+            <NewsletterForm />
           </div>
 
           {/* Contact form */}
@@ -93,56 +112,26 @@ export function Footer() {
         <div>
           <h3 className="font-bold text-brand-gold-light mb-4">Plataformas aliadas</h3>
           <ul className="space-y-2 text-white/80 text-sm">
-            <li>
-              <a
-                href="https://atlas-sistema.onrender.com"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="hover:text-brand-gold-light transition-colors"
-              >
-                Atlas Centro de Estudios
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://jomap-sistema.onrender.com"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="hover:text-brand-gold-light transition-colors"
-              >
-                CAPSA Consultoría
-              </a>
-            </li>
-            <li>
-              <Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">
-                CMAJ Asociados
-              </Link>
-            </li>
-            <li>
-              <Link href="/golden-gate" className="hover:text-brand-gold-light transition-colors">
-                Golden Gate English Center
-              </Link>
-            </li>
-            <li>
-              <a
-                href="https://tributos-web.onrender.com"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="hover:text-brand-gold-light transition-colors"
-              >
-                Tributos Web
-              </a>
-            </li>
-            <li>
-              <a
-                href="https://calendarios-map.onrender.com"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="hover:text-brand-gold-light transition-colors"
-              >
-                Calendarios MAP
-              </a>
-            </li>
+            {PARTNER_LINKS.map((p) =>
+              p.internal ? (
+                <li key={p.label}>
+                  <Link href={p.href} className="hover:text-brand-gold-light transition-colors">
+                    {p.label}
+                  </Link>
+                </li>
+              ) : (
+                <li key={p.label}>
+                  <a
+                    href={p.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="hover:text-brand-gold-light transition-colors"
+                  >
+                    {p.label}
+                  </a>
+                </li>
+              )
+            )}
             <li className="pt-3 space-y-1">
               <a
                 href="mailto:jomapconsultores@gmail.com"

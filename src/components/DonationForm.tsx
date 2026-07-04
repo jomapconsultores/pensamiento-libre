@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCheckout } from '@/hooks/useCheckout';
 
 const PRESETS = [
   { amount: 10, label: 'Semilla', impact: 'Cubre materiales de una clase de pensamiento crítico' },
@@ -15,8 +16,7 @@ export function DonationForm() {
   const [customAmount, setCustomAmount] = useState<string>('');
   const [recurring, setRecurring] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { start, loading, error, setError } = useCheckout();
 
   const effectiveAmount = customAmount ? Number(customAmount) : amount;
   const currentPreset = PRESETS.find((p) => p.amount === amount && !customAmount);
@@ -30,31 +30,10 @@ export function DonationForm() {
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'donation',
-          amount: effectiveAmount,
-          recurring,
-          donorEmail: email || undefined,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.url) {
-        throw new Error(data.error || 'No se pudo iniciar el pago.');
-      }
-
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido.');
-      setLoading(false);
-    }
+    start(
+      { type: 'donation', amount: effectiveAmount, recurring, donorEmail: email || undefined },
+      { key: 'donate', fallbackError: 'No se pudo iniciar el pago.' }
+    );
   }
 
   return (
@@ -192,7 +171,7 @@ export function DonationForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading !== null}
         className="btn-primary w-full mt-6 py-4 text-base disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {loading

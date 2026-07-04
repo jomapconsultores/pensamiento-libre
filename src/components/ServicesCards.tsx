@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 const PAID_SERVICES = [
@@ -8,6 +8,7 @@ const PAID_SERVICES = [
     id: 'consulta' as const,
     emoji: '🧠',
     name: 'Consulta Psicológica',
+    // Precio de referencia — se reemplaza en cuanto carga el precio real desde Stripe.
     price: '$45',
     duration: '50 min',
     description:
@@ -24,6 +25,7 @@ const PAID_SERVICES = [
     id: 'taller' as const,
     emoji: '💙',
     name: 'Taller Pensamiento Libre',
+    // Precio de referencia — se reemplaza en cuanto carga el precio real desde Stripe.
     price: '$60',
     duration: '3 horas',
     description:
@@ -68,6 +70,21 @@ const INFO_SERVICES = [
 export function ServicesCards() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [livePrices, setLivePrices] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch('/api/services/prices')
+      .then((res) => res.json())
+      .then((data: { consulta: string | null; taller: string | null }) => {
+        setLivePrices({
+          ...(data.consulta ? { consulta: data.consulta } : {}),
+          ...(data.taller ? { taller: data.taller } : {}),
+        });
+      })
+      .catch(() => {
+        // Stripe no disponible: se mantiene el precio de referencia estático.
+      });
+  }, []);
 
   async function buy(serviceId: 'taller' | 'consulta') {
     setError(null);
@@ -111,7 +128,7 @@ export function ServicesCards() {
             >
               {s.highlight && (
                 <span className="inline-block self-start text-xs font-bold px-3 py-1 rounded-full bg-brand-gold text-brand-navy mb-4">
-                  ⭐ MÁS RESERVADO
+                  ⭐ RECOMENDADO
                 </span>
               )}
               <div className="text-3xl mb-3">{s.emoji}</div>
@@ -134,6 +151,7 @@ export function ServicesCards() {
                 {s.features.map((f) => (
                   <li key={f} className="flex gap-2 items-start">
                     <svg
+                      aria-hidden="true"
                       className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
                         s.highlight ? 'text-brand-gold-light' : 'text-brand-gold'
                       }`}
@@ -166,7 +184,7 @@ export function ServicesCards() {
                       s.highlight ? 'text-brand-gold-light' : 'text-brand-navy'
                     }`}
                   >
-                    {s.price}
+                    {livePrices[s.id] ?? s.price}
                   </p>
                   <p
                     className={`text-sm ${

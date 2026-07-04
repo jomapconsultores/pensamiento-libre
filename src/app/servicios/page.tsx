@@ -27,7 +27,7 @@ const DIFFERENTIATORS = [
   {
     emoji: '💳',
     title: 'Pago seguro en línea',
-    desc: 'Reserva y paga desde cualquier lugar con tarjeta o transferencia.',
+    desc: 'Reserva y paga desde cualquier lugar con tarjeta de crédito o débito.',
   },
 ];
 

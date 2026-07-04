@@ -62,7 +62,7 @@ export function Programs() {
           {programs.map((p) => (
             <article
               key={p.title}
-              className="rounded-2xl overflow-hidden shadow-md border border-white hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col bg-white"
+              className="rounded-2xl overflow-hidden shadow-md border border-brand-navy/5 hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col bg-white"
             >
               {/* Photo header */}
               <div className="relative h-52 flex-shrink-0 overflow-hidden">

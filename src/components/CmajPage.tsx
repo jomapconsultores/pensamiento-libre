@@ -27,7 +27,7 @@ const FIRMA_BENEFITS: Benefit[] = [
 
 const SRI_SERVICES: Service[] = [
   { icon: '📋', title: 'Declaración mensual IVA', price: '$17.25', note: 'por declaración' },
-  { icon: '📊', title: 'Impuesto a la Renta anual', price: '$34.50', note: 'anual' },
+  { icon: '📊', title: 'Impuesto a la Renta', price: '$34.50', note: 'anual' },
   { icon: '🧾', title: 'Gastos Personales', price: '$57.50', note: 'anual' },
   { icon: '🔍', title: 'Otros trámites SRI', price: 'Cotizar', note: 'a tu medida' },
 ];
@@ -139,12 +139,6 @@ function Particles() {
 
 /* ── MAIN COMPONENT ── */
 export function CmajPage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  if (!mounted) return null;
-
   return (
     <div className="min-h-screen bg-white">
       {/* ── HERO ── */}
@@ -358,14 +352,14 @@ export function CmajPage() {
                 </p>
                 <div className="grid grid-cols-3 gap-4 mb-8">
                   {[
-                    { icon: '💰', value: '85%', label: 'Compramos al 85% del valor nominal' },
-                    { icon: '⚡', value: '24h', label: 'Pago garantizado en 24 horas' },
-                    { icon: '🔒', value: '100%', label: 'Proceso seguro y legal' },
+                    { icon: '💰', value: '85', suffix: '%', label: 'Compramos al 85% del valor nominal' },
+                    { icon: '⚡', value: '24', suffix: 'h', label: 'Pago garantizado en 24 horas' },
+                    { icon: '🔒', value: '100', suffix: '%', label: 'Proceso seguro y legal' },
                   ].map((stat) => (
                     <div key={stat.label} className="bg-white/10 rounded-xl p-5 flex flex-col items-center">
                       <div className="text-3xl mb-2">{stat.icon}</div>
                       <p className="text-[#c9a84c] text-3xl font-black">
-                        <AnimatedCounter value={stat.value} />
+                        <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                       </p>
                       <p className="text-white/80 text-sm mt-2 font-medium leading-tight">{stat.label}</p>
                     </div>

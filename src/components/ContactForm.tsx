@@ -121,7 +121,11 @@ export function ContactForm() {
       </button>
 
       <p className="text-xs text-brand-navy/60 text-center">
-        Al enviar este formulario aceptas nuestra política de privacidad.
+        Al enviar este formulario aceptas nuestra{' '}
+        <a href="/politica-privacidad" className="underline hover:text-brand-navy">
+          política de privacidad
+        </a>
+        .
       </p>
     </form>
   );

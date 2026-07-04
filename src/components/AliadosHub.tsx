@@ -61,8 +61,6 @@ const PLATFORMS = [
     label: 'Atlas Centro de Estudios',
     url: 'https://atlas-sistema.onrender.com',
     logo: '/logos/atlas.png',
-    bg: '#1e3a8a',
-    accent: '#d4a017',
     desc: 'Educación · Psicología · Nivelación académica',
   },
   {
@@ -70,8 +68,6 @@ const PLATFORMS = [
     label: 'CAPSA Consultoría',
     url: 'https://jomap-sistema.onrender.com',
     logo: '/logos/capsa.png',
-    bg: '#1a1a1a',
-    accent: '#f59e0b',
     desc: 'Capacitaciones · Tributos · Consultoría institucional',
   },
   {
@@ -79,8 +75,6 @@ const PLATFORMS = [
     label: 'Tributos Web',
     url: 'https://tributos-web.onrender.com',
     logo: '/logos/cmaj.png',
-    bg: '#064e3b',
-    accent: '#34d399',
     desc: 'Declaraciones · Gestión SRI · 100% online',
   },
   {
@@ -88,8 +82,6 @@ const PLATFORMS = [
     label: 'Calendarios MAP',
     url: 'https://calendarios-map.onrender.com',
     logo: '/logos/capsa.png',
-    bg: '#312e81',
-    accent: '#a5b4fc',
     desc: 'Agendas · Citas · Coordinación de equipos',
   },
 ];
@@ -430,8 +422,8 @@ export function AliadosHub() {
             </span>
             <h2 className="section-title font-display">Nuestro ecosistema de aliados</h2>
             <p className="section-subtitle mt-4">
-              Cada aliado tiene su propia plataforma, equipo y contacto. Haz clic en «Visitar» para conocer
-              sus servicios, productos y tarifas en su propio sitio web.
+              Cada aliado tiene su propia plataforma, equipo y contacto. Haz clic en el botón de cada
+              tarjeta para conocer sus servicios, productos y tarifas en su propio sitio web.
             </p>
           </div>
 

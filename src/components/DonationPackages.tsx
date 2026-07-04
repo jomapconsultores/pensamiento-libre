@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useCheckout } from '@/hooks/useCheckout';
 
 type Category = 'todos' | 'clases' | 'talleres' | 'servicios' | 'educacion';
 
@@ -62,7 +63,7 @@ const PACKAGES: DonationPackage[] = [
     includes: [
       'Sesión individual (50 min)',
       'Evaluación y orientación',
-      'Seguimiento y derivación si necesario',
+      'Seguimiento y derivación si es necesario',
     ],
     supportsMonthly: false,
   },
@@ -74,7 +75,7 @@ const PACKAGES: DonationPackage[] = [
     amount: 50,
     badgeText: 'Alto impacto',
     badgeStyle: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    impact: 'Sostiene un mes completo de formación educativa para un joven o joven en situación de vulnerabilidad.',
+    impact: 'Sostiene un mes completo de formación educativa para un joven en situación de vulnerabilidad.',
     includes: [
       'Acceso a programas educativos',
       'Materiales y recursos del mes',
@@ -129,9 +130,8 @@ const CATEGORIES: { id: Category; label: string; emoji: string }[] = [
 
 export function DonationPackages() {
   const [activeCategory, setActiveCategory] = useState<Category>('todos');
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
+  const { start, loading, error } = useCheckout();
 
   const filtered =
     activeCategory === 'todos'
@@ -140,27 +140,10 @@ export function DonationPackages() {
 
   async function handlePackage(pkg: DonationPackage) {
     if (loading) return;
-    setError(null);
-    setLoading(pkg.id);
-
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'donation',
-          amount: pkg.amount,
-          recurring: false,
-          donorEmail: email || undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.url) throw new Error(data.error || 'Error al procesar.');
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido.');
-      setLoading(null);
-    }
+    start(
+      { type: 'donation', amount: pkg.amount, recurring: false, donorEmail: email || undefined },
+      { key: pkg.id, fallbackError: 'Error al procesar.' }
+    );
   }
 
   return (

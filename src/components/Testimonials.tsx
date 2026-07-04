@@ -16,7 +16,7 @@ const testimonials = [
     quote:
       'La educación que reciben mis hijos aquí va más allá del aula: aprenden a pensar, a sentir y a relacionarse con libertad y respeto.',
     name: 'Carlos Mendoza',
-    role: 'Padre de familia — programa Escuelas',
+    role: 'Padre de familia — programa Educación consciente',
     metric: '3 hijos beneficiados',
     metricColor: 'bg-brand-gold/20 text-brand-gold-light',
   },

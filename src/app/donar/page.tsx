@@ -42,7 +42,7 @@ const IMPACT_STORIES = [
     quote:
       '"Los talleres de inteligencia emocional cambiaron la forma en que me relaciono con mi familia y conmigo misma."',
     author: 'Ana L.',
-    role: 'Participante de talleres comunitarios',
+    role: 'Participante — talleres comunitarios',
   },
 ];
 

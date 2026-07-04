@@ -39,7 +39,6 @@ const tiers = [
       'Acceso a charlas mensuales online',
       'Newsletter exclusiva con contenido inspirador',
       'Reconocimiento como miembro activo en la web',
-      'Tu nombre en la página de aliados',
       'Actualizaciones de impacto de tu aporte',
     ],
     cta: 'Hacerme Solidario',
@@ -122,7 +121,7 @@ export function MembershipCards() {
             key={tier.name}
             className={`rounded-3xl p-8 shadow-lg border-2 transition-all flex flex-col ${
               tier.highlighted
-                ? 'bg-gradient-to-br from-brand-navy to-brand-navy-dark text-white border-brand-gold shadow-2xl scale-105 md:scale-105'
+                ? 'bg-gradient-to-br from-brand-navy to-brand-navy-dark text-white border-brand-gold shadow-2xl scale-105'
                 : 'bg-white text-brand-navy border-brand-navy/10 hover:border-brand-gold/30 hover:shadow-xl'
             }`}
           >

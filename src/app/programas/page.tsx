@@ -84,7 +84,7 @@ const programs = [
       'Programas que conectan a adultos mayores, adultos, jóvenes y niños en espacios de aprendizaje mutuo, respeto y bienestar compartido.',
     tag: 'Inclusión',
     emoji: '👨‍👩‍👧‍👦',
-    tagStyle: 'bg-purple-100 text-purple-700 border-purple-200',
+    tagStyle: 'bg-brand-purple/15 text-brand-purple border-brand-purple/20',
     donateAmount: 50,
     donateLabel: 'Apoyar la inclusión',
   },
@@ -97,7 +97,7 @@ export default function ProgramasPage() {
       <section className="hero-bg py-20 md:py-28">
         <div className="container-page text-center max-w-4xl mx-auto">
           <span className="inline-block px-4 py-1.5 rounded-full bg-brand-gold/15 text-brand-gold font-semibold text-sm mb-6 border border-brand-gold/20">
-            5 ejes de acción · 8 programas activos
+            6 ejes de acción · 8 programas activos
           </span>
           <h1 className="text-4xl md:text-6xl font-display font-bold text-brand-navy leading-tight">
             Programas que
