@@ -14,7 +14,6 @@ const PARTNERS = [
     photoAlt: 'Estudiantes en clases en Atlas Centro de Estudios',
     bg: 'from-[#1e3a8a] to-[#1e3a6d]',
     accent: '#d4a017',
-    url: 'https://atlas-sistema.onrender.com',
   },
   {
     name: 'CAPSA Consultoría',
@@ -25,7 +24,6 @@ const PARTNERS = [
     photoAlt: 'Equipo de consultoría CAPSA en reunión profesional',
     bg: 'from-[#1a1a1a] to-[#2d2d2d]',
     accent: '#f59e0b',
-    url: 'https://jomap-sistema.onrender.com',
   },
   {
     name: 'CMAJ Asociados',
@@ -36,7 +34,6 @@ const PARTNERS = [
     photoAlt: 'Asesor tributario trabajando con cliente en CMAJ Asociados',
     bg: 'from-[#1e2d40] to-[#2d3e56]',
     accent: '#c9a84c',
-    url: 'https://jomap-sistema.onrender.com',
   },
 ];
 
@@ -81,11 +78,9 @@ export function AliadosPreview() {
 
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           {PARTNERS.map((p, i) => (
-            <a
+            <Link
               key={p.name}
-              href={p.url}
-              target="_blank"
-              rel="noreferrer noopener"
+              href="/aliados"
               className="group block rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all hover:-translate-y-2 duration-300"
               style={{
                 opacity: visible ? 1 : 0,
@@ -138,7 +133,7 @@ export function AliadosPreview() {
                   </svg>
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
 

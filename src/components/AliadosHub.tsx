@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 
 /* ── SOCIAL ICONS ── */
@@ -53,39 +52,6 @@ const SOCIAL_ICONS = {
 type SocialKey = keyof typeof SOCIAL_ICONS;
 type Social = { name: string; url: string; icon: SocialKey };
 
-/* ── PLATFORM LINKS (expandable at top) ── */
-
-const PLATFORMS = [
-  {
-    name: 'Sistema Atlas',
-    label: 'Atlas Centro de Estudios',
-    url: 'https://atlas-sistema.onrender.com',
-    logo: '/logos/atlas.png',
-    desc: 'Educación · Psicología · Nivelación académica',
-  },
-  {
-    name: 'Portal JOMAP',
-    label: 'CAPSA Consultoría',
-    url: 'https://jomap-sistema.onrender.com',
-    logo: '/logos/capsa.png',
-    desc: 'Capacitaciones · Tributos · Consultoría institucional',
-  },
-  {
-    name: 'Tributos Web',
-    label: 'Tributos Web',
-    url: 'https://tributos-web.onrender.com',
-    logo: '/logos/cmaj.png',
-    desc: 'Declaraciones · Gestión SRI · 100% online',
-  },
-  {
-    name: 'Calendarios MAP',
-    label: 'Calendarios MAP',
-    url: 'https://calendarios-map.onrender.com',
-    logo: '/logos/capsa.png',
-    desc: 'Agendas · Citas · Coordinación de equipos',
-  },
-];
-
 /* ── COMPANY CARDS ── */
 
 type Company = {
@@ -97,8 +63,8 @@ type Company = {
   bgFrom: string;
   bgTo: string;
   accent: string;
-  url: string;
-  platformLabel: string;
+  url?: string;
+  platformLabel?: string;
   contact: { label: string; value: string; href: string }[];
   socials: Social[];
 };
@@ -114,8 +80,6 @@ const COMPANIES: Company[] = [
     bgFrom: '#1e3a8a',
     bgTo: '#1e3a6d',
     accent: '#d4a017',
-    url: 'https://atlas-sistema.onrender.com',
-    platformLabel: 'Acceder a Sistema Atlas',
     contact: [
       { label: 'Email', value: 'atlas.cenest@gmail.com', href: 'mailto:atlas.cenest@gmail.com' },
       { label: 'WhatsApp', value: '+593 99 094 8817', href: 'https://wa.me/593990948817' },
@@ -137,8 +101,6 @@ const COMPANIES: Company[] = [
     bgFrom: '#1a1a1a',
     bgTo: '#2d2d2d',
     accent: '#f59e0b',
-    url: 'https://jomap-sistema.onrender.com',
-    platformLabel: 'Acceder a Portal JOMAP',
     contact: [
       { label: 'Web', value: 'capsaconsultores.info', href: 'https://capsaconsultores.info/' },
       { label: 'WhatsApp', value: 'Escribir ahora', href: 'https://api.whatsapp.com/message/TJEMWHICDY2CP1?autoload=1&app_absent=0' },
@@ -162,8 +124,6 @@ const COMPANIES: Company[] = [
     bgFrom: '#1e2d40',
     bgTo: '#2d3e56',
     accent: '#c9a84c',
-    url: 'https://jomap-sistema.onrender.com',
-    platformLabel: 'Acceder a Portal JOMAP',
     contact: [
       { label: 'Email', value: 'jomapconsultores@outlook.com', href: 'mailto:jomapconsultores@outlook.com' },
       { label: 'WhatsApp', value: '+593 96 351 1411', href: 'https://wa.me/593963511411' },
@@ -205,8 +165,6 @@ const COMPANIES: Company[] = [
     bgFrom: '#064e3b',
     bgTo: '#065f46',
     accent: '#34d399',
-    url: 'https://tributos-web.onrender.com',
-    platformLabel: 'Ir a Tributos Web',
     contact: [
       { label: 'Email', value: 'jomapconsultores@gmail.com', href: 'mailto:jomapconsultores@gmail.com' },
       { label: 'WhatsApp', value: '+593 96 351 1411', href: 'https://wa.me/593963511411' },
@@ -226,7 +184,7 @@ const COMPANIES: Company[] = [
     bgFrom: '#312e81',
     bgTo: '#4338ca',
     accent: '#a5b4fc',
-    url: 'https://calendarios-map.onrender.com',
+    url: 'https://calendario.pensamiento-libre.org',
     platformLabel: 'Ir a Calendarios MAP',
     contact: [
       { label: 'Email', value: 'jomapconsultores@gmail.com', href: 'mailto:jomapconsultores@gmail.com' },
@@ -238,76 +196,6 @@ const COMPANIES: Company[] = [
     ],
   },
 ];
-
-/* ── EXPANDABLE PLATFORMS BAR ── */
-
-function PlatformsBar() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="bg-brand-navy/5 border-b border-brand-navy/10">
-      <div className="container-page">
-        <button
-          onClick={() => setOpen(!open)}
-          className="w-full flex items-center justify-between py-4 text-left"
-        >
-          <div className="flex items-center gap-3">
-            <span className="w-8 h-8 rounded-full bg-brand-gold/15 flex items-center justify-center text-sm">🌐</span>
-            <span className="font-bold text-brand-navy text-sm">Plataformas en línea</span>
-            <span className="text-xs text-brand-navy/50 hidden sm:inline">— Accede directamente a nuestros sistemas digitales</span>
-          </div>
-          <svg
-            className={`w-5 h-5 text-brand-navy/60 transition-transform ${open ? 'rotate-180' : ''}`}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {open && (
-          <div className="pb-6 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {PLATFORMS.map((p) => (
-              <a
-                key={p.name}
-                href={p.url}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group flex items-center gap-3 p-4 rounded-xl border border-brand-navy/10 bg-white hover:shadow-md hover:-translate-y-0.5 transition-all"
-              >
-                <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white shadow p-1.5">
-                  <Image
-                    src={p.logo}
-                    alt={p.label}
-                    width={80}
-                    height={80}
-                    quality={90}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-brand-navy text-sm truncate">{p.label}</p>
-                  <p className="text-xs text-brand-navy/50 truncate">{p.desc}</p>
-                </div>
-                <svg
-                  className="w-4 h-4 text-brand-navy/30 group-hover:text-brand-gold flex-shrink-0 transition-colors ml-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                </svg>
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 /* ── COMPANY CARD ── */
 
@@ -387,19 +275,21 @@ function CompanyCard({ company }: { company: Company }) {
           </div>
         )}
 
-        {/* Visit CTA */}
-        <a
-          href={company.url}
-          target={company.url.startsWith('http') ? '_blank' : undefined}
-          rel={company.url.startsWith('http') ? 'noreferrer noopener' : undefined}
-          className="mt-auto flex items-center justify-center gap-2 py-3 rounded-full font-bold text-sm transition-all hover:scale-[1.02] hover:shadow-md active:scale-95"
-          style={{ background: company.accent, color: '#111' }}
-        >
-          <span>{company.platformLabel}</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
+        {/* Visit CTA — solo si la empresa tiene una plataforma en línea activa */}
+        {company.url && company.platformLabel && (
+          <a
+            href={company.url}
+            target={company.url.startsWith('http') ? '_blank' : undefined}
+            rel={company.url.startsWith('http') ? 'noreferrer noopener' : undefined}
+            className="mt-auto flex items-center justify-center gap-2 py-3 rounded-full font-bold text-sm transition-all hover:scale-[1.02] hover:shadow-md active:scale-95"
+            style={{ background: company.accent, color: '#111' }}
+          >
+            <span>{company.platformLabel}</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        )}
       </div>
     </article>
   );
@@ -410,9 +300,6 @@ function CompanyCard({ company }: { company: Company }) {
 export function AliadosHub() {
   return (
     <div>
-      {/* Expandable platforms bar — at the TOP */}
-      <PlatformsBar />
-
       {/* Company cards grid */}
       <section className="py-20 bg-white" id="ecosystem">
         <div className="container-page">

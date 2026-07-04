@@ -4,12 +4,9 @@ import { FooterContact } from './FooterContact';
 import { NewsletterForm } from './NewsletterForm';
 
 const PARTNER_LINKS: { label: string; href: string; internal?: boolean }[] = [
-  { label: 'Atlas Centro de Estudios', href: 'https://atlas-sistema.onrender.com' },
-  { label: 'CAPSA Consultoría', href: 'https://jomap-sistema.onrender.com' },
   { label: 'CMAJ Asociados', href: '/cmaj', internal: true },
   { label: 'Golden Gate English Center', href: '/golden-gate', internal: true },
-  { label: 'Tributos Web', href: 'https://tributos-web.onrender.com' },
-  { label: 'Calendarios MAP', href: 'https://calendarios-map.onrender.com' },
+  { label: 'Calendarios MAP', href: 'https://calendario.pensamiento-libre.org' },
 ];
 
 export function Footer() {
