@@ -14,9 +14,20 @@ export function formatDate(value?: string | null) {
   });
 }
 
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
+
+function getMoneyFormatter(currency: string) {
+  let formatter = moneyFormatters.get(currency);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('es-EC', {
+      style: 'currency',
+      currency,
+    });
+    moneyFormatters.set(currency, formatter);
+  }
+  return formatter;
+}
+
 export function formatMoney(cents: number, currency = 'usd') {
-  return new Intl.NumberFormat('es-EC', {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-  }).format(cents / 100);
+  return getMoneyFormatter(currency.toUpperCase()).format(cents / 100);
 }
