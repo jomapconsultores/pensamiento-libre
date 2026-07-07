@@ -22,7 +22,6 @@ export function getStripe(): Stripe {
 }
 
 export const STRIPE_CONFIG = {
-  donationPriceId: process.env.STRIPE_DONATION_PRICE_ID,
   membershipBasicPriceId: process.env.STRIPE_MEMBERSHIP_BASIC_PRICE_ID,
   membershipPremiumPriceId: process.env.STRIPE_MEMBERSHIP_PREMIUM_PRICE_ID,
   serviceTallerPriceId: process.env.STRIPE_SERVICE_TALLER_PRICE_ID,

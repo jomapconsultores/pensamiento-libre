@@ -11,7 +11,6 @@
     "stripe:setup": "node scripts/setup-stripe.mjs"
   },
   "dependencies": {
-    "@stripe/stripe-js": "^4.9.0",
     "@supabase/supabase-js": "^2.107.0",
     "next": "14.2.15",
     "postgres": "^3.4.9",
@@ -28,7 +27,6 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.15",
-    "playwright": "^1.60.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.6.2"
