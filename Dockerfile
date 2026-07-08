@@ -42,7 +42,7 @@ COPY --from=builder /app/next.config.mjs ./next.config.mjs
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -f http://127.0.0.1:${PORT:-3000}/ || exit 1
+    CMD curl -f http://127.0.0.1:${PORT:-3000}/api/health || exit 1
 
 # Se invoca next directamente para honrar $PORT.
 CMD ["sh", "-c", "node_modules/.bin/next start -p ${PORT:-3000}"]
