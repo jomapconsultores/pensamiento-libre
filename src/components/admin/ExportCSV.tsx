@@ -8,7 +8,9 @@ interface ExportCSVProps {
 
 function escapeCSV(value: unknown): string {
   if (value === null || value === undefined) return '';
-  const s = String(value);
+  let s = String(value);
+  // Neutralizar inyección de fórmulas (Excel/LibreOffice) desde entrada pública
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   if (/[",\n\r;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
