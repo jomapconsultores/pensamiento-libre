@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe } from '@/lib/stripe';
+import { getStripe, STRIPE_CONFIG } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase';
 import { sendNotification, donationNotificationHtml } from '@/lib/email';
 import type Stripe from 'stripe';
@@ -28,7 +28,10 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
       donor_email: donorEmail,
       recurring,
     });
-    if (error) console.error('[Webhook] Error insert donation:', error);
+    if (error) {
+      console.error('[Webhook] Error insert donation:', error);
+      throw new Error(`donation insert failed: ${error.message}`);
+    }
 
     void sendNotification({
       subject: `[Pensamiento Libre] Nueva donación${recurring ? ' mensual' : ''}`,
@@ -52,7 +55,10 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
       status: session.payment_status ?? 'unknown',
       metadata: session.metadata ?? {},
     });
-    if (error) console.error('[Webhook] Error insert service payment:', error);
+    if (error) {
+      console.error('[Webhook] Error insert service payment:', error);
+      throw new Error(`service payment insert failed: ${error.message}`);
+    }
   } else if (kind === 'membership') {
     // Las membresías se sincronizan principalmente por evento de subscription
     // pero registramos el inicio aquí
@@ -66,29 +72,51 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
       },
       { onConflict: 'stripe_subscription_id' }
     );
-    if (error) console.error('[Webhook] Error upsert membership:', error);
+    if (error) {
+      console.error('[Webhook] Error upsert membership:', error);
+      throw new Error(`membership upsert failed: ${error.message}`);
+    }
   }
 }
 
 async function syncSubscription(sub: Stripe.Subscription) {
   const supa = supabaseAdmin();
-  const tier = (sub.metadata?.tier ?? sub.items.data[0]?.price.nickname ?? 'basic').toString();
+
+  // Derivar el tier a partir del price/product de la suscripción.
+  // Si no se puede determinar, dejamos `tier` sin definir para conservar
+  // el valor existente en la fila (no degradar premium -> basic por defecto).
+  const priceId = sub.items.data[0]?.price.id;
+  let tier: string | undefined;
+  if (priceId && priceId === STRIPE_CONFIG.membershipPremiumPriceId) {
+    tier = 'premium';
+  } else if (priceId && priceId === STRIPE_CONFIG.membershipBasicPriceId) {
+    tier = 'basic';
+  } else if (sub.metadata?.tier) {
+    tier = sub.metadata.tier.toString();
+  }
+
   const periodEnd = sub.current_period_end
     ? new Date(sub.current_period_end * 1000).toISOString()
     : null;
 
-  const { error } = await supa.from('memberships').upsert(
-    {
-      stripe_subscription_id: sub.id,
-      stripe_customer_id: (sub.customer as string) ?? '',
-      tier,
-      status: sub.status,
-      current_period_end: periodEnd,
-    },
-    { onConflict: 'stripe_subscription_id' }
-  );
+  const payload: Record<string, unknown> = {
+    stripe_subscription_id: sub.id,
+    stripe_customer_id: (sub.customer as string) ?? '',
+    status: sub.status,
+    current_period_end: periodEnd,
+  };
+  // Solo escribimos `tier` cuando pudimos determinarlo; de lo contrario
+  // el upsert conserva el tier ya guardado.
+  if (tier) payload.tier = tier;
 
-  if (error) console.error('[Webhook] Error sync subscription:', error);
+  const { error } = await supa
+    .from('memberships')
+    .upsert(payload, { onConflict: 'stripe_subscription_id' });
+
+  if (error) {
+    console.error('[Webhook] Error sync subscription:', error);
+    throw new Error(`subscription sync failed: ${error.message}`);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -123,7 +151,10 @@ export async function POST(req: NextRequest) {
         console.log('[Webhook] Evento sin manejar:', event.type);
     }
   } catch (err) {
+    // Una persistencia necesaria falló: respondemos non-2xx para que Stripe
+    // REINTENTE el evento en lugar de descartarlo como procesado.
     console.error('[Webhook] Error procesando evento:', err);
+    return new Response('Error procesando webhook', { status: 500 });
   }
 
   return NextResponse.json({ received: true });
