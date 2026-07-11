@@ -111,10 +111,10 @@ export default function SobreNosotrosPage() {
             Misión institucional
           </span>
           <blockquote className="text-xl md:text-2xl font-display leading-relaxed text-white/90">
-            "Promover el desarrollo humano integral a lo largo de todo el ciclo vital
+            &ldquo;Promover el desarrollo humano integral a lo largo de todo el ciclo vital
             — niños, adolescentes, adultos y adultos mayores — mediante la gestión de
             servicios de excelencia en educación, capacitación, salud mental y cultura
-            física, utilizando metodologías presenciales y virtuales."
+            física, utilizando metodologías presenciales y virtuales.&rdquo;
           </blockquote>
           <p className="mt-4 text-white/50 text-sm">Art. 4 — Estatuto de la Fundación Pensamiento Libre</p>
         </div>
