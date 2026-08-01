@@ -1,10 +1,14 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import { requireAdminUser } from '@/lib/adminAuth';
 import { EmptyState, formatDate } from '@/components/admin/DataTable';
 import { ExportCSV } from '@/components/admin/ExportCSV';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminMembershipsPage() {
+  // Exige sesion y bloquea a quien arrastra una clave temporal sin cambiar.
+  await requireAdminUser();
+
   const { data, error } = await supabaseAdmin()
     .from('memberships')
     .select('*')

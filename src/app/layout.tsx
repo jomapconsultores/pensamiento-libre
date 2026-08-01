@@ -1,4 +1,7 @@
-import type { Metadata } from 'next';
+/* ------------------------------------------------------------
+ * Desarrollado por Marco Antonio Posligua San Martín
+ * ------------------------------------------------------------ */
+import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
@@ -53,8 +56,24 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: '/logo.png',
-    apple: '/logo.png',
+    // iOS recorta el icono a un cuadrado con esquinas redondeadas: se le
+    // entrega uno ya cuadrado (180×180) en vez del logotipo original.
+    apple: '/apple-touch-icon.png',
   },
+  // Instalable desde el navegador del teléfono (Android e iPhone), sin tiendas.
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: 'Pensamiento Libre',
+    statusBarStyle: 'default',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#12263f',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -65,6 +84,17 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${playfair.variable}`}>
       <body className="min-h-screen flex flex-col font-sans antialiased">
+        {/* Registra el service worker: es lo que hace la web instalable y le da
+            una pantalla propia sin conexión. Ver public/sw.js. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+              });
+            }`,
+          }}
+        />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

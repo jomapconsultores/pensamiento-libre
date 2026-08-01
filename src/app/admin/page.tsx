@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '@/lib/supabase';
+import { requireAdminUser } from '@/lib/adminAuth';
 import { StatCard } from '@/components/admin/StatCard';
 import { formatDate, formatMoney } from '@/components/admin/DataTable';
 import Link from 'next/link';
@@ -51,6 +52,8 @@ async function loadStats() {
 }
 
 export default async function AdminHomePage() {
+  // Exige sesión y bloquea a quien arrastra una clave temporal sin cambiar.
+  await requireAdminUser();
   const { counts, recent } = await loadStats();
 
   return (

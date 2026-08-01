@@ -1,0 +1,24 @@
+{
+  "name": "Fundación Pensamiento Libre",
+  "short_name": "Pensamiento",
+  "description": "Sitio y panel administrativo de la Fundación Pensamiento Libre.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#12263f",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["education", "nonprofit"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Panel administrativo", "short_name": "Panel", "url": "/admin" },
+    { "name": "Donar", "short_name": "Donar", "url": "/donar" }
+  ]
+}
