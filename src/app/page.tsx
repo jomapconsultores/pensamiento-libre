@@ -1,3 +1,6 @@
+/* ------------------------------------------------------------
+ * Desarrollado por Marco Antonio Posligua San Martín
+ * ------------------------------------------------------------ */
 import { Hero } from '@/components/Hero';
 import { MissionVision } from '@/components/MissionVision';
 import { Programs } from '@/components/Programs';

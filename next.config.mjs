@@ -1,3 +1,6 @@
+/* ------------------------------------------------------------
+ * Desarrollado por Marco Antonio Posligua San Martín
+ * ------------------------------------------------------------ */
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

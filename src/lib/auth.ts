@@ -13,8 +13,11 @@ const te = new TextEncoder();
 const td = new TextDecoder();
 
 export const SESSION_COOKIE = 'pl_admin';
-export const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hora sin actividad
-export const SESSION_MAX_AGE_SECONDS = 60 * 60;
+// Cierre por inactividad: 20 minutos, igual que en el resto de los sistemas.
+// El middleware reemite el token en cada navegación, así que el plazo es
+// deslizante y solo corre cuando de verdad nadie está usando el panel.
+export const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
+export const SESSION_MAX_AGE_SECONDS = 20 * 60;
 
 /** Longitud mínima al DEFINIR una clave nueva. */
 export const MIN_PASSWORD = 8;

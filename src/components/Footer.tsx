@@ -1,3 +1,6 @@
+/* ------------------------------------------------------------
+ * Desarrollado por Marco Antonio Posligua San Martín
+ * ------------------------------------------------------------ */
 import Link from 'next/link';
 import { SocialLinks } from './SocialLinks';
 import { FooterContact } from './FooterContact';
@@ -151,7 +154,11 @@ export function Footer() {
 
       <div className="border-t border-white/10">
         <div className="container-page py-6 flex flex-col md:flex-row items-center justify-between gap-2 text-sm text-white/60">
-          <p>© {new Date().getFullYear()} Fundación Pensamiento Libre. Todos los derechos reservados.</p>
+          <p>
+            © {new Date().getFullYear()} Fundación Pensamiento Libre. Todos los derechos reservados.
+            <span className="mx-2 text-white/30">·</span>
+            <span className="text-white/40">Desarrollado por Marco Antonio Posligua San Martín</span>
+          </p>
           <p>
             <Link
               href="/politica-privacidad"
