@@ -1,18 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+const POLITICA_VERSION = 'pl-2026-08';
+const UTM_STORE = 'pl_utm_first_touch';
+const UTM_KEYS = [
+  'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+  'gclid', 'fbclid', 'ttclid', 'msclkid',
+];
+
+const CONSENT_TEXTO =
+  'Autorizo a Pensamiento Libre a contactarme para dar seguimiento a esta consulta. ' +
+  'Puedo pedir la baja en cualquier momento.';
+
+/** Lee la atribución guardada en el primer aterrizaje. */
+function leerUtm(): Record<string, string> {
+  try {
+    return JSON.parse(sessionStorage.getItem(UTM_STORE) || '{}');
+  } catch {
+    return {};
+  }
+}
 
 export function ContactForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Atribución first-touch: se guarda al aterrizar y sobrevive a la navegación
+  // interna. Sin esto no hay forma de saber qué campaña trajo a cada persona.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(UTM_STORE)) return;
+      const params = new URLSearchParams(window.location.search);
+      const found: Record<string, string> = {};
+      for (const k of UTM_KEYS) {
+        const v = params.get(k);
+        if (v) found[k] = v.slice(0, 200);
+      }
+      if (document.referrer) found.referrer = document.referrer.slice(0, 200);
+      if (Object.keys(found).length) sessionStorage.setItem(UTM_STORE, JSON.stringify(found));
+    } catch {}
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus('loading');
     setErrorMsg('');
 
-    const formData = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(formData.entries());
+    // Se guarda la referencia antes del await: React reutiliza el evento y
+    // `currentTarget` queda en null cuando vuelve la petición.
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const entries = Object.fromEntries(formData.entries());
+    const payload = {
+      ...entries,
+      consent: formData.get('consent') === 'on',
+      consent_text: CONSENT_TEXTO,
+      policy_version: POLITICA_VERSION,
+      utm: leerUtm(),
+    };
 
     try {
       const res = await fetch('/api/contact', {
@@ -23,7 +69,7 @@ export function ContactForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'No se pudo enviar el mensaje.');
       setStatus('success');
-      e.currentTarget.reset();
+      form.reset();
     } catch (err) {
       setStatus('error');
       setErrorMsg(err instanceof Error ? err.message : 'Error desconocido.');
@@ -79,6 +125,20 @@ export function ContactForm() {
       </div>
 
       <div>
+        <label htmlFor="phone" className="block text-sm font-semibold text-brand-navy mb-2">
+          WhatsApp / Teléfono
+        </label>
+        <input
+          id="phone"
+          name="phone"
+          type="tel"
+          autoComplete="tel"
+          placeholder="099 999 9999"
+          className="w-full px-4 py-3 rounded-xl border border-brand-navy/15 focus:outline-none focus:ring-2 focus:ring-brand-gold/40"
+        />
+      </div>
+
+      <div>
         <label htmlFor="topic" className="block text-sm font-semibold text-brand-navy mb-2">
           Asunto
         </label>
@@ -107,6 +167,15 @@ export function ContactForm() {
           className="w-full px-4 py-3 rounded-xl border border-brand-navy/15 focus:outline-none focus:ring-2 focus:ring-brand-gold/40 resize-none"
         />
       </div>
+
+      <label className="flex items-start gap-3 text-sm text-brand-navy/75 leading-relaxed cursor-pointer">
+        <input
+          type="checkbox"
+          name="consent"
+          className="mt-1 w-4 h-4 shrink-0 accent-brand-gold cursor-pointer"
+        />
+        <span>{CONSENT_TEXTO}</span>
+      </label>
 
       {status === 'error' && (
         <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{errorMsg}</p>

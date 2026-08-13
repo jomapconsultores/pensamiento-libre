@@ -5,12 +5,48 @@ import { sendNotification, contactNotificationHtml } from '@/lib/email';
 interface ContactPayload {
   name?: string;
   email?: string;
+  phone?: string;
   topic?: string;
   message?: string;
+  consent?: boolean;
+  consent_text?: string;
+  policy_version?: string;
+  utm?: Record<string, string>;
 }
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+const CAPTURE_URL = process.env.MARKETING_CAPTURE_URL;
+
+/**
+ * Entrega el contacto al CRM de marketing para clasificarlo y darle seguimiento.
+ *
+ * Solo se envía si la persona autorizó explícitamente el contacto comercial:
+ * responder una consulta y hacer seguimiento son finalidades distintas, y sin
+ * ese permiso el lead no sale de aquí. Es no bloqueante a propósito — si el CRM
+ * está caído, el mensaje ya quedó guardado y notificado.
+ */
+async function enviarAlCrm(lead: ContactPayload & { topic: string }) {
+  if (!CAPTURE_URL || lead.consent !== true) return;
+  const res = await fetch(CAPTURE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      message: lead.message,
+      interested_product: lead.topic,
+      consent: true,
+      consent_text: lead.consent_text,
+      policy_version: lead.policy_version,
+      utm: lead.utm,
+    }),
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`CRM respondió ${res.status}`);
 }
 
 export async function POST(req: NextRequest) {
@@ -18,6 +54,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as ContactPayload;
     const name = body.name?.trim();
     const email = body.email?.trim();
+    const phone = body.phone?.trim();
     const topic = body.topic?.trim() || 'general';
     const message = body.message?.trim();
 
@@ -54,6 +91,19 @@ export async function POST(req: NextRequest) {
       html: contactNotificationHtml({ name, email, topic, message }),
       replyTo: email,
     });
+
+    // Entrega al CRM (no bloqueante, solo con autorización explícita)
+    void enviarAlCrm({
+      name,
+      email,
+      phone,
+      topic,
+      message,
+      consent: body.consent === true,
+      consent_text: body.consent_text,
+      policy_version: body.policy_version,
+      utm: body.utm,
+    }).catch((err) => console.error('[Contact] No se pudo entregar el lead al CRM:', err));
 
     return NextResponse.json({ ok: true });
   } catch (err) {
