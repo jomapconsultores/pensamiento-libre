@@ -7,6 +7,14 @@ import type Stripe from 'stripe';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/** Stripe reenvía el mismo evento ante cualquier 5xx o corte de red. Si la
+ * sesión ya está guardada, el alta choca con la clave única y ese choque NO es
+ * un fallo: el trabajo ya estaba hecho. Tratarlo como error devolvía 500 y
+ * dejaba a Stripe reintentando un cobro ya registrado. */
+function esDuplicado(error: { code?: string } | null): boolean {
+  return error?.code === '23505';
+}
+
 async function persistCheckoutSession(session: Stripe.Checkout.Session) {
   const supa = supabaseAdmin();
   const kind = (session.metadata?.kind ?? '').toString();
@@ -28,6 +36,10 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
       donor_email: donorEmail,
       recurring,
     });
+    if (error && esDuplicado(error)) {
+      console.log('[Webhook] Donación ya registrada, se ignora el reenvío:', session.id);
+      return;
+    }
     if (error) {
       console.error('[Webhook] Error insert donation:', error);
       throw new Error(`donation insert failed: ${error.message}`);
@@ -55,6 +67,10 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
       status: session.payment_status ?? 'unknown',
       metadata: session.metadata ?? {},
     });
+    if (error && esDuplicado(error)) {
+      console.log('[Webhook] Pago de servicio ya registrado, se ignora el reenvío:', session.id);
+      return;
+    }
     if (error) {
       console.error('[Webhook] Error insert service payment:', error);
       throw new Error(`service payment insert failed: ${error.message}`);
@@ -82,6 +98,15 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
 async function syncSubscription(sub: Stripe.Subscription) {
   const supa = supabaseAdmin();
 
+  // Una donación mensual también es una suscripción en Stripe, pero NO es una
+  // membresía: no tiene plan. Guardarla aquí obligaba a inventarle un tier, y
+  // como la columna no admite vacío el webhook devolvía 500 en cada intento.
+  // Stripe reintenta tres días y acaba deshabilitando el endpoint, así que un
+  // solo donante mensual dejaba el sistema sin recibir NINGÚN evento.
+  if ((sub.metadata?.kind ?? '').toString() === 'donation') {
+    return;
+  }
+
   // Derivar el tier a partir del price/product de la suscripción.
   // Si no se puede determinar, dejamos `tier` sin definir para conservar
   // el valor existente en la fila (no degradar premium -> basic por defecto).
@@ -107,7 +132,23 @@ async function syncSubscription(sub: Stripe.Subscription) {
   };
   // Solo escribimos `tier` cuando pudimos determinarlo; de lo contrario
   // el upsert conserva el tier ya guardado.
-  if (tier) payload.tier = tier;
+  if (tier) {
+    payload.tier = tier;
+  } else {
+    // Sin tier y sin fila previa, el upsert sería un alta con `tier` vacío y la
+    // columna no lo admite: el webhook fallaría en bucle. Se comprueba si ya
+    // existe la fila y, si no, se entra por el plan mínimo — se puede corregir
+    // a mano, mientras que un endpoint deshabilitado por Stripe no.
+    const { data: previa } = await supa
+      .from('memberships')
+      .select('tier')
+      .eq('stripe_subscription_id', sub.id)
+      .maybeSingle();
+    if (!previa) {
+      console.warn('[Webhook] Suscripción sin tier reconocible:', sub.id, '→ basic');
+      payload.tier = 'basic';
+    }
+  }
 
   const { error } = await supa
     .from('memberships')

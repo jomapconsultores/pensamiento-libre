@@ -40,6 +40,12 @@ export async function POST(req: NextRequest) {
           },
         ],
         metadata: { kind: 'donation', recurring: String(body.recurring) },
+        // La suscripción que nace de una donación mensual lleva SUS PROPIAS
+        // metadata: las de la sesión no se copian, y sin esto los eventos
+        // `customer.subscription.*` llegan sin saber de qué son.
+        ...(body.recurring && {
+          subscription_data: { metadata: { kind: 'donation', recurring: 'true' } },
+        }),
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
@@ -62,6 +68,9 @@ export async function POST(req: NextRequest) {
         customer_email: body.donorEmail,
         line_items: [{ price: priceId, quantity: 1 }],
         metadata: { kind: 'membership', tier: body.tier },
+        // El plan viaja también en la suscripción: es lo único que llega en
+        // los eventos posteriores (renovación, cancelación) para saber el tier.
+        subscription_data: { metadata: { kind: 'membership', tier: body.tier } },
         success_url: successUrl,
         cancel_url: cancelUrl,
       });
