@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email inválido.' }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin()
+    const { error } = await baseDatos()
       .from('newsletter_subscribers')
       .upsert({ email, source }, { onConflict: 'email', ignoreDuplicates: true });
 

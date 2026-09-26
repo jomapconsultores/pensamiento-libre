@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, STRIPE_CONFIG } from '@/lib/stripe';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { sendNotification, donationNotificationHtml } from '@/lib/email';
 import type Stripe from 'stripe';
 
@@ -16,7 +16,7 @@ function esDuplicado(error: { code?: string } | null): boolean {
 }
 
 async function persistCheckoutSession(session: Stripe.Checkout.Session) {
-  const supa = supabaseAdmin();
+  const supa = baseDatos();
   const kind = (session.metadata?.kind ?? '').toString();
 
   const baseFields = {
@@ -96,7 +96,7 @@ async function persistCheckoutSession(session: Stripe.Checkout.Session) {
 }
 
 async function syncSubscription(sub: Stripe.Subscription) {
-  const supa = supabaseAdmin();
+  const supa = baseDatos();
 
   // Una donación mensual también es una suscripción en Stripe, pero NO es una
   // membresía: no tiene plan. Guardarla aquí obligaba a inventarle un tier, y

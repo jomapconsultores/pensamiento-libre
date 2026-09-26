@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { sendNotification, contactNotificationHtml } from '@/lib/email';
 
 interface ContactPayload {
@@ -76,12 +76,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { error } = await supabaseAdmin()
+    const { error } = await baseDatos()
       .from('contact_messages')
       .insert({ name, email, topic, message });
 
     if (error) {
-      console.error('[Contact] Error guardando en Supabase:', error);
+      console.error('[Contact] Error guardando en la base:', error);
       return NextResponse.json({ error: 'No se pudo guardar el mensaje.' }, { status: 500 });
     }
 

@@ -2,7 +2,7 @@
  * Desarrollado por Marco Antonio Posligua San Martín
  * ------------------------------------------------------------ */
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { requireAdminRole } from '@/lib/adminAuth';
 import { cambiarRol, toggleUsuario } from './actions';
 import { NuevoUsuarioForm, ResetPasswordButton } from './UsuarioAcciones';
@@ -30,7 +30,7 @@ const ROL_LABEL: Record<string, string> = {
 export default async function UsuariosPage() {
   const me = await requireAdminRole();
 
-  const { data } = await supabaseAdmin()
+  const { data } = await baseDatos()
     .from('admin_users')
     .select('id, email, full_name, phone, position, role, is_active, must_change_password, last_login_at')
     .order('full_name', { ascending: true });

@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { requireAdminUser } from '@/lib/adminAuth';
 import { EmptyState, formatDate, formatMoney } from '@/components/admin/DataTable';
 import { ExportCSV } from '@/components/admin/ExportCSV';
@@ -9,7 +9,7 @@ export default async function AdminServicesPage() {
   // Exige sesion y bloquea a quien arrastra una clave temporal sin cambiar.
   await requireAdminUser();
 
-  const { data, error } = await supabaseAdmin()
+  const { data, error } = await baseDatos()
     .from('service_payments')
     .select('*')
     .order('created_at', { ascending: false });

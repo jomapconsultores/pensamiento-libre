@@ -1,4 +1,4 @@
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { requireAdminUser } from '@/lib/adminAuth';
 import { StatCard } from '@/components/admin/StatCard';
 import { formatDate, formatMoney } from '@/components/admin/DataTable';
@@ -7,7 +7,7 @@ import Link from 'next/link';
 export const dynamic = 'force-dynamic';
 
 async function loadStats() {
-  const supa = supabaseAdmin();
+  const supa = baseDatos();
 
   const [messages, newsletter, donations, memberships, services] = await Promise.all([
     supa.from('contact_messages').select('id', { count: 'exact', head: true }),
@@ -60,7 +60,7 @@ export default async function AdminHomePage() {
     <div className="space-y-10">
       <header>
         <h1 className="text-3xl font-display font-bold text-brand-navy">Resumen general</h1>
-        <p className="text-brand-navy/60 mt-1">Datos en tiempo real desde Supabase.</p>
+        <p className="text-brand-navy/60 mt-1">Datos en tiempo real desde la base de datos.</p>
       </header>
 
       <section>

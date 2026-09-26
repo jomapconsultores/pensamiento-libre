@@ -14,7 +14,7 @@ const MENSAJES: Record<string, string> = {
   caducada:
     'La clave temporal que te entregó el administrador ya caducó. Pídele que la restablezca nuevamente.',
   config: 'Falta configurar SESSION_SECRET en el entorno.',
-  bd: 'No se pudo crear la cuenta inicial. Revisa la conexión con Supabase.',
+  bd: 'No se pudo crear la cuenta inicial. Revisa la conexión con la base de datos.',
 };
 
 export default async function AdminLoginPage({

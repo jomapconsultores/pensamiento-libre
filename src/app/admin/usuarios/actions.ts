@@ -5,7 +5,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { requireAdminRole } from '@/lib/adminAuth';
 import { generateTempPassword, hashPassword } from '@/lib/auth';
 
@@ -28,7 +28,7 @@ export async function crearUsuario(
   if (!email.includes('@')) return { ok: false, message: 'Correo inválido.' };
   if (!ROLES.has(role)) return { ok: false, message: 'Rol inválido.' };
 
-  const db = supabaseAdmin();
+  const db = baseDatos();
   const { data: existe } = await db.from('admin_users').select('id').eq('email', email).maybeSingle();
   if (existe) return { ok: false, message: 'Ya existe una cuenta con ese correo.' };
 
@@ -59,7 +59,7 @@ export async function resetUserPassword(
   _prev: ResetResult | null,
 ): Promise<ResetResult> {
   const admin = await requireAdminRole();
-  const db = supabaseAdmin();
+  const db = baseDatos();
 
   const { data: target } = await db
     .from('admin_users').select('id, email, full_name').eq('id', targetUserId).maybeSingle();
@@ -96,7 +96,7 @@ export async function resetUserPassword(
 /** Activa o desactiva una cuenta. Nunca deja el panel sin ningún administrador. */
 export async function toggleUsuario(targetUserId: string) {
   await requireAdminRole();
-  const db = supabaseAdmin();
+  const db = baseDatos();
 
   const { data: u } = await db
     .from('admin_users').select('id, role, is_active').eq('id', targetUserId).maybeSingle();
@@ -121,7 +121,7 @@ export async function cambiarRol(targetUserId: string, formData: FormData) {
   const role = String(formData.get('role') ?? '');
   if (!ROLES.has(role)) return;
 
-  const db = supabaseAdmin();
+  const db = baseDatos();
   const { data: u } = await db
     .from('admin_users').select('id, role').eq('id', targetUserId).maybeSingle();
   if (!u) return;

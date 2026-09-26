@@ -9,7 +9,7 @@ import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SESSION_COOKIE, verifySession } from '@/lib/auth';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 
 export type AdminUser = {
   id: string;
@@ -29,7 +29,7 @@ export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
   const session = await verifySession(token, process.env.SESSION_SECRET ?? '');
   if (!session) return null;
 
-  const { data } = await supabaseAdmin()
+  const { data } = await baseDatos()
     .from('admin_users')
     .select('id, email, full_name, phone, position, role, is_active, must_change_password, password_hash, password_updated_at')
     .eq('id', session.uid)
@@ -57,7 +57,7 @@ export async function requireAdminRole(): Promise<AdminUser> {
 /** ¿Todavía no hay ninguna cuenta? Habilita el arranque con la clave del entorno. */
 export async function sinCuentas(): Promise<boolean> {
   try {
-    const { count } = await supabaseAdmin()
+    const { count } = await baseDatos()
       .from('admin_users')
       .select('id', { count: 'exact', head: true });
     return (count ?? 0) === 0;

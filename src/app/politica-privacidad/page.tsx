@@ -58,7 +58,7 @@ export default function PoliticaPrivacidadPage() {
             Trabajamos con proveedores que nos ayudan a operar el sitio:
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-2">
-            <li><strong>Supabase</strong> — almacenamiento seguro de datos.</li>
+            <li><strong>Servidor propio de la fundación</strong> — almacenamiento seguro de datos.</li>
             <li><strong>Stripe</strong> — procesamiento de pagos.</li>
             <li><strong>Resend</strong> — envío de emails transaccionales.</li>
           </ul>

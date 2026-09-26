@@ -7,7 +7,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import { getAdminUser } from '@/lib/adminAuth';
 import {
   MIN_PASSWORD,
@@ -23,7 +23,7 @@ export type ActionResult = { ok: boolean; message: string };
 /** Bitácora de cambios de clave. Nunca guarda la clave, solo el hecho. */
 async function logPassword(userId: string, action: string, executedBy: string | null) {
   try {
-    await supabaseAdmin()
+    await baseDatos()
       .from('admin_password_log')
       .insert({ user_id: userId, action, executed_by: executedBy });
   } catch {
@@ -48,7 +48,7 @@ export async function updateMyProfile(
 
   if (!fullName) return { ok: false, message: 'El nombre no puede quedar vacío.' };
 
-  const db = supabaseAdmin();
+  const db = baseDatos();
   const patch: Record<string, unknown> = { full_name: fullName, phone, position };
 
   if (email && email !== me.email.toLowerCase()) {
@@ -105,7 +105,7 @@ export async function changeMyPassword(
     return { ok: false, message: 'La nueva clave debe ser distinta de la anterior.' };
   }
 
-  const { error } = await supabaseAdmin()
+  const { error } = await baseDatos()
     .from('admin_users')
     .update({
       password_hash: await hashPassword(next),

@@ -6,7 +6,7 @@
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { supabaseAdmin } from '@/lib/supabase';
+import { baseDatos } from '@/lib/db';
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE_SECONDS,
@@ -40,7 +40,7 @@ export async function login(formData: FormData) {
 
   if (!process.env.SESSION_SECRET) redirect('/admin/login?error=config');
 
-  const db = supabaseAdmin();
+  const db = baseDatos();
   const { data: u } = await db
     .from('admin_users')
     .select('id, email, role, is_active, password_hash, must_change_password, temp_password_expires')
