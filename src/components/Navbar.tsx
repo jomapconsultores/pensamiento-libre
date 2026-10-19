@@ -14,6 +14,7 @@ const navItems = [
   { href: '/programas', label: 'Programas' },
   { href: '/servicios', label: 'Servicios' },
   { href: '/aliados', label: 'Aliados' },
+  { href: '/tecnologia', label: 'Tecnología' },
   { href: '/membresias', label: 'Membresías' },
   { href: '/contacto', label: 'Contacto' },
 ];

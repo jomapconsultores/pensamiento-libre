@@ -78,6 +78,11 @@ export function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/tecnologia" className="hover:text-brand-gold-light transition-colors">
+                Tecnología
+              </Link>
+            </li>
+            <li>
               <Link href="/cmaj" className="hover:text-brand-gold-light transition-colors">
                 CMAJ
               </Link>
