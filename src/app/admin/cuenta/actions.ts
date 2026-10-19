@@ -66,7 +66,7 @@ export async function updateMyProfile(
 
   // La sesión lleva el correo firmado: si cambió, hay que reemitir la cookie.
   if (patch.email) {
-    cookies().set(SESSION_COOKIE, await signSession(
+    (await cookies()).set(SESSION_COOKIE, await signSession(
       { uid: me.id, email: String(patch.email), role: me.role }, process.env.SESSION_SECRET ?? '',
     ), {
       httpOnly: true,

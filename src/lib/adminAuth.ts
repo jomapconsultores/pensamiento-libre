@@ -25,7 +25,7 @@ export type AdminUser = {
 };
 
 export const getAdminUser = cache(async (): Promise<AdminUser | null> => {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const session = await verifySession(token, process.env.SESSION_SECRET ?? '');
   if (!session) return null;
 

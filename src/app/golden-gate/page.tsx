@@ -1,17 +1,5 @@
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
-
-const GoldenGatePage = dynamic(
-  () => import('@/components/GoldenGatePage').then((m) => ({ default: m.GoldenGatePage })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-96 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full" />
-      </div>
-    ),
-  }
-);
+import { GoldenGatePageLazy as GoldenGatePage } from '@/components/GoldenGatePageLazy';
 
 export const metadata: Metadata = {
   title: 'Golden Gate English Center — Aprende Inglés en Cuenca | TOEFL · Cambridge',

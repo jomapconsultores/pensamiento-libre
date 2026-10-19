@@ -20,9 +20,10 @@ const MENSAJES: Record<string, string> = {
 export default async function AdminLoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; next?: string };
+  searchParams: Promise<{ error?: string; next?: string }>;
 }) {
-  const error = searchParams.error ? MENSAJES[searchParams.error] ?? 'No se pudo iniciar sesión.' : null;
+  const sp = await searchParams;
+  const error = sp.error ? MENSAJES[sp.error] ?? 'No se pudo iniciar sesión.' : null;
   const primeraVez = await sinCuentas();
 
   return (
@@ -49,7 +50,7 @@ export default async function AdminLoginPage({
         )}
 
         <form action={login} className="space-y-4">
-          <input type="hidden" name="next" value={searchParams.next ?? ''} />
+          <input type="hidden" name="next" value={sp.next ?? ''} />
           <label className="block text-sm font-medium text-brand-navy">
             Correo electrónico
             <input

@@ -22,7 +22,7 @@ function destinoSeguro(next: string | null): string {
 }
 
 async function abrirSesion(u: { id: string; email: string; role: string }, next: string | null) {
-  cookies().set(SESSION_COOKIE, await signSession(
+  (await cookies()).set(SESSION_COOKIE, await signSession(
     { uid: u.id, email: u.email, role: u.role }, process.env.SESSION_SECRET ?? '',
   ), {
     httpOnly: true,
@@ -98,6 +98,6 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  cookies().set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+  (await cookies()).set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
   redirect('/admin/login');
 }
